@@ -363,13 +363,13 @@ function merge(b,s){if(!s||typeof s!=="object")return b;for(const k of Object.ke
 function save(){localStorage.setItem("hw5",JSON.stringify(S))}
 async function persist(){save();if(currentUser)await cloudPush()}
 
-let fbApp=null,fbDb=null,fbAuth=null,fbUnsub=null,syncing=false;
+let fbApp=null,fbDb=null,fbAuth=null,fbUnsub=null,lastPushAt=0;
 async function loadFBSDK(){if(typeof firebase!=="undefined"&&firebase.app)return;const ld=s=>new Promise((r,j)=>{const el=document.createElement("script");el.src=s;el.onload=r;el.onerror=j;document.head.appendChild(el)});await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js");await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js");await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js")}
 function getSavedCfg(){try{return JSON.parse(localStorage.getItem("hw-fb-config")||"")}catch{return null}}
 function saveCfg(c){localStorage.setItem("hw-fb-config",JSON.stringify(c))}
 async function initFB(cfg){await loadFBSDK();if(fbApp)try{fbApp.delete()}catch{};fbApp=firebase.initializeApp(cfg,"hw-"+Date.now());fbAuth=firebase.auth(fbApp);fbDb=firebase.firestore(fbApp)}
-function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists||syncing)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);save();render()}})}
-async function cloudPush(){if(offlineMode||!fbDb||!currentUser)return;try{syncing=true;await fbDb.collection("hw").doc(currentUser.uid).set({state:S,at:new Date().toISOString()},{merge:true})}catch(e){console.error(e)}finally{syncing=false}}
+function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);save();render()}})}
+async function cloudPush(){if(offlineMode||!fbDb||!currentUser)return;try{lastPushAt=Date.now();await fbDb.collection("hw").doc(currentUser.uid).set({state:S,at:new Date().toISOString()},{merge:true})}catch(e){console.error(e)}}
 
 function enterApp(user){currentUser=user;document.getElementById("authScreen").style.display="none";if(!S.profile.onboarded){showOnboarding();return}document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";startSync();render()}
 function enterOffline(){offlineMode=true;document.getElementById("authScreen").style.display="none";if(!S.profile.onboarded){showOnboarding();return}document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";render()}
@@ -614,7 +614,7 @@ function renderLog(){
 function getWkForDate(d){const d0=new Date(S.program.start+"T00:00:00");return clamp(Math.floor((new Date(d+"T12:00:00")-d0)/864e5/7)+1,1,13)}
 function bindLog(){
   const di=document.getElementById("log-date");if(di)di.onchange=()=>{logDate=di.value;render()};
-  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){applyLog({id:crypto.randomUUID(),date:logDate,week:wk,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||""});S.logs.push(S.logs.splice(-1,1)[0]);c++}});S.logs=S.logs.slice(-1000);await persist();render();toast(`${c} exercises logged`)};
+  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const log=applyLog({id:crypto.randomUUID(),date:logDate,week:wk,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||""});S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);await persist();render();toast(`${c} exercises logged`)};
   document.querySelectorAll(".log-del").forEach(b=>b.onclick=async()=>{if(!confirm("Delete logs for "+b.dataset.d+"?"))return;S.logs=S.logs.filter(l=>l.date!==b.dataset.d);await persist();render()});
 }
 
@@ -626,8 +626,11 @@ function renderProgram(){
   return`<div class="section"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="font-size:20px;font-weight:900">13-Week Program</h2><span style="font-size:12px;color:var(--text3)">Weights adapt from your logs</span></div>
     <div class="timeline">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" title="Wk ${w}">${w}</div>`}).join("")}</div></div>
   <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;const wkDays=S.schedule.days||[1,2,3,4,5];
-    return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · DELOAD":""}</span>${w===cur?`<span class="badge badge-fire" style="font-size:9px">CURRENT</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${weekHasLogs(w)?S.logs.filter(l=>l.week===w).length+" logged":"upcoming"}</span></div>
-    <div class="pw-body ${isOpen?"open":""}">${wkDays.concat([6]).map(d=>{const p=dayPlan(d,w);return`<div class="pw-day"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${DAYS[d]}</span> — ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--fire);margin:2px 0 0 16px;font-style:italic">🔥 ${p.finisher}</div></div>`}).join("")}</div></div>`}).join("")}</div>`;
+    const logCount=weekHasLogs(w)?S.logs.filter(l=>l.week===w).length:0;
+    let bodyHTML="";
+    if(isOpen){bodyHTML=wkDays.concat([6]).map(d=>{const p=dayPlan(d,w);return`<div class="pw-day"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${DAYS[d]}</span> — ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--fire);margin:2px 0 0 16px;font-style:italic">🔥 ${p.finisher}</div></div>`}).join("")}
+    return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · DELOAD":""}</span>${w===cur?`<span class="badge badge-fire" style="font-size:9px">CURRENT</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${logCount?logCount+" logged":"upcoming"}</span></div>
+    <div class="pw-body ${isOpen?"open":""}">${bodyHTML}</div></div>`}).join("")}</div>`;
 }
 function bindProgram(){document.querySelectorAll(".tl-wk").forEach(el=>el.onclick=()=>{expandedWeek=+el.dataset.w;render()});document.querySelectorAll(".pw-head").forEach(el=>el.onclick=()=>{const w=+el.dataset.w;expandedWeek=expandedWeek===w?null:w;render()})}
 
@@ -694,7 +697,16 @@ async function getPdf(n,s){await ensurePdf();if(pdfCache.has(n))return pdfCache.
 // ═══════════════════════════════════════════════════════════
 //  MASTER RENDER
 // ═══════════════════════════════════════════════════════════
-function render(){autoWeek();renderNav();const app=document.getElementById("app");const panes={dash:renderDash,today:renderToday,log:renderLog,program:renderProgram,ref:renderRef,settings:renderSettings};app.innerHTML=Object.entries(panes).map(([id,fn])=>`<div class="pane ${tab===id?"show":""}" id="p-${id}">${fn()}</div>`).join("");bindDash();bindToday();bindLog();bindProgram();bindRef();bindSettings()}
+function render(){
+  autoWeek();renderNav();
+  const app=document.getElementById("app");
+  const renderers={dash:renderDash,today:renderToday,log:renderLog,program:renderProgram,ref:renderRef,settings:renderSettings};
+  const binders={dash:bindDash,today:bindToday,log:bindLog,program:bindProgram,ref:bindRef,settings:bindSettings};
+  const fn=renderers[tab];
+  if(!fn)return;
+  app.innerHTML=`<div class="pane show" id="p-${tab}">${fn()}</div>`;
+  binders[tab]();
+}
 
 // ═══════════════════════════════════════════════════════════
 //  BOOT
