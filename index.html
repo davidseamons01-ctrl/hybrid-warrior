@@ -218,7 +218,7 @@ const DEF={
   program:{week:1,start:iso()},
   adapt:{bench:1,squat:1,dead:1,run:1},
   logs:[],weightLog:[],
-  aiPlan:null,aiKey:"",
+  planId:null,
   sync:{on:false,cfg:"",uid:""},
   pdfs:{"28DayPlan_FinalVersion.pdf":"","Copy of OffSeason_2ndEdition_Final.pdf":"","IN Season workouts.pdf":"","WrestlingEBook2_FINAL.compressed.pdf":""}
 };
@@ -254,90 +254,176 @@ function estCalories(type,mins,weightLb){const kg=weightLb*0.4536;const met=type
 function weightTrend(){const wl=S.weightLog.slice(-14);if(wl.length<2)return null;const first=wl[0].wt,last=wl[wl.length-1].wt;return{change:last-first,perWeek:(last-first)/(wl.length/7||1),last}}
 
 // ═══════════════════════════════════════════════════════════
-//  PROGRAM ENGINE
+//  64 PRESET PLANS  (goal×4  freq×2  dur×2  sex×2  exp×2)
 // ═══════════════════════════════════════════════════════════
-function finisherPool(day,w){const ph=phaseName(w);const p={1:{Hypertrophy:"50 Burpees + 50 Sit-Ups + 50 Air Squats — for time",Strength:"5 rounds: 10 Burpees + 10 Tuck Jumps",Peak:"3×15 Burpees + 15 Box Jumps",Test:"Light mobility"},2:{Hypertrophy:"2-min plank + 2×30s mountain climbers",Strength:"4×200m sprints",Peak:"6×100m all-out",Test:"10-min easy jog"},3:{Hypertrophy:"100 BW Squats for time",Strength:"50 Burpees for time",Peak:"30 Burpees + 30 Jump Squats",Test:"Mobility circuit"},4:{Hypertrophy:"3-min shadow wrestling",Strength:"4-min shadow wrestling",Peak:"5-min all-out wrestling sim",Test:"10-min jog"},5:{Hypertrophy:"5-min AMRAP Burpees",Strength:"100 Push-Ups + 100 Sit-Ups for time",Peak:"Tabata Burpees 8×20/10",Test:"Foam roll"}};return(p[day]||{})[ph]||"Active recovery."}
+// Slot codes: HP=Heavy Push, HPL=Heavy Pull, HL=Heavy Lower, GL=Glute/Hip,
+// SR=Speed Run, TR=Tempo Run, FB=Full Body, FBC=Full Body Circuit,
+// HYP=Hyp Push, HYL=Hyp Pull, HYG=Hyp Legs, CT=Conditioning,
+// PW=Power, HB=Hybrid
 
-function dayPlan(dayIdx,w){
-  const wf=wkFactor(w),p=S.profile,reps=phaseReps(w),sets=phaseSets(w);
-  const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5);const pmi=paceMi(fk);
-  const b=r5(p.bench1RM*wf*S.adapt.bench);const sq=r5(p.squat1RM*wf*S.adapt.squat);const dl=r5(p.dead1RM*wf*S.adapt.dead);
-  const isDeload=w===4||w===8;const dn=isDeload?" (DELOAD)":"";
-  const accP=w%2===0?"incline_db":"cgbench";const accL=w%2===0?"lunge":"bss";const accSh=w%3===0?"lat_raise":"ohp";
+const PLANS=(function(){
+  const G=["strength","hybrid","fat_loss","muscle"];
+  const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy"];
+  const fN=["3-4 Day","5-6 Day"];
+  const dN=["Express","Full"];
+  const sN=["Men's","Women's"];
+  const eN=["Foundation","Advanced"];
 
-  // Adapt conditioning volume if weight loss is behind
-  const wt=weightTrend();let extraFinisher="";
-  if(wt&&S.goals.fatLoss>0){const targetPerWk=S.goals.fatLoss/13;if(wt.perWeek>-targetPerWk*0.5)extraFinisher=" + Extra 5-min AMRAP (weight loss behind pace)"}
-
-  const plans={
-    0:{focus:"Full Recovery",exs:[],finisher:"Rest and prep meals."},
-    6:{focus:"Active Recovery",exs:[],finisher:"Family walk/hike + foam rolling."},
-    1:{focus:"Heavy Upper — Bench Anchor"+dn,warmup:"5 min cardio → band pull-aparts → bar×10, 95×8, 135×5",
-      exs:[{eid:"bench",sets,reps:reps[1],target:b,unit:"lb",reason:`${Math.round(wf*100)}% of ${p.bench1RM} 1RM × ${S.adapt.bench.toFixed(2)}`},
-        {eid:accP,sets:3,reps:w<=4?10:8,target:r5(b*(accP==="incline_db"?.4:.65)),unit:"lb",reason:"Push accessory"},
-        {eid:"row",sets:4,reps:w<=4?10:8,target:r5(b*.75),unit:"lb",reason:"Superset — stay at rack"},
-        {eid:w%2?"pullup":"face_pull",sets:3,reps:w%2?8:15,target:0,unit:w%2?"BW":"band",reason:"Pull balance"},
-        {eid:"pushup",sets:1,reps:100,target:0,unit:"BW",reason:"100 reps AFAP — Beatdown"}],finisher:finisherPool(1,w)+extraFinisher},
-    2:{focus:"5K Speed — 800m Intervals"+dn,warmup:"10 min jog → leg swings → 2×100m strides",
-      exs:[{eid:"int800",sets:isDeload?3:w<=4?4:w<=8?5:6,reps:1,target:Math.round(pmi/2*60),unit:"sec ("+fmtPace(Math.round(pmi*60))+" pace)",reason:`Half-mile at ${fmtPace(Math.round(pmi*60))} target`},
-        {eid:"plank",sets:3,reps:60,target:0,unit:"sec",reason:"Core for running economy"}],finisher:finisherPool(2,w)+extraFinisher},
-    3:{focus:"Heavy Lower — Squat + Deadlift"+dn,warmup:"5 min bike → BW squats → 95×10, 135×8, 185×5",
-      exs:[{eid:"squat",sets,reps:reps[1],target:sq,unit:"lb",reason:`${Math.round(wf*100)}% of ${p.squat1RM} 1RM × ${S.adapt.squat.toFixed(2)}`},
-        {eid:"deadlift",sets:isDeload?2:w<=4?3:4,reps:w<=8?5:3,target:dl,unit:"lb",reason:`${Math.round(wf*100)}% of ${p.dead1RM} 1RM × ${S.adapt.dead.toFixed(2)}`},
-        {eid:accL,sets:3,reps:12,target:r5(sq*.2),unit:"lb/hand",reason:"Unilateral volume"},
-        {eid:"rdl",sets:3,reps:10,target:r5(dl*.3),unit:"lb",reason:"Hamstring volume"}],finisher:finisherPool(3,w)+extraFinisher},
-    4:{focus:"Tempo / Threshold Engine"+dn,warmup:"10 min jog → dynamic stretches → strides",
-      exs:[{eid:"tempo",sets:1,reps:isDeload?16:w<=4?20:w<=8?24:w<=12?28:16,target:Math.round(pmi*60),unit:"sec/mi ("+fmtPace(Math.round(pmi*60))+")",reason:`Threshold from est 5K ${mmss(Math.round(fk))}`},
-        {eid:"shadow",sets:3,reps:60,target:0,unit:"sec",reason:"Red-line wrestling sim"}],finisher:finisherPool(4,w)+extraFinisher},
-    5:{focus:"Hybrid Power + Conditioning"+dn,warmup:"5 min cardio → arm circles → bar×10, 95×8",
-      exs:[{eid:"bench",sets:4,reps:w<=4?8:6,target:r5(b*.85),unit:"lb",reason:"Volume — 85% of Mon target"},
-        {eid:accSh,sets:3,reps:accSh==="ohp"?8:12,target:accSh==="ohp"?r5(b*.35):r5(b*.1),unit:"lb",reason:"Shoulder rotation"},
-        {eid:"farmer",sets:isDeload?4:6,reps:40,target:r5(dl*.2),unit:"lb/hand",reason:"Grip + core"},
-        {eid:"air_squat",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep Beatdown"}],finisher:finisherPool(5,w)+extraFinisher}
+  const base={
+    strength:{
+      "00":["FB","SR","FB"],           "01":["HP","SR","HL","TR"],
+      "10":["HP","SR","HL","TR","HB"], "11":["HP","HPL","HL","SR","PW"]
+    },
+    hybrid:{
+      "00":["FB","SR","FB"],           "01":["HP","SR","HL","TR"],
+      "10":["HP","SR","HL","TR","HB"], "11":["HP","SR","HL","TR","HB"]
+    },
+    fat_loss:{
+      "00":["CT","SR","FBC"],          "01":["HB","SR","CT","TR"],
+      "10":["CT","SR","HB","TR","CT"], "11":["HB","SR","HL","TR","CT"]
+    },
+    muscle:{
+      "00":["FB","FB","FB"],           "01":["HYP","HYG","HYL"],
+      "10":["HYP","HYL","HYG","HB","CT"],"11":["HYP","HYL","HYG","HP","HL"]
+    }
   };
-  return plans[dayIdx]||plans[0];
+
+  const plans=[];
+  for(let g=0;g<4;g++)for(let f=0;f<2;f++)for(let d=0;d<2;d++)for(let s=0;s<2;s++)for(let e=0;e<2;e++){
+    let sl=[...base[G[g]][""+f+d]];
+    if(s===1) sl=sl.map(x=>x==="HL"?"GL":x==="HYG"?"GL":x);
+    if(e===0) sl=sl.map(x=>x==="PW"?"FB":x==="HPL"?"FB":x);
+    plans.push({id:g*16+f*8+d*4+s*2+e,name:`${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`,goal:G[g],slots:sl});
+  }
+  return plans;
+})();
+
+function selectPlan(){
+  const fa=S.goals.focusAreas||[];
+  const lift=fa.some(a=>["Bench Press","Squat","Deadlift"].includes(a));
+  const run=fa.includes("5K Running");
+  const fat=fa.includes("Lose Weight")||fa.includes("Improve Conditioning");
+  const musc=fa.includes("Build Muscle");
+  let g=lift&&!run&&!fat?0:lift&&run?1:fat?2:musc?3:1;
+  const f=S.schedule.days.length>=5?1:0;
+  const d=S.schedule.sessionMin>45?1:0;
+  const s=S.profile.sex==="female"?1:0;
+  const total=(S.profile.bench1RM||0)+(S.profile.squat1RM||0)+(S.profile.dead1RM||0);
+  const e=S.profile.weight>0&&total/S.profile.weight>3.5?1:0;
+  return g*16+f*8+d*4+s*2+e;
 }
 
 // ═══════════════════════════════════════════════════════════
-//  AI PLAN GENERATION
+//  PROGRAM ENGINE — Slot-Based Day Generator
 // ═══════════════════════════════════════════════════════════
-const TRAINING_PRINCIPLES=`Dustin Myers Wrestling/Strength Programs:
-- Single-station training: claim one piece of equipment, don't move until done
-- "Beatdown" finishers: 5-min max-effort conditioning after every session (burpees, bodyweight challenges)
-- Periodization: Hypertrophy (wk 1-4) → Strength (5-8) → Peak (9-12) → Test (13)
-- Deload at weeks 4 and 8 (reduce volume ~20%, keep intensity moderate)
-- 100-rep bodyweight challenges as finishers (push-ups, squats, burpees)
-- Wrestling conditioning: shadow wrestling, sprawls, interval sprints
-- Minimum Effective Dose: on missed days, 15-min bodyweight circuit preserves momentum
-- Epley formula for auto-regulation: if actual reps exceed target, estimated 1RM increases
-- Blue-collar work ethic: show up, work hard, keep it simple`;
+function mkDay(slot,w){
+  const wf=wkFactor(w),p=S.profile,reps=phaseReps(w),sets=phaseSets(w);
+  const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5),pmi=paceMi(fk);
+  const b=r5(p.bench1RM*wf*S.adapt.bench),sq=r5(p.squat1RM*wf*S.adapt.squat),dl=r5(p.dead1RM*wf*S.adapt.dead);
+  const isDeload=w===4||w===8,dn=isDeload?" (DELOAD)":"";
+  const accP=w%2===0?"incline_db":"cgbench",accL=w%2===0?"lunge":"bss",accSh=w%3===0?"lat_raise":"ohp";
+  const wt=weightTrend();let xf="";
+  if(wt&&S.goals.fatLoss>0&&wt.perWeek>-S.goals.fatLoss/13*0.5)xf=" + Extra 5-min AMRAP (behind pace)";
 
-async function generateAIPlan(){
-  if(!S.aiKey)return null;
-  const profile={...S.profile,...S.goals,schedule:S.schedule};
-  const prompt=`You are an expert strength coach. Create a 13-week periodized program.
+  const S_={
+    HP:{focus:"Heavy Push"+dn,warmup:"5 min cardio → band pull-aparts → bar×10, 95×8, 135×5",
+      exs:[{eid:"bench",sets,reps:reps[1],target:b,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.bench.toFixed(2)}`},
+        {eid:accP,sets:3,reps:w<=4?10:8,target:r5(b*(accP==="incline_db"?.4:.65)),unit:"lb",reason:"Push accessory"},
+        {eid:"row",sets:4,reps:w<=4?10:8,target:r5(b*.75),unit:"lb",reason:"Superset — stay at rack"},
+        {eid:w%2?"pullup":"face_pull",sets:3,reps:w%2?8:15,target:0,unit:w%2?"BW":"band",reason:"Pull balance"},
+        {eid:"pushup",sets:1,reps:100,target:0,unit:"BW",reason:"100 reps AFAP"}],
+      finisher:"50 Burpees + 50 Sit-Ups for time"+xf},
+    HPL:{focus:"Heavy Pull"+dn,warmup:"5 min row machine → band pull-aparts → light rows",
+      exs:[{eid:"row",sets,reps:reps[1],target:r5(b*.8),unit:"lb",reason:"Heavy barbell row"},
+        {eid:"pullup",sets:4,reps:w<=4?8:6,target:0,unit:"BW",reason:"Vertical pull"},
+        {eid:"face_pull",sets:3,reps:15,target:0,unit:"band",reason:"Rear delt health"},
+        {eid:"farmer",sets:4,reps:40,target:r5(dl*.2),unit:"lb/hand",reason:"Grip + core"},
+        {eid:"plank",sets:3,reps:60,target:0,unit:"sec",reason:"Anti-extension core"}],
+      finisher:"4 rounds: 15 Burpees + 20 Sit-Ups"+xf},
+    HL:{focus:"Heavy Lower"+dn,warmup:"5 min bike → BW squats → 95×10, 135×8, 185×5",
+      exs:[{eid:"squat",sets,reps:reps[1],target:sq,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.squat.toFixed(2)}`},
+        {eid:"deadlift",sets:isDeload?2:w<=4?3:4,reps:w<=8?5:3,target:dl,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.dead.toFixed(2)}`},
+        {eid:accL,sets:3,reps:12,target:r5(sq*.2),unit:"lb/hand",reason:"Unilateral volume"},
+        {eid:"rdl",sets:3,reps:10,target:r5(dl*.3),unit:"lb",reason:"Hamstring volume"}],
+      finisher:"100 BW Squats for time"+xf},
+    GL:{focus:"Glute & Hip"+dn,warmup:"5 min bike → hip circles → BW squats ×15",
+      exs:[{eid:"rdl",sets,reps:reps[0],target:r5(dl*.45),unit:"lb",reason:"Posterior chain"},
+        {eid:"bss",sets:3,reps:10,target:r5(sq*.15),unit:"lb/hand",reason:"Single-leg strength"},
+        {eid:"squat",sets:3,reps:w<=4?10:8,target:r5(sq*.7),unit:"lb",reason:"Squat volume"},
+        {eid:"lunge",sets:3,reps:12,target:r5(sq*.15),unit:"lb/hand",reason:"Walking lunges"},
+        {eid:"plank",sets:3,reps:45,target:0,unit:"sec",reason:"Core stability"}],
+      finisher:"50 Air Squats + 50 Lunges for time"+xf},
+    SR:{focus:"Speed Intervals"+dn,warmup:"10 min jog → leg swings → 2×100m strides",
+      exs:[{eid:"int800",sets:isDeload?3:w<=4?4:w<=8?5:6,reps:1,target:Math.round(pmi/2*60),unit:"sec ("+fmtPace(Math.round(pmi*60))+" pace)",reason:`Half-mile at ${fmtPace(Math.round(pmi*60))}`},
+        {eid:"plank",sets:3,reps:60,target:0,unit:"sec",reason:"Core for running economy"}],
+      finisher:"2-min plank + 2×30s mountain climbers"+xf},
+    TR:{focus:"Tempo Run"+dn,warmup:"10 min jog → dynamic stretches → strides",
+      exs:[{eid:"tempo",sets:1,reps:isDeload?16:w<=4?20:w<=8?24:w<=12?28:16,target:Math.round(pmi*60),unit:"sec/mi ("+fmtPace(Math.round(pmi*60))+")",reason:`Threshold from est 5K ${mmss(Math.round(fk))}`},
+        {eid:"shadow",sets:3,reps:60,target:0,unit:"sec",reason:"Red-line wrestling sim"}],
+      finisher:"4-min shadow wrestling"+xf},
+    FB:{focus:"Full Body"+dn,warmup:"5 min cardio → dynamic stretches → bar×10",
+      exs:[{eid:"squat",sets:3,reps:w<=4?8:6,target:r5(sq*.85),unit:"lb",reason:"Squat foundation"},
+        {eid:"bench",sets:3,reps:w<=4?8:6,target:r5(b*.85),unit:"lb",reason:"Bench foundation"},
+        {eid:"row",sets:3,reps:w<=4?10:8,target:r5(b*.65),unit:"lb",reason:"Pull balance"},
+        {eid:"plank",sets:3,reps:45,target:0,unit:"sec",reason:"Core"}],
+      finisher:"5-min AMRAP: 10 Burpees + 10 Air Squats"+xf},
+    FBC:{focus:"Full Body Circuit"+dn,warmup:"5 min jog → dynamic stretches",
+      exs:[{eid:"squat",sets:3,reps:12,target:r5(sq*.6),unit:"lb",reason:"Circuit squat"},
+        {eid:"bench",sets:3,reps:12,target:r5(b*.6),unit:"lb",reason:"Circuit bench"},
+        {eid:"row",sets:3,reps:12,target:r5(b*.5),unit:"lb",reason:"Circuit row"},
+        {eid:"burpee",sets:3,reps:10,target:0,unit:"BW",reason:"Metabolic boost"},
+        {eid:"plank",sets:3,reps:30,target:0,unit:"sec",reason:"Core"}],
+      finisher:"Tabata Burpees 8×20/10"+xf},
+    HYP:{focus:"Hypertrophy Push"+dn,warmup:"5 min cardio → arm circles → bar×10, 95×8",
+      exs:[{eid:"bench",sets:4,reps:w<=4?10:8,target:r5(b*.8),unit:"lb",reason:"Volume bench"},
+        {eid:"incline_db",sets:3,reps:12,target:r5(b*.3),unit:"lb/hand",reason:"Upper chest"},
+        {eid:accSh,sets:3,reps:accSh==="ohp"?10:15,target:accSh==="ohp"?r5(b*.3):r5(b*.08),unit:"lb",reason:"Shoulder volume"},
+        {eid:"dip",sets:3,reps:w<=4?12:10,target:0,unit:"BW",reason:"Tricep volume"},
+        {eid:"pushup",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep finisher"}],
+      finisher:"50 Burpees for time"+xf},
+    HYL:{focus:"Hypertrophy Pull"+dn,warmup:"5 min row machine → band pull-aparts",
+      exs:[{eid:"row",sets:4,reps:w<=4?10:8,target:r5(b*.65),unit:"lb",reason:"Volume row"},
+        {eid:"pullup",sets:4,reps:w<=4?8:6,target:0,unit:"BW",reason:"Lat width"},
+        {eid:"face_pull",sets:4,reps:15,target:0,unit:"band",reason:"Rear delt / posture"},
+        {eid:"farmer",sets:4,reps:40,target:r5(dl*.15),unit:"lb/hand",reason:"Grip + traps"}],
+      finisher:"100 Push-Ups + 100 Sit-Ups for time"+xf},
+    HYG:{focus:"Hypertrophy Legs"+dn,warmup:"5 min bike → BW squats ×20 → leg swings",
+      exs:[{eid:"squat",sets:4,reps:w<=4?10:8,target:r5(sq*.75),unit:"lb",reason:"Volume squat"},
+        {eid:"rdl",sets:3,reps:12,target:r5(dl*.3),unit:"lb",reason:"Hamstring volume"},
+        {eid:"bss",sets:3,reps:10,target:r5(sq*.12),unit:"lb/hand",reason:"Single-leg hyp"},
+        {eid:"lunge",sets:3,reps:12,target:r5(sq*.12),unit:"lb/hand",reason:"Walking lunge"},
+        {eid:"air_squat",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep Beatdown"}],
+      finisher:"3-min shadow wrestling"+xf},
+    CT:{focus:"Conditioning Circuit"+dn,warmup:"5 min light jog → dynamic stretches",
+      exs:[{eid:"burpee",sets:5,reps:isDeload?10:15,target:0,unit:"BW",reason:"Full-body conditioning"},
+        {eid:"air_squat",sets:5,reps:20,target:0,unit:"BW",reason:"Leg endurance"},
+        {eid:"pushup",sets:5,reps:isDeload?10:20,target:0,unit:"BW",reason:"Push endurance"},
+        {eid:"plank",sets:3,reps:45,target:0,unit:"sec",reason:"Core"},
+        {eid:"shadow",sets:3,reps:60,target:0,unit:"sec",reason:"Athletic conditioning"}],
+      finisher:"Tabata Burpees 8×20/10"+xf},
+    PW:{focus:"Power Day"+dn,warmup:"5 min cardio → bar×10, 95×5, 135×3",
+      exs:[{eid:"deadlift",sets:isDeload?3:5,reps:w<=8?3:2,target:r5(dl*.9),unit:"lb",reason:"Heavy pulls"},
+        {eid:"bench",sets:4,reps:w<=4?5:3,target:r5(b*.9),unit:"lb",reason:"Speed bench"},
+        {eid:"squat",sets:3,reps:w<=4?5:3,target:r5(sq*.85),unit:"lb",reason:"Power squat"},
+        {eid:"farmer",sets:4,reps:40,target:r5(dl*.25),unit:"lb/hand",reason:"Heavy carry"}],
+      finisher:"5×100m all-out sprints"+xf},
+    HB:{focus:"Hybrid Power + Conditioning"+dn,warmup:"5 min cardio → arm circles → bar×10, 95×8",
+      exs:[{eid:"bench",sets:4,reps:w<=4?8:6,target:r5(b*.85),unit:"lb",reason:"85% of main target"},
+        {eid:accSh,sets:3,reps:accSh==="ohp"?8:12,target:accSh==="ohp"?r5(b*.35):r5(b*.1),unit:"lb",reason:"Shoulder work"},
+        {eid:"farmer",sets:isDeload?4:6,reps:40,target:r5(dl*.2),unit:"lb/hand",reason:"Grip + core"},
+        {eid:"air_squat",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep Beatdown"}],
+      finisher:"5-min AMRAP Burpees"+xf}
+  };
+  return S_[slot]||{focus:"Recovery",exs:[],finisher:"Rest."};
+}
 
-ATHLETE: ${JSON.stringify(profile)}
-
-METHODOLOGY: ${TRAINING_PRINCIPLES}
-
-Available exercises: ${EX.map(e=>e.id+": "+e.name).join(", ")}
-
-Return ONLY valid JSON (no markdown):
-{"schedule":{"1":{"focus":"Upper Push","primaryLifts":["bench"],"accessories":["incline_db","row","face_pull"],"finisherType":"conditioning","estMinutes":45},"2":{"focus":"Speed Intervals","primaryLifts":["int800"],"accessories":["plank"],"finisherType":"core","estMinutes":35},"3":{"focus":"Lower Strength","primaryLifts":["squat","deadlift"],"accessories":["lunge","rdl"],"finisherType":"conditioning","estMinutes":50},"4":{"focus":"Tempo Engine","primaryLifts":["tempo"],"accessories":["shadow"],"finisherType":"wrestling","estMinutes":40},"5":{"focus":"Hybrid Power","primaryLifts":["bench"],"accessories":["ohp","farmer","air_squat"],"finisherType":"conditioning","estMinutes":45}},"phases":[{"weeks":[1,2,3,4],"name":"Hypertrophy","repRange":[8,12],"sets":4,"intensityPct":[60,72]},{"weeks":[5,6,7,8],"name":"Strength","repRange":[3,6],"sets":5,"intensityPct":[72,82]},{"weeks":[9,10,11,12],"name":"Peak","repRange":[2,4],"sets":5,"intensityPct":[80,92]},{"weeks":[13],"name":"Test","repRange":[1,3],"sets":3,"intensityPct":[85,95]}],"notes":"Customize for this athlete's goals and available time."}
-
-Adjust the schedule for their available days: ${JSON.stringify(S.schedule.days)} and ${S.schedule.sessionMin} min/session. Focus on their goals: ${S.goals.focusAreas.join(", ")}. Use exercise IDs from the list above.`;
-
-  try{
-    const resp=await fetch("https://api.openai.com/v1/chat/completions",{
-      method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+S.aiKey},
-      body:JSON.stringify({model:"gpt-4o-mini",messages:[{role:"system",content:"Expert strength & conditioning coach. Return only valid JSON."},{role:"user",content:prompt}],temperature:.7,max_tokens:3000})
-    });
-    const data=await resp.json();
-    if(data.error)throw new Error(data.error.message);
-    const txt=data.choices[0].message.content.replace(/```json\n?/g,"").replace(/```/g,"").trim();
-    return JSON.parse(txt);
-  }catch(e){console.error("AI generation failed:",e);toast("AI generation failed: "+e.message);return null}
+function dayPlan(dayIdx,w){
+  if(dayIdx===0) return{focus:"Full Recovery",exs:[],finisher:"Rest and prep meals."};
+  const plan=PLANS[S.planId!=null?S.planId:0];
+  const tDays=S.schedule.days||[1,2,3,4,5];
+  const slotIdx=tDays.indexOf(dayIdx);
+  if(slotIdx<0||slotIdx>=plan.slots.length) return{focus:"Active Recovery",exs:[],finisher:"Light walk + foam rolling."};
+  return mkDay(plan.slots[slotIdx],w);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -478,32 +564,24 @@ function renderOB(){
     document.getElementById("ob-back").onclick=()=>{obStep=2;renderOB()};
     document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;obStep=4;renderOB()};
   } else if(obStep===4){
+    const pid=selectPlan();const plan=PLANS[pid];const tDays=S.schedule.days||[1,2,3,4,5];
+    const dayPreview=plan.slots.map((sl,i)=>{const d=tDays[i];return d!=null?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:600;font-size:12px">${DAYS[d]}</span><span style="font-size:12px;color:var(--text2)">${mkDay(sl,1).focus.replace(" (DELOAD)","")}</span></div>`:""}).join("");
     card.innerHTML=`<div class="ob-progress">${dots}</div>
-      <div class="ob-title">Generate Your Plan</div><div class="ob-sub">Choose how to build your 13-week program.</div>
-      <div class="goal-option" id="ob-rule" style="cursor:pointer"><div><div style="font-weight:700;font-size:13px">Built-in Algorithm</div><div style="font-size:11px;color:var(--text3)">Uses Dustin Myers' proven periodization methodology. No API key needed.</div></div></div>
-      <div class="goal-option" id="ob-ai" style="cursor:pointer;margin-top:0"><div><div style="font-weight:700;font-size:13px">AI-Powered (OpenAI)</div><div style="font-size:11px;color:var(--text3)">GPT generates a custom plan from your profile + training principles. Requires API key.</div></div></div>
-      <div id="ob-ai-input" style="display:none;margin-top:10px"><label>OpenAI API Key</label><input id="ob-aikey" type="password" value="${S.aiKey||""}" placeholder="sk-..."><p style="font-size:10px;color:var(--text3);margin-top:4px">Stored locally only. Never sent anywhere except OpenAI.</p></div>
-      <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">← Back</button><button class="btn btn-mint" id="ob-generate" style="flex:1">Generate My Program</button></div>
-      <div id="ob-status" style="margin-top:10px;font-size:12px;color:var(--text3)"></div>`;
-    let useAI=false;
-    document.getElementById("ob-rule").onclick=()=>{useAI=false;document.getElementById("ob-rule").classList.add("selected");document.getElementById("ob-ai").classList.remove("selected");document.getElementById("ob-ai-input").style.display="none"};
-    document.getElementById("ob-ai").onclick=()=>{useAI=true;document.getElementById("ob-ai").classList.add("selected");document.getElementById("ob-rule").classList.remove("selected");document.getElementById("ob-ai-input").style.display="block"};
-    document.getElementById("ob-rule").classList.add("selected");
+      <div class="ob-title">Your Program</div><div class="ob-sub">Based on your profile, we matched you to one of 64 preset programs.</div>
+      <div class="card" style="border-color:var(--fire);margin-bottom:14px"><div style="font-size:16px;font-weight:900;margin-bottom:4px;background:linear-gradient(135deg,var(--fire),var(--ice));-webkit-background-clip:text;-webkit-text-fill-color:transparent">${plan.name}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Plan #${pid+1} of 64 · ${plan.slots.length} training days/week · 13-week periodization</div>
+        ${dayPreview}
+        <div style="margin-top:8px;font-size:10px;color:var(--text3)">Hypertrophy (wk 1-4) → Strength (5-8) → Peak (9-12) → Test (13) · Deload at wk 4 & 8</div>
+      </div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Weights auto-calculate from your maxes. The program adapts every time you log a workout. You can change plans later in Settings.</p>
+      <div class="row" style="margin-top:8px"><button class="btn btn-ghost" id="ob-back">← Back</button><button class="btn btn-mint" id="ob-generate" style="flex:1">Start This Program</button></div>`;
     document.getElementById("ob-back").onclick=()=>{obStep=3;renderOB()};
     document.getElementById("ob-generate").onclick=async()=>{
-      const status=document.getElementById("ob-status");
-      if(useAI){
-        S.aiKey=(document.getElementById("ob-aikey").value||"").trim();
-        if(!S.aiKey){status.textContent="Enter your OpenAI API key.";status.style.color="var(--red)";return}
-        status.textContent="Generating AI plan... this takes 10-20 seconds.";status.style.color="var(--ice)";
-        const plan=await generateAIPlan();
-        if(plan){S.aiPlan=plan;status.textContent="Plan generated!";}
-        else{status.textContent="AI failed. Using built-in algorithm.";status.style.color="var(--gold)"}
-      }
+      S.planId=pid;
       S.profile.onboarded=true;
       await persist();
       hideOnboarding();
-      toast("Welcome, "+S.profile.name+"! Your 13-week program is ready.");
+      toast("Welcome, "+S.profile.name+"! Your 13-week "+plan.name+" program is ready.");
     };
   }
 }
@@ -664,8 +742,9 @@ function renderSettings(){
     </div>
     <div class="card"><div class="card-h"><h2>Account</h2></div>
       ${currentUser?`<div style="font-size:13px;font-weight:700;margin-bottom:4px">${currentUser.email}</div><div style="font-size:10px;color:var(--mint);margin-bottom:10px">Syncing to cloud</div><button class="btn btn-ghost btn-block" id="s-signout">Sign Out</button>`:`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">${offlineMode?"Offline mode":"Not connected"}</div>`}
-      <div style="margin-top:12px"><label>OpenAI API Key (for AI plan gen)</label><input id="s-aikey" type="password" value="${S.aiKey||""}" placeholder="sk-..."></div>
-      <button class="btn btn-ice btn-block" id="s-aikey-save" style="margin-top:6px">Save AI Key</button>
+      <div style="margin-top:12px"><label>Current Plan (#${(S.planId||0)+1}/64)</label>
+        <select id="s-plan">${PLANS.map(p=>`<option value="${p.id}" ${p.id===S.planId?"selected":""}>${p.name}</option>`).join("")}</select></div>
+      <button class="btn btn-ice btn-block" id="s-plan-save" style="margin-top:6px">Switch Plan</button>
       <button class="btn btn-ghost btn-block" id="s-reonboard" style="margin-top:8px">Re-run Onboarding Wizard</button>
     </div>
   </div>
@@ -679,7 +758,7 @@ function bindSettings(){
   document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();render();toast("Saved")};
   document.getElementById("s-reset").onclick=async()=>{S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Reset")};
   const so=document.getElementById("s-signout");if(so)so.onclick=()=>{if(confirm("Sign out?"))doSignOut()};
-  document.getElementById("s-aikey-save").onclick=async()=>{S.aiKey=(document.getElementById("s-aikey").value||"").trim();await persist();toast("AI key saved")};
+  document.getElementById("s-plan-save").onclick=async()=>{S.planId=Number(document.getElementById("s-plan").value);await persist();render();toast("Switched to: "+PLANS[S.planId].name)};
   document.getElementById("s-reonboard").onclick=()=>{S.profile.onboarded=false;save();showOnboarding()};
   document.getElementById("s-pdf").onclick=async()=>{const keys=Object.keys(S.pdfs);for(let i=0;i<keys.length;i++){const f=document.getElementById("sf-"+i);if(f.files&&f.files[0])S.pdfs[keys[i]]=URL.createObjectURL(f.files[0]);else{const v=document.getElementById("sp-"+i).value.trim();if(v)S.pdfs[keys[i]]=v}}await persist();render();toast("PDFs saved")};
   document.getElementById("s-clear").onclick=async()=>{if(!confirm("Clear all logs?"))return;S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Cleared")};
