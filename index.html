@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#09090f">
+<meta name="apple-mobile-web-app-title" content="Hybrid Warrior">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
 <title>Hybrid Warrior</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -12,11 +15,13 @@
 *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
 
-.nav{position:sticky;top:0;z-index:100;background:rgba(9,9,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px}
-.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:6px;height:56px;overflow-x:auto}
+.nav{position:sticky;top:0;z-index:100;background:rgba(9,9,15,.95);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:6px;height:56px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.nav-inner::-webkit-scrollbar{display:none}
 .logo{font-weight:900;font-size:17px;background:linear-gradient(135deg,var(--fire),var(--ice));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;margin-right:10px;flex-shrink:0}
-.nav-btn{background:none;border:none;color:var(--text2);font:600 12px/1 'Inter',sans-serif;padding:7px 12px;border-radius:99px;cursor:pointer;white-space:nowrap;transition:.2s}
+.nav-btn{background:none;border:none;color:var(--text2);font:600 12px/1 'Inter',sans-serif;padding:7px 12px;border-radius:99px;cursor:pointer;white-space:nowrap;transition:.2s;-webkit-tap-highlight-color:transparent}
 .nav-btn:hover{color:var(--text);background:var(--card)}.nav-btn.active{color:var(--fire);background:rgba(255,107,53,.12)}
+.nav-icon{display:none}.nav-label{}
 .nav-pill{margin-left:auto;font-size:10px;font-weight:600;color:var(--text3);white-space:nowrap;border:1px solid var(--border);border-radius:99px;padding:4px 10px;flex-shrink:0}
 
 .page{max-width:1200px;margin:0 auto;padding:16px 20px 40px}
@@ -139,11 +144,83 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 .wt-bar{display:flex;align-items:flex-end;gap:2px;height:60px;margin-top:8px}
 .wt-col{flex:1;background:var(--border);border-radius:3px 3px 0 0;min-height:2px;transition:height .3s}
 
+/* ===== MOBILE: bottom tab bar + touch-friendly ===== */
 @media(max-width:768px){
-  .grid2,.grid3{grid-template-columns:1fr}.grid-auto{grid-template-columns:1fr}.ref-grid{grid-template-columns:1fr}
-  .nav-inner{gap:3px}.nav-btn{padding:5px 8px;font-size:11px}.logo{font-size:14px;margin-right:4px}
-  .ex-top{flex-wrap:wrap}.ex-log-grid{grid-template-columns:1fr 1fr;gap:6px}.page{padding:10px 12px 30px}
-  .timeline{flex-wrap:wrap}.tl-wk{min-width:40px}.auth-card,.ob-card{padding:20px 16px}
+  body{-webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom,0)}
+  .nav{position:fixed;top:auto;bottom:0;left:0;right:0;border-bottom:none;border-top:1px solid var(--border);padding:0 4px;padding-bottom:env(safe-area-inset-bottom,0)}
+  .nav-inner{height:58px;gap:0;justify-content:space-around;overflow:visible}
+  .logo,.nav-pill,#nav-so{display:none!important}
+  .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 2px 4px;border-radius:0;font-size:9px;min-width:0;max-width:72px}
+  .nav-btn.active{background:none;position:relative}
+  .nav-btn.active::after{content:"";position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--fire);border-radius:0 0 2px 2px}
+  .nav-icon{display:block!important;font-size:20px;line-height:1}
+  .nav-label{display:block;overflow:hidden;text-overflow:ellipsis}
+
+  .page{max-width:100%;padding:12px 12px 80px;margin-top:0}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .grid-auto{grid-template-columns:1fr}
+  .ref-grid{grid-template-columns:1fr}
+  .card{padding:14px;border-radius:12px}
+  .section{margin-bottom:12px}
+
+  .gauge{width:72px;height:72px}
+  .gauge-val{font-size:16px}.gauge-sub{font-size:8px}
+
+  .ex-top{flex-wrap:wrap;padding:12px 14px;gap:10px}
+  .ex-actions{width:100%;justify-content:flex-end;gap:8px}
+  .ex-actions .btn{padding:10px 16px;font-size:12px}
+  .ex-body{padding:0 14px 12px}
+  .ex-body.open{padding-top:10px}
+  .ex-log-grid{grid-template-columns:1fr 1fr;gap:8px}
+
+  table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th,td{padding:8px 8px;font-size:11px;white-space:nowrap}
+  td input.input-sm{min-width:50px}
+
+  .streak-bar{gap:3px}
+  .streak-dot{width:32px;height:32px;font-size:10px}
+
+  .timeline{flex-wrap:wrap;gap:4px}
+  .tl-wk{min-width:38px;height:30px;font-size:9px}
+
+  .pw-head{padding:10px 12px}
+  .pw-body{padding:10px 12px}
+  .pw-ex-row{flex-direction:column;gap:2px;padding:4px 0 4px 12px}
+
+  .auth-card,.ob-card{padding:20px 16px;margin:0 auto;max-width:100%}
+  .ob-overlay.show{padding-top:20px}
+
+  .toast{bottom:74px;right:10px;left:10px;max-width:none;text-align:center}
+
+  .finisher{padding:12px}
+  .btn{padding:12px 16px;font-size:13px}
+  .btn-sm{padding:8px 12px;font-size:12px}
+  input,select,textarea{padding:11px 12px;font-size:14px}
+  .input-sm{padding:9px 10px;font-size:13px}
+  .day-toggle{width:44px;height:44px;font-size:12px}
+  .log-entry{padding:10px}
+  .log-entry-head{flex-wrap:wrap;gap:6px}
+}
+/* ===== Small phones ===== */
+@media(max-width:380px){
+  .nav-btn{font-size:8px;max-width:60px}
+  .nav-icon{font-size:18px!important}
+  .page{padding:8px 8px 80px}
+  .card{padding:12px}
+  .gauge{width:60px;height:60px}
+  .gauge-val{font-size:14px}
+}
+/* ===== Tablet landscape / small desktop ===== */
+@media(min-width:769px) and (max-width:1024px){
+  .grid-auto{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .page{padding:16px 24px 40px}
+}
+/* ===== Large desktop ===== */
+@media(min-width:1400px){
+  .page{max-width:1400px}
+  .grid-auto{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .card{padding:22px}
+  .ex-top{padding:16px 22px}
 }
 </style>
 </head>
@@ -600,7 +677,7 @@ function renderOB(){
 function renderNav(){
   const el=document.getElementById("navInner");const w=S.program.week;
   const u=currentUser?currentUser.email.split("@")[0]:(offlineMode?"offline":"");
-  el.innerHTML=`<div class="logo">HYBRID WARRIOR</div>`+TABS.map(t=>`<button class="nav-btn ${tab===t.id?"active":""}" data-t="${t.id}">${t.icon} ${t.label}</button>`).join("")+
+  el.innerHTML=`<div class="logo">HYBRID WARRIOR</div>`+TABS.map(t=>`<button class="nav-btn ${tab===t.id?"active":""}" data-t="${t.id}"><span class="nav-icon">${t.icon}</span><span class="nav-label">${t.label}</span></button>`).join("")+
     `<div class="nav-pill" id="navPill">Wk ${w}/13 · ${phaseName(w)}</div>`+
     (currentUser?`<button class="nav-btn" id="nav-so" style="color:var(--red);flex-shrink:0">⏻ ${u}</button>`:offlineMode?`<span style="font-size:10px;color:var(--text3)">offline</span>`:``);
   el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
