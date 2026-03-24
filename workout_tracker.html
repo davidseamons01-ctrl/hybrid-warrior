@@ -354,11 +354,11 @@ function mkDay(slot,w){
         {eid:"plank",sets:3,reps:45,target:0,unit:"sec",reason:"Core stability"}],
       finisher:"50 Air Squats + 50 Lunges for time"+xf},
     SR:{focus:"Speed Intervals"+dn,warmup:"10 min jog → leg swings → 2×100m strides",
-      exs:[{eid:"int800",sets:isDeload?3:w<=4?4:w<=8?5:6,reps:1,target:Math.round(pmi/2*60),unit:"sec ("+fmtPace(Math.round(pmi*60))+" pace)",reason:`Half-mile at ${fmtPace(Math.round(pmi*60))}`},
+      exs:[{eid:"int800",sets:isDeload?3:w<=4?4:w<=8?5:6,reps:1,target:Math.round(pmi/2),unit:"sec ("+fmtPace(Math.round(pmi))+" pace)",reason:`800m at ${fmtPace(Math.round(pmi))} target`},
         {eid:"plank",sets:3,reps:60,target:0,unit:"sec",reason:"Core for running economy"}],
       finisher:"2-min plank + 2×30s mountain climbers"+xf},
     TR:{focus:"Tempo Run"+dn,warmup:"10 min jog → dynamic stretches → strides",
-      exs:[{eid:"tempo",sets:1,reps:isDeload?16:w<=4?20:w<=8?24:w<=12?28:16,target:Math.round(pmi*60),unit:"sec/mi ("+fmtPace(Math.round(pmi*60))+")",reason:`Threshold from est 5K ${mmss(Math.round(fk))}`},
+      exs:[{eid:"tempo",sets:1,reps:isDeload?16:w<=4?20:w<=8?24:w<=12?28:16,target:Math.round(pmi),unit:fmtPace(Math.round(pmi)),reason:`Threshold from est 5K ${mmss(Math.round(fk))}`},
         {eid:"shadow",sets:3,reps:60,target:0,unit:"sec",reason:"Red-line wrestling sim"}],
       finisher:"4-min shadow wrestling"+xf},
     FB:{focus:"Full Body"+dn,warmup:"5 min cardio → dynamic stretches → bar×10",
@@ -433,12 +433,20 @@ function applyLog(log){
   const type=inferType(log.exercise);
   const tVol=Math.max(1,(log.tW||0)*(log.tR||1)*(log.tS||1));
   const aVol=Math.max(1,(log.aW||0)*(log.aR||1)*(log.aS||1));
-  const score=tVol>1?aVol/tVol:1;const tw=clamp((score-1)*.08,-.025,.025);
-  if(type==="bench"){S.adapt.bench=clamp(S.adapt.bench+tw,.88,1.25);const e=epley(log.aW,log.aR);if(e>S.profile.bench1RM*1.01)S.profile.bench1RM=Math.round(e)}
-  else if(type==="squat"){S.adapt.squat=clamp(S.adapt.squat+tw,.88,1.25);const e=epley(log.aW,log.aR);if(e>S.profile.squat1RM*1.01)S.profile.squat1RM=Math.round(e)}
-  else if(type==="dead"){S.adapt.dead=clamp(S.adapt.dead+tw,.88,1.25);const e=epley(log.aW,log.aR);if(e>S.profile.dead1RM*1.01)S.profile.dead1RM=Math.round(e)}
-  else if(type==="run"){const t=Number(log.tW||0),a=Number(log.aW||0);if(t>0&&a>0)S.adapt.run=clamp(S.adapt.run+clamp((t/a-1)*.07,-.025,.025),.85,1.2)}
-  log.score=+score.toFixed(2);return log;
+  const liftScore=tVol>1?aVol/tVol:1;
+  if(type==="bench"){const tw=clamp((liftScore-1)*.08,-.025,.025);S.adapt.bench=clamp(S.adapt.bench+tw,.88,1.25);const e=epley(log.aW,log.aR);if(e>S.profile.bench1RM*1.01)S.profile.bench1RM=Math.round(e);log.score=+liftScore.toFixed(2)}
+  else if(type==="squat"){const tw=clamp((liftScore-1)*.08,-.025,.025);S.adapt.squat=clamp(S.adapt.squat+tw,.88,1.25);const e=epley(log.aW,log.aR);if(e>S.profile.squat1RM*1.01)S.profile.squat1RM=Math.round(e);log.score=+liftScore.toFixed(2)}
+  else if(type==="dead"){const tw=clamp((liftScore-1)*.08,-.025,.025);S.adapt.dead=clamp(S.adapt.dead+tw,.88,1.25);const e=epley(log.aW,log.aR);if(e>S.profile.dead1RM*1.01)S.profile.dead1RM=Math.round(e);log.score=+liftScore.toFixed(2)}
+  else if(type==="run"){
+    const t=Number(log.tW||0),a=Number(log.aW||0);
+    if(t>0&&a>0){
+      const runScore=t/a;
+      S.adapt.run=clamp(S.adapt.run+clamp((runScore-1)*.07,-.025,.025),.85,1.2);
+      log.score=+runScore.toFixed(2);
+    } else log.score=1;
+  }
+  else log.score=+liftScore.toFixed(2);
+  return log;
 }
 
 // ═══════════════════════════════════════════════════════════
