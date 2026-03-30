@@ -451,10 +451,23 @@ function mkDay(slot,w){
     out.exs=out.exs.map(ex=>({ ...ex, sets:Math.min(ex.sets,3), reps:typeof ex.reps==="number"?Math.min(ex.reps,15):ex.reps }));
     if(out.finisher&&slot!=="SR"&&slot!=="TR")out.finisher="10-15 min targeted burner: 3 rounds of 12-15 reps per move.";
   }
-  if(S.profile.prefs&&S.profile.prefs.lifeStage==="postpartum"){
-    out.warmup=(out.warmup?out.warmup+" · ":"")+"Pelvic floor breathing 2 min + gentle core activation";
-    out.exs=out.exs.filter(ex=>!["burpee","air_squat"].includes(ex.eid));
-    out.exs.push({eid:"plank",sets:2,reps:30,target:0,unit:"sec",reason:"Gentle postpartum core stability"});
+  const safety=getSafetyMode();
+  if(safety==="pregnancy"||safety==="postpartum"){
+    const blocked=safety==="pregnancy"
+      ?["burpee","int800","tempo","shadow","deadlift"]
+      :["burpee","shadow","int800"];
+    out.exs=out.exs.map(ex=>{
+      if(!blocked.includes(ex.eid))return ex;
+      if(ex.eid==="deadlift")return {...ex,eid:"rdl",target:r5((ex.target||0)*0.35),reason:"Pregnancy-safe hinge swap"};
+      if(ex.eid==="int800"||ex.eid==="tempo")return {...ex,eid:"plank",sets:3,reps:45,target:0,unit:"sec",reason:"Safe core conditioning swap"};
+      return {...ex,eid:"lunge",sets:3,reps:10,target:0,unit:"BW",reason:"Low-impact safety swap"};
+    });
+    out.warmup=(out.warmup?out.warmup+" · ":"")+(safety==="pregnancy"
+      ?"Prenatal breathing 2 min + gentle mobility + pelvic floor coordination"
+      :"Postpartum breathing 2 min + gentle core activation");
+    out.finisher=safety==="pregnancy"
+      ?"Low-impact finisher: 10-min walk + diaphragmatic breathing"
+      :"Postpartum finisher: 8-10 min easy incline walk + core reset";
   }
   return out;
 }
@@ -468,6 +481,52 @@ function dayPlan(dayIdx,w){
   const p=mkDay(plan.slots[slotIdx],w);
   p.slot=plan.slots[slotIdx];
   return p;
+}
+
+function getSafetyMode(){
+  if(S.profile.sex!=="female")return "none";
+  const life=((S.profile.prefs||{}).lifeStage||"general");
+  const fa=S.goals.focusAreas||[];
+  if(life==="pregnancy"||fa.includes("Pregnancy Safe"))return "pregnancy";
+  if(life==="postpartum"||fa.includes("Postpartum Recovery"))return "postpartum";
+  return "none";
+}
+
+function weeklyExpectedChanges(){
+  const plan=PLANS[S.planId!=null?S.planId:0];
+  const slots=plan?plan.slots:[];
+  const W={
+    glutes:{HL:3,GL:4,HYG:4,HB:2,FBC:1,CT:1,FB:2},
+    core:{CT:4,FBC:3,SR:2,TR:2,HB:2,FB:2,GL:2,HYG:2},
+    back:{HPL:4,HYL:4,HP:2,FB:2,HB:1,PW:2},
+    posture:{HPL:4,HYL:3,GL:2,HP:2,FB:2,TR:1,SR:1}
+  };
+  const score={glutes:0,core:0,back:0,posture:0};
+  for(const sl of slots){
+    score.glutes+=W.glutes[sl]||0;
+    score.core+=W.core[sl]||0;
+    score.back+=W.back[sl]||0;
+    score.posture+=W.posture[sl]||0;
+  }
+  const mx=Math.max(1,...Object.values(score));
+  return{
+    glutes:Math.round(score.glutes/mx*100),
+    core:Math.round(score.core/mx*100),
+    back:Math.round(score.back/mx*100),
+    posture:Math.round(score.posture/mx*100)
+  };
+}
+
+function postpartumMicroRoutine(dayIdx){
+  const map={
+    1:["90/90 breathing x 2 min","Wall posture slides 2x12","Dead bug breathing 2x8/side"],
+    2:["Pelvic tilt breathing x 2 min","Bird dog 2x8/side","Band pull-aparts 2x15"],
+    3:["Glute bridge hold 3x20s","Side plank (knees) 2x20s/side","Thoracic open-book 8/side"],
+    4:["Cat-cow x 60s","Tall-kneel anti-rotation press 2x10/side","Scap push-up 2x10"],
+    5:["Hip flexor stretch 2x40s/side","Face pulls 2x15","Diaphragm breathing x 2 min"],
+    6:["Easy walk 15-20 min","Gentle mobility flow 8-10 min","Pelvic floor relaxation breathing 2 min"]
+  };
+  return map[dayIdx]||["Gentle walk + breathing reset"];
 }
 
 function slotMeta(slot){
@@ -698,7 +757,7 @@ function renderOB(){
       <div class="grid3" style="margin-top:10px">
         <div><label>Equipment Access</label><select id="ob-eq"><option value="gym" ${(S.profile.prefs||{}).equipment==="gym"?"selected":""}>Gym / Full Access</option><option value="home" ${(S.profile.prefs||{}).equipment==="home"?"selected":""}>Home / DB-Minimal</option></select></div>
         <div><label>Session Style</label><select id="ob-style"><option value="balanced" ${(S.profile.prefs||{}).style!=="burner"?"selected":""}>Balanced Strength + Cardio</option><option value="burner" ${(S.profile.prefs||{}).style==="burner"?"selected":""}>10-20 min Burners</option></select></div>
-        <div><label>Life Stage</label><select id="ob-life"><option value="general" ${(S.profile.prefs||{}).lifeStage!=="postpartum"?"selected":""}>General</option><option value="postpartum" ${(S.profile.prefs||{}).lifeStage==="postpartum"?"selected":""}>Postpartum (gentle core)</option></select></div>
+        <div><label>Life Stage</label><select id="ob-life"><option value="general" ${(S.profile.prefs||{}).lifeStage==="general"||!(S.profile.prefs||{}).lifeStage?"selected":""}>General</option><option value="pregnancy" ${(S.profile.prefs||{}).lifeStage==="pregnancy"?"selected":""}>Pregnancy Safe</option><option value="postpartum" ${(S.profile.prefs||{}).lifeStage==="postpartum"?"selected":""}>Postpartum (gentle core)</option></select></div>
       </div>
       <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">← Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Next →</button></div>`;
     document.querySelectorAll(".day-toggle").forEach(t=>t.onclick=()=>t.classList.toggle("on"));
@@ -748,6 +807,7 @@ function renderDash(){
   const bP=g.bench?clamp(p.bench1RM/g.bench,0,1):0;const rP=g.fiveK?clamp(g.fiveK/fk,0,1):0;const fP=g.fatLoss?clamp(fatLost/g.fatLoss,0,1):0;
   const streak=getStreak();const bT=trendArrow("bench"),sT=trendArrow("squat"),dT=trendArrow("dead"),rT=trendArrow("run");
   const wt=weightTrend();const recent=S.logs.slice(-6).reverse();
+  const hm=weeklyExpectedChanges();
 
   // Weight chart
   const wl=S.weightLog.slice(-14);const maxW=Math.max(...wl.map(w=>w.wt),p.startWt);const minW=Math.min(...wl.map(w=>w.wt),p.goalWt);
@@ -766,6 +826,14 @@ function renderDash(){
     ${g.fatLoss?`<div class="card"><div class="card-h"><h2>Lose ${g.fatLoss}lb</h2><span class="badge badge-mint">${Math.round(fP*100)}%</span></div>
       <div class="row">${gaugeHTML(fP,fatLost.toFixed(0)+"","lbs lost","var(--mint)")}<div><div style="font-size:12px;color:var(--text2)">${p.weight}lb → ${p.goalWt}lb</div>
         ${wt?`<div style="font-size:11px;color:${wt.perWeek<0?"var(--mint)":"var(--gold)"}">Trend: ${wt.perWeek.toFixed(1)} lb/wk</div>`:""}</div></div></div>`:""}
+  </div></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Expected Changes Heatmap</h2><span class="badge badge-mint">All Programs</span></div>
+    <div class="grid2">
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Glutes</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.glutes}%;background:linear-gradient(90deg,var(--mint),var(--fire))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.glutes}% expected emphasis</div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Core</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.core}%;background:linear-gradient(90deg,var(--mint),var(--fire))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.core}% expected emphasis</div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Back</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.back}%;background:linear-gradient(90deg,var(--mint),var(--fire))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.back}% expected emphasis</div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Posture</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.posture}%;background:linear-gradient(90deg,var(--mint),var(--fire))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.posture}% expected emphasis</div></div>
+    </div>
   </div></div>
 
   <div class="section"><div class="grid2">
@@ -827,8 +895,11 @@ function bindDash(){
 function renderToday(){
   autoWeek();const d=new Date(),w=S.program.week,plan=dayPlan(d.getDay(),w);
   const meta=slotMeta(plan.slot||"");
+  const safety=getSafetyMode();
+  const micro=(S.profile.sex==="female"&&safety==="postpartum")?postpartumMicroRoutine(d.getDay()):null;
   return`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div class="row" style="gap:10px"><h2 style="font-size:20px;font-weight:900">${DAYS[d.getDay()]}</h2><span style="color:${phaseColor(w)};font-weight:700;font-size:13px">${plan.focus}</span></div><span style="font-size:12px;color:var(--text3)">Week ${w} · ${phaseName(w)}</span></div>
   ${meta?`<div class="card section" style="border-left:3px solid var(--mint)"><div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">WHY THIS SESSION</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Expected Progress:</b> ${meta.expect}</div></div>`:""}
+  ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">WEEKLY POSTURE / PREHAB MICRO-ROUTINE</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
   <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Log</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
   ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
@@ -867,7 +938,9 @@ function bindLog(){
 // ═══════════════════════════════════════════════════════════
 function renderProgram(){
   autoWeek();const cur=S.program.week;if(expandedWeek===null)expandedWeek=cur;
+  const hm=weeklyExpectedChanges();
   return`<div class="section"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="font-size:20px;font-weight:900">13-Week Program</h2><span style="font-size:12px;color:var(--text3)">Weights adapt from your logs</span></div>
+    <div class="card" style="margin-bottom:10px"><div class="card-h"><h2>Expected Changes Heatmap</h2></div><div class="row" style="gap:14px"><div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">${hm.glutes}%</b></div><div style="font-size:11px;color:var(--text2)">Core <b style="color:var(--mint)">${hm.core}%</b></div><div style="font-size:11px;color:var(--text2)">Back <b style="color:var(--mint)">${hm.back}%</b></div><div style="font-size:11px;color:var(--text2)">Posture <b style="color:var(--mint)">${hm.posture}%</b></div></div></div>
     <div class="timeline">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" title="Wk ${w}">${w}</div>`}).join("")}</div></div>
   <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;const wkDays=S.schedule.days||[1,2,3,4,5];
     const logCount=weekHasLogs(w)?S.logs.filter(l=>l.week===w).length:0;
