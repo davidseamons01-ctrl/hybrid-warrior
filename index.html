@@ -1037,8 +1037,12 @@ function getSavedCfg(){try{return JSON.parse(localStorage.getItem("hw-fb-config"
 function saveCfg(c){localStorage.setItem("hw-fb-config",JSON.stringify(c))}
 async function initFB(cfg){
   await loadFBSDK();
-  if(fbApp)try{fbApp.delete()}catch{}
-  fbApp=firebase.initializeApp(cfg,"hw-"+Date.now());
+  const APP_NAME="hw-main";
+  try{
+    const existing=firebase.apps.find(a=>a.name===APP_NAME);
+    if(existing)await existing.delete();
+  }catch{}
+  fbApp=firebase.initializeApp(cfg,APP_NAME);
   fbAuth=firebase.auth(fbApp);
   fbDb=firebase.firestore(fbApp);
   // Keep auth session across reloads/devices until explicit sign-out.
