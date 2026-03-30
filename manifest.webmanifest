@@ -3,8 +3,8 @@
   "short_name": "Hybrid",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0d0d0f",
-  "theme_color": "#0d0d0f",
+  "background_color": "#17171d",
+  "theme_color": "#17171d",
   "description": "Structured strength and conditioning program with logging and sync.",
   "icons": []
 }
