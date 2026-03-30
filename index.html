@@ -232,12 +232,12 @@ const DEFAULT_FB_CONFIG={
 };
 const DEF={
   v:5,
-  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,onboarded:false},
+  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none"}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   program:{week:1,start:iso()},
   adapt:{bench:1,squat:1,dead:1,run:1},
-  logs:[],weightLog:[],
+  logs:[],weightLog:[],healthLog:[],
   planId:null,
   sync:{on:false,cfg:"",uid:""},
   pdfs:{"28DayPlan_FinalVersion.pdf":"","Copy of OffSeason_2ndEdition_Final.pdf":"","IN Season workouts.pdf":"","WrestlingEBook2_FINAL.compressed.pdf":""}
@@ -324,9 +324,11 @@ function selectPlan(){
   const run=fa.includes("5K Running");
   const fat=fa.includes("Lose Weight")||fa.includes("Improve Conditioning");
   const musc=fa.includes("Build Muscle");
-  let g=lift&&!run&&!fat?0:lift&&run?1:fat?2:musc?3:1;
+  const femShape=fa.some(a=>["Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone"].includes(a));
+  let g=lift&&!run&&!fat?0:lift&&run?1:fat?2:musc?3:(femShape?3:1);
   const f=S.schedule.days.length>=5?1:0;
-  const d=S.schedule.sessionMin>45?1:0;
+  const expressBias=(S.profile.prefs&&S.profile.prefs.style==="burner")||S.schedule.sessionMin<=35;
+  const d=expressBias?0:(S.schedule.sessionMin>45?1:0);
   const s=S.profile.sex==="female"?1:0;
   const total=(S.profile.bench1RM||0)+(S.profile.squat1RM||0)+(S.profile.dead1RM||0);
   const e=S.profile.weight>0&&total/S.profile.weight>3.5?1:0;
@@ -344,6 +346,8 @@ function mkDay(slot,w){
   const accP=w%2===0?"incline_db":"cgbench",accL=w%2===0?"lunge":"bss",accSh=w%3===0?"lat_raise":"ohp";
   const wt=weightTrend();let xf="";
   if(wt&&S.goals.fatLoss>0&&wt.perWeek>-S.goals.fatLoss/13*0.5)xf=" + Extra 5-min AMRAP (behind pace)";
+  const h=(S.healthLog||[]).slice(-1)[0];
+  if(h&&h.cal>0&&h.cal<250&&slot!=="TR"&&slot!=="SR")xf+=" + 10-min brisk walk (low burn day)";
 
   const S_={
     HP:{focus:"Heavy Push"+dn,warmup:"5 min cardio → band pull-aparts → bar×10, 95×8, 135×5",
@@ -434,7 +438,25 @@ function mkDay(slot,w){
         {eid:"air_squat",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep Beatdown"}],
       finisher:"5-min AMRAP Burpees"+xf}
   };
-  return S_[slot]||{focus:"Recovery",exs:[],finisher:"Rest."};
+  const out=S_[slot]||{focus:"Recovery",exs:[],finisher:"Rest."};
+  if(S.profile.prefs&&S.profile.prefs.equipment==="home"){
+    out.exs=out.exs.map(ex=>{
+      if(ex.eid==="bench")return {...ex,eid:"pushup",target:0,unit:"BW",reason:"Home-friendly push alternative"};
+      if(ex.eid==="deadlift")return {...ex,eid:"rdl",target:r5((ex.target||0)*0.45),unit:"lb",reason:"DB hinge replacement"};
+      if(ex.eid==="squat")return {...ex,eid:"bss",target:r5((ex.target||0)*0.2),unit:"lb/hand",reason:"DB split-squat replacement"};
+      return ex;
+    });
+  }
+  if(S.profile.prefs&&S.profile.prefs.style==="burner"){
+    out.exs=out.exs.map(ex=>({ ...ex, sets:Math.min(ex.sets,3), reps:typeof ex.reps==="number"?Math.min(ex.reps,15):ex.reps }));
+    if(out.finisher&&slot!=="SR"&&slot!=="TR")out.finisher="10-15 min targeted burner: 3 rounds of 12-15 reps per move.";
+  }
+  if(S.profile.prefs&&S.profile.prefs.lifeStage==="postpartum"){
+    out.warmup=(out.warmup?out.warmup+" · ":"")+"Pelvic floor breathing 2 min + gentle core activation";
+    out.exs=out.exs.filter(ex=>!["burpee","air_squat"].includes(ex.eid));
+    out.exs.push({eid:"plank",sets:2,reps:30,target:0,unit:"sec",reason:"Gentle postpartum core stability"});
+  }
+  return out;
 }
 
 function dayPlan(dayIdx,w){
@@ -628,7 +650,7 @@ function renderOB(){
       obStep=1;renderOB();
     };
   } else if(obStep===1){
-    const areas=["Bench Press","Squat","Deadlift","5K Running","Lose Weight","Build Muscle","Improve Conditioning","General Fitness"];
+    const areas=["Bench Press","Squat","Deadlift","5K Running","Lose Weight","Build Muscle","Improve Conditioning","General Fitness","Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone","Home-Friendly Workouts","Pregnancy Safe","Postpartum Recovery"];
     const sel=S.goals.focusAreas||[];
     card.innerHTML=`<div class="ob-progress">${dots}</div>
       <div class="ob-title">Your Goals</div><div class="ob-sub">Select everything you want to work on. We'll build your program around these.</div>
@@ -673,10 +695,15 @@ function renderOB(){
       <label>Training Days (tap to toggle)</label>
       <div class="row" style="gap:8px;margin-bottom:14px">${[1,2,3,4,5,6].map(d=>`<div class="day-toggle ${selDays.includes(d)?"on":""}" data-d="${d}">${DAYS[d].slice(0,3)}</div>`).join("")}</div>
       <div><label>Minutes per Session</label><select id="ob-mins"><option value="30" ${S.schedule.sessionMin===30?"selected":""}>30 min (quick)</option><option value="45" ${S.schedule.sessionMin===45?"selected":""}>45 min</option><option value="60" ${S.schedule.sessionMin===60?"selected":""}>60 min</option><option value="75" ${S.schedule.sessionMin===75?"selected":""}>75 min</option><option value="90" ${S.schedule.sessionMin===90?"selected":""}>90 min</option></select></div>
+      <div class="grid3" style="margin-top:10px">
+        <div><label>Equipment Access</label><select id="ob-eq"><option value="gym" ${(S.profile.prefs||{}).equipment==="gym"?"selected":""}>Gym / Full Access</option><option value="home" ${(S.profile.prefs||{}).equipment==="home"?"selected":""}>Home / DB-Minimal</option></select></div>
+        <div><label>Session Style</label><select id="ob-style"><option value="balanced" ${(S.profile.prefs||{}).style!=="burner"?"selected":""}>Balanced Strength + Cardio</option><option value="burner" ${(S.profile.prefs||{}).style==="burner"?"selected":""}>10-20 min Burners</option></select></div>
+        <div><label>Life Stage</label><select id="ob-life"><option value="general" ${(S.profile.prefs||{}).lifeStage!=="postpartum"?"selected":""}>General</option><option value="postpartum" ${(S.profile.prefs||{}).lifeStage==="postpartum"?"selected":""}>Postpartum (gentle core)</option></select></div>
+      </div>
       <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">← Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Next →</button></div>`;
     document.querySelectorAll(".day-toggle").forEach(t=>t.onclick=()=>t.classList.toggle("on"));
     document.getElementById("ob-back").onclick=()=>{obStep=2;renderOB()};
-    document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;obStep=4;renderOB()};
+    document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;S.profile.prefs={...(S.profile.prefs||{}),equipment:document.getElementById("ob-eq").value,style:document.getElementById("ob-style").value,lifeStage:document.getElementById("ob-life").value};obStep=4;renderOB()};
   } else if(obStep===4){
     const pid=selectPlan();const plan=PLANS[pid];const tDays=S.schedule.days||[1,2,3,4,5];
     const dayPreview=plan.slots.map((sl,i)=>{const d=tDays[i];return d!=null?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:600;font-size:12px">${DAYS[d]}</span><span style="font-size:12px;color:var(--text2)">${mkDay(sl,1).focus.replace(" (DELOAD)","")}</span></div>`:""}).join("");
@@ -757,6 +784,16 @@ function renderDash(){
       ${wl.length?`<div class="wt-bar">${wtBars}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">Last ${wl.length} entries</div>`:""}
     </div>
   </div></div>
+  <div class="section"><div class="card">
+    <div class="card-h"><h2>Apple Watch / Health Metrics (Manual)</h2><span class="badge badge-ice">Daily Sync</span></div>
+    <div class="grid3">
+      <div><label>Active Calories</label><input id="d-cal" type="number" placeholder="e.g. 540"></div>
+      <div><label>Exercise Minutes</label><input id="d-exmin" type="number" placeholder="e.g. 42"></div>
+      <div><label>Steps</label><input id="d-steps" type="number" placeholder="e.g. 9800"></div>
+    </div>
+    <button class="btn btn-ice btn-block" id="d-health-save" style="margin-top:8px">Save Health Metrics</button>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">Used to auto-adjust conditioning volume and recovery emphasis.</div>
+  </div></div>
 
   ${recent.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent Activity</h2></div>
     ${recent.map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${l.date} — ${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${l.aS}×${l.aR} @ ${l.aW}</div></div>`}).join("")}</div></div>`:""}`;
@@ -768,6 +805,19 @@ function bindDash(){
     if(wt>0){S.profile.weight=wt;S.weightLog.push({date:iso(),wt});S.weightLog=S.weightLog.slice(-90)}
     const r=parseMM(document.getElementById("d-run").value);if(r>0)S.profile.run4mi=r;
     await persist();render();toast("Updated");
+  };
+  const hs=document.getElementById("d-health-save");
+  if(hs)hs.onclick=async()=>{
+    const cal=Number(document.getElementById("d-cal").value)||0;
+    const exMin=Number(document.getElementById("d-exmin").value)||0;
+    const steps=Number(document.getElementById("d-steps").value)||0;
+    if(cal<=0&&exMin<=0&&steps<=0){toast("Enter at least one health metric.");return}
+    S.healthLog.push({date:iso(),cal,exMin,steps});
+    S.healthLog=S.healthLog.slice(-120);
+    // Small adaptive nudge from recovery/load signals
+    if(cal>650&&exMin>45)S.adapt.run=clamp(S.adapt.run+0.01,.85,1.2);
+    if(cal<220&&steps<4000)S.adapt.run=clamp(S.adapt.run-0.01,.85,1.2);
+    await persist();render();toast("Health metrics saved");
   };
 }
 
