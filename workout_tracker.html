@@ -317,46 +317,51 @@ function mergeZones(plan){
 function bodyMapSVG(grow=[],burn=[]){
   const has=z=>grow.includes(z)||burn.includes(z);
   const color=z=>grow.includes(z)&&burn.includes(z)?"#ffd740":grow.includes(z)?"#00e676":burn.includes(z)?"#ff6b35":"#2a2a38";
-  const p=(d,z)=>`<path d="${d}" fill="${color(z)}" opacity="${has(z)?0.98:0.28}" stroke="#1b1b25" stroke-width="0.8"/>`;
-  return `<svg viewBox="0 0 360 220" width="100%" height="190" role="img" aria-label="Anatomy heatmap">
-    <defs><linearGradient id="bgA" x1="0" x2="1"><stop offset="0" stop-color="#12121a"/><stop offset="1" stop-color="#0e0e15"/></linearGradient></defs>
-    <rect x="0" y="0" width="360" height="220" rx="12" fill="url(#bgA)"/>
-    <!-- front silhouette -->
-    <g transform="translate(55,14)">
-      <path d="M60 18c0-10 8-18 18-18s18 8 18 18-8 18-18 18-18-8-18-18Z" fill="#1f2030"/>
-      <path d="M54 36h30l10 16 5 45-9 56h-42L39 97l5-45 10-16Z" fill="#1f2030"/>
-      ${p("M58 44h22v16H58z","chest")}
-      ${p("M57 61h24v18H57z","core")}
-      ${p("M56 80h25v20H56z","core")}
-      ${p("M49 48h9v16h-9z","frontShoulders")}${p("M80 48h9v16h-9z","frontShoulders")}
-      ${p("M43 60h12v26H43z","biceps")}${p("M83 60h12v26H83z","biceps")}
-      ${p("M41 86h12v26H41z","triceps")}${p("M85 86h12v26H85z","triceps")}
-      ${p("M47 112h10v20H47z","forearms")}${p("M83 112h10v20H83z","forearms")}
-      ${p("M50 101h39v20H50z","hips")}
-      ${p("M52 120h16v34H52z","quads")}${p("M71 120h16v34H71z","quads")}
-      ${p("M53 155h14v24H53z","calves")}${p("M72 155h14v24H72z","calves")}
-      ${p("M47 100h42v80H47z","lowerBody")}
-      ${p("M40 44h56v90H40z","upperBody")}
-      ${p("M39 42h58v140H39z","fullBody")}
+  const p=(d,z)=>`<path d="${d}" fill="${color(z)}" opacity="${has(z)?0.95:0.2}" stroke="#202233" stroke-width="0.8"/>`;
+  return `<svg viewBox="0 0 520 260" width="100%" height="210" role="img" aria-label="Anatomy heatmap">
+    <rect x="0" y="0" width="520" height="260" rx="12" fill="#111320"/>
+    <g transform="translate(70,18)">
+      <path d="M70 20c0-12 10-20 22-20s22 8 22 20-10 22-22 22-22-10-22-22Zm-8 28c8-4 16-6 30-6s22 2 30 6l10 22 8 56-9 58-16 34H69L53 184l-9-58 8-56 10-22Z" fill="#25283a"/>
+      ${p("M76 52c7-6 13-8 16-8s9 2 16 8l-3 22H79l-3-22Z","chest")}
+      ${p("M80 76h24l5 26H75l5-26Z","core")}
+      ${p("M74 103h36l-5 26H79l-5-26Z","core")}
+      ${p("M58 56c5-5 9-7 14-7l4 21H57l1-14Z","frontShoulders")}
+      ${p("M114 49c5 0 9 2 14 7l1 14h-19l4-21Z","frontShoulders")}
+      ${p("M50 73h18l-3 28H49l1-28Z","biceps")}
+      ${p("M116 73h18l1 28h-16l-3-28Z","biceps")}
+      ${p("M49 101h16l-4 26H47l2-26Z","triceps")}
+      ${p("M119 101h16l2 26h-14l-4-26Z","triceps")}
+      ${p("M47 127h14l-6 22H45l2-22Z","forearms")}
+      ${p("M123 127h14l2 22h-10l-6-22Z","forearms")}
+      ${p("M78 130h32l6 20H72l6-20Z","hips")}
+      ${p("M74 150h18l4 36H71l3-36Z","quads")}
+      ${p("M96 150h18l3 36H92l4-36Z","quads")}
+      ${p("M72 186h17l-2 30H69l3-30Z","calves")}
+      ${p("M99 186h17l3 30h-18l-2-30Z","calves")}
+      ${p("M45 50h94l0 168H45z","fullBody")}
+      ${p("M45 50h94l0 96H45z","upperBody")}
+      ${p("M69 130h50v88H69z","lowerBody")}
     </g>
-    <!-- back silhouette -->
-    <g transform="translate(205,14)">
-      <path d="M60 18c0-10 8-18 18-18s18 8 18 18-8 18-18 18-18-8-18-18Z" fill="#1f2030"/>
-      <path d="M54 36h30l10 16 5 45-9 56h-42L39 97l5-45 10-16Z" fill="#1f2030"/>
-      ${p("M57 44h24v14H57z","rearShoulders")}
-      ${p("M56 60h25v28H56z","back")}
-      ${p("M56 89h25v16H56z","back")}
-      ${p("M41 86h12v26H41z","triceps")}${p("M85 86h12v26H85z","triceps")}
-      ${p("M47 112h10v20H47z","forearms")}${p("M83 112h10v20H83z","forearms")}
-      ${p("M50 101h39v20H50z","glutes")}
-      ${p("M52 120h16v34H52z","hamstrings")}${p("M71 120h16v34H71z","hamstrings")}
-      ${p("M53 155h14v24H53z","calves")}${p("M72 155h14v24H72z","calves")}
-      ${p("M47 100h42v80H47z","lowerBody")}
-      ${p("M40 44h56v90H40z","upperBody")}
-      ${p("M39 42h58v140H39z","fullBody")}
+    <g transform="translate(300,18)">
+      <path d="M70 20c0-12 10-20 22-20s22 8 22 20-10 22-22 22-22-10-22-22Zm-8 28c8-4 16-6 30-6s22 2 30 6l10 22 8 56-9 58-16 34H69L53 184l-9-58 8-56 10-22Z" fill="#25283a"/>
+      ${p("M78 50h30l8 18H70l8-18Z","rearShoulders")}
+      ${p("M76 68h34l6 32H70l6-32Z","back")}
+      ${p("M73 100h40l-3 28H76l-3-28Z","back")}
+      ${p("M50 73h18l-3 28H49l1-28Z","triceps")}
+      ${p("M116 73h18l1 28h-16l-3-28Z","triceps")}
+      ${p("M47 127h14l-6 22H45l2-22Z","forearms")}
+      ${p("M123 127h14l2 22h-10l-6-22Z","forearms")}
+      ${p("M75 129h36l5 24H70l5-24Z","glutes")}
+      ${p("M74 153h18l4 33H71l3-33Z","hamstrings")}
+      ${p("M96 153h18l3 33H92l4-33Z","hamstrings")}
+      ${p("M72 186h17l-2 30H69l3-30Z","calves")}
+      ${p("M99 186h17l3 30h-18l-2-30Z","calves")}
+      ${p("M45 50h94l0 168H45z","fullBody")}
+      ${p("M45 50h94l0 96H45z","upperBody")}
+      ${p("M69 130h50v88H69z","lowerBody")}
     </g>
-    <text x="95" y="210" fill="#7f8193" font-size="10" text-anchor="middle">FRONT</text>
-    <text x="245" y="210" fill="#7f8193" font-size="10" text-anchor="middle">BACK</text>
+    <text x="160" y="248" fill="#7f8193" font-size="11" text-anchor="middle">FRONT</text>
+    <text x="390" y="248" fill="#7f8193" font-size="11" text-anchor="middle">BACK</text>
   </svg>`;
 }
 
