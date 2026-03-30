@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Hybrid Training — 13-week strength and conditioning with smart logging, cloud sync, and goals. Create an account to save progress on every device.">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hybrid Training">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#17171d" id="meta-theme">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -192,6 +194,22 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 .settings-section.hidden{display:none}
 .ease-wizard{display:none;margin-top:12px;padding:14px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)}.ease-wizard.show{display:block}
 .trend-up{color:var(--mint)}.trend-down{color:var(--red)}.trend-flat{color:var(--text3)}
+.feel-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.feel-chips>span{font-size:10px;color:var(--text3);margin-right:4px}
+.feel-chip{font:600 11px/1 'DM Sans',sans-serif;padding:6px 10px;border-radius:99px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:.15s}
+.feel-chip:hover{border-color:var(--border-lit);color:var(--text)}.feel-chip.on{border-color:var(--ice);color:var(--text);background:color-mix(in srgb,var(--ice) 12%,transparent)}
+.ex-card.ex-skip{opacity:.55;border-style:dashed}.ex-card.ex-skip .ex-skip-lbl{font-size:10px;color:var(--gold);margin-top:4px}
+.train-aids{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.train-aids .btn{font-size:11px;padding:8px 12px;min-height:36px}
+.missed-card{border-left:3px solid var(--ice)!important}
+.milestone-card{border-left:3px solid var(--gold)!important}
+.trust-banner{font-size:12px;color:var(--text2);padding:10px 12px;background:color-mix(in srgb,var(--ice) 8%,transparent);border:1px solid color-mix(in srgb,var(--ice) 22%,transparent);border-radius:var(--radius-sm);margin-bottom:14px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.trust-banner button{flex-shrink:0}
+#p-plan.plan-compact .pw-ex-row{display:none}#p-plan.plan-compact .pw-day-label{margin-bottom:4px}
+details.settings-fold{margin-bottom:14px;border:1px solid var(--border-lit);border-radius:var(--radius);background:var(--card);overflow:hidden}
+details.settings-fold summary{padding:14px 16px;font-weight:600;font-size:14px;cursor:pointer;list-style:none;user-select:none}
+details.settings-fold summary::-webkit-details-marker{display:none}
+details.settings-fold .settings-fold-body{padding:0 16px 16px}
 
 .rest-bar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:120;background:var(--card);border-top:1px solid var(--border-lit);box-shadow:0 -10px 40px rgba(0,0,0,.35);padding:16px 20px calc(16px + env(safe-area-inset-bottom))}
 .rest-bar-inner{max-width:520px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
@@ -201,6 +219,14 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 @media(max-width:768px){
   .rest-bar{bottom:64px;padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 }
+
+.skip-link{position:absolute;left:-9999px;top:0;clip:rect(0,0,0,0);white-space:nowrap}
+.skip-link:focus{position:fixed;left:12px;top:12px;clip:auto;z-index:400;padding:10px 16px;background:var(--card);border:2px solid var(--ice);border-radius:var(--radius-sm);color:var(--text);font:600 13px 'DM Sans',sans-serif;text-decoration:none;white-space:nowrap}
+.dash-context{margin-bottom:14px}
+.prog-bar{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:8px}
+.prog-bar>i{display:block;height:100%;background:color-mix(in srgb,var(--ice) 75%,var(--border));border-radius:99px;transition:width .4s ease}
+.nav-btn:focus-visible,.btn:focus-visible,.subtab:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid color-mix(in srgb,var(--ice) 70%,transparent);outline-offset:1px}
 
 /* AUTH */
 .auth-overlay{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
@@ -249,23 +275,24 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 </style>
 </head>
 <body class="theme-neutral">
+<a class="skip-link" href="#app" id="skip-main">Skip to main content</a>
 <div class="auth-overlay" id="authScreen">
   <div class="auth-card">
     <div class="auth-logo">Hybrid<span class="auth-logo-sub">Training log &amp; sync</span></div>
-    <div class="auth-sub">Sign in to keep one program across your devices, or continue offline.</div>
+    <div class="auth-sub">Create an account so your program, logs, and goals save to the cloud automatically. One setup step links this app to your Firebase project.</div>
     <div class="auth-err" id="authErr"></div>
-    <div id="auth-setup">
-      <div class="auth-info"><b>First-time setup:</b> Paste your Firebase config JSON. Get it from <a href="https://console.firebase.google.com" target="_blank" style="color:var(--ice)">Firebase Console</a> → Project Settings → Your apps → Web app config.</div>
+    <div id="auth-setup" style="display:none">
+      <div class="auth-info"><b>Step 1 — Connect Firebase:</b> Paste your Web app config (once per browser). From <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" style="color:var(--ice)">Firebase Console</a> → Project Settings → Your apps → Web.</div>
       <label>Firebase Config JSON</label>
       <textarea id="auth-cfg" style="min-height:90px;font-size:11px;font-family:monospace" placeholder='{"apiKey":"...","authDomain":"...","projectId":"..."}'></textarea>
       <button class="btn btn-ice btn-block" id="auth-cfg-save" style="margin-top:10px">Save Config & Continue</button>
-      <div class="auth-skip"><button id="auth-skip-btn">Use offline only (no sync)</button></div>
     </div>
     <div id="auth-login" style="display:none">
-      <div class="auth-tabs"><div class="auth-tab active" data-m="in">Sign In</div><div class="auth-tab" data-m="up">Create Account</div></div>
-      <div style="margin-bottom:10px"><label>Email</label><input id="auth-email" type="email" placeholder="you@email.com"></div>
-      <div style="margin-bottom:14px"><label>Password</label><input id="auth-pass" type="password" placeholder="Min 6 characters"></div>
-      <button class="btn btn-fire btn-block" id="auth-go">Sign In</button>
+      <div class="auth-tabs"><div class="auth-tab" data-m="in">Sign In</div><div class="auth-tab active" data-m="up">Create Account</div></div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.45">After you sign in, every log and setting syncs to your account. Use the same email on phone and desktop.</p>
+      <div style="margin-bottom:10px"><label>Email</label><input id="auth-email" type="email" placeholder="you@email.com" autocomplete="email"></div>
+      <div style="margin-bottom:14px"><label>Password</label><input id="auth-pass" type="password" placeholder="Min 6 characters" autocomplete="new-password"></div>
+      <button class="btn btn-fire btn-block" id="auth-go">Create Account</button>
       <div style="display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--text3);font-size:11px"><span style="flex:1;height:1px;background:var(--border)"></span>or<span style="flex:1;height:1px;background:var(--border)"></span></div>
       <button class="btn btn-ghost btn-block" id="auth-change-cfg" style="font-size:11px">Change Firebase Config</button>
     </div>
@@ -275,8 +302,8 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 <div class="ob-overlay" id="obScreen">
   <div class="ob-card" id="obCard"></div>
 </div>
-<nav class="nav" style="display:none" id="mainNav"><div class="nav-inner" id="navInner"></div></nav>
-<div class="page" id="app" style="display:none"></div>
+<nav class="nav" style="display:none" id="mainNav" role="navigation" aria-label="Main"><div class="nav-inner" id="navInner"></div></nav>
+<div class="page" id="app" style="display:none" tabindex="-1"></div>
 <div class="toast" id="toast"></div>
 <div class="rest-bar" id="restBar" aria-live="polite"><div class="rest-bar-inner"><div class="rest-bar-label" id="restBarLabel">Rest</div><div class="rest-bar-time" id="restBarTime">0:00</div><div class="rest-bar-actions"><button type="button" class="btn btn-sm btn-ghost" id="restAdd30">+30s</button><button type="button" class="btn btn-sm btn-secondary-solid" id="restSkip30">−30s</button><button type="button" class="btn btn-sm btn-cta" id="restDone">Done</button></div></div></div>
 
@@ -403,8 +430,8 @@ const EX_MUSCLE_IDS={
 
 const iso=()=>new Date().toISOString().slice(0,10);
 const DEF={
-  v:5,
-  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"dark"}},
+  v:6,
+  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"dark",quickSessionMin:0}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   program:{week:1,start:iso()},
@@ -413,11 +440,14 @@ const DEF={
   planId:null,
   sync:{on:false,cfg:"",uid:""},
   pdfs:{"28DayPlan_FinalVersion.pdf":"","Copy of OffSeason_2ndEdition_Final.pdf":"","IN Season workouts.pdf":"","WrestlingEBook2_FINAL.compressed.pdf":""},
-  lastLiftByEid:{}
+  lastLiftByEid:{},
+  skippedEidsByDate:{},
+  sessionFeelByDate:{},
+  trustBannerLastShown:0
 };
 
 let S=load();let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;
-let authMode="in";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;
+let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;
 
 // ═══════════════════════════════════════════════════════════
 //  UTILITIES
@@ -439,6 +469,69 @@ function phaseSets(w){return w<=4?4:w<=8?5:w<=12?5:3}
 function autoWeek(){const d0=new Date(S.program.start+"T00:00:00");S.program.week=clamp(Math.floor((new Date()-d0)/864e5/7)+1,1,13)}
 function weekBounds(wk){const d0=new Date(S.program.start+"T12:00:00");const start=new Date(d0);start.setDate(d0.getDate()+(wk-1)*7);return start}
 function logsOnScheduleDaysThisWeek(){const wk=S.program.week,start=weekBounds(wk),days=S.schedule.days||[1,2,3,4,5];let logged=0,target=0;for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);const dow=d.getDay();if(!days.includes(dow))continue;target++;const ds=d.toISOString().slice(0,10);if(S.logs.some(l=>l.date===ds))logged++}return{logged,target}}
+function trimStaleSkipped(st){st=st||S;const o=st.skippedEidsByDate||{};const cutoff=Date.now()-45*864e5;const n={};for(const k of Object.keys(o)){if(new Date(k+"T12:00:00").getTime()>=cutoff)n[k]=o[k]}st.skippedEidsByDate=n;const sf=st.sessionFeelByDate||{};const ns={};for(const k of Object.keys(sf)){if(new Date(k+"T12:00:00").getTime()>=cutoff)ns[k]=sf[k]}st.sessionFeelByDate=ns}
+function weekIntentLine(w){
+  const phase=phaseName(w).toLowerCase();
+  const plan=PLANS[S.planId!=null?S.planId:0];
+  const slots=new Set(plan&&plan.slots?plan.slots:[]);
+  const lower=slots.has("HL")||slots.has("GL")||slots.has("HYG");
+  const upper=slots.has("HP")||slots.has("HPL")||slots.has("HYP")||slots.has("HB");
+  const run=slots.has("SR")||slots.has("TR");
+  const parts=[];
+  if(lower&&upper)parts.push("balanced upper + lower strength");
+  else if(lower)parts.push("lower-body & glute bias");
+  else if(upper)parts.push("upper-body strength bias");
+  if(run)parts.push("one quality run stimulus");
+  const fa=(S.goals.focusAreas||[]).filter(Boolean);
+  const faBit=fa.length?` · ${fa.slice(0,2).join(" & ")}`:"";
+  return`This week (${phase}): ${parts.join(" + ")||"full-body progress"}${faBit}.`;
+}
+function milestoneCheckpointCopy(w){
+  if(w===4||w===8)return{title:"Deload checkpoint",body:"Week "+w+" eases volume on purpose so you absorb the last block and come back stronger. This is planned progression — not lost time."};
+  if(w===13)return{title:"Test week",body:"Treat heavy work as crisp technique practice. Log honestly; scores inform the next block without judging you."};
+  return null;
+}
+function firstMissedScheduledSession(){
+  const days=S.schedule.days||[1,2,3,4,5];
+  const today=new Date();today.setHours(12,0,0,0);
+  for(let back=1;back<=9;back++){
+    const dt=new Date(today);dt.setDate(dt.getDate()-back);
+    const ds=dt.toISOString().slice(0,10);
+    const dow=dt.getDay();
+    if(!days.includes(dow))continue;
+    const wk=clamp(Math.floor((new Date(ds+"T12:00:00")-new Date(S.program.start+"T12:00:00"))/864e5/7)+1,1,13);
+    if(wk!==S.program.week)continue;
+    if(S.logs.some(l=>l.date===ds))continue;
+    return{date:ds,dayName:DAYS[dow],dow};
+  }
+  return null;
+}
+function feelLiftDelta(feel){if(feel==="easy")return .007;if(feel==="hard")return -.011;return 0}
+function applyFeelToLogAdapt(log){
+  const type=inferType(log.exercise);
+  const d=feelLiftDelta(log.liftFeel||"ok");
+  if(!d)return;
+  if(type==="bench")S.adapt.bench=clamp(S.adapt.bench+d,.85,1.28);
+  else if(type==="squat")S.adapt.squat=clamp(S.adapt.squat+d,.85,1.28);
+  else if(type==="dead")S.adapt.dead=clamp(S.adapt.dead+d,.85,1.28);
+  else if(type==="run")S.adapt.run=clamp(S.adapt.run+d*.85,.82,1.22);
+}
+function applySessionFeelNudge(feel){
+  if(feel==="easy"){S.adapt.bench=clamp(S.adapt.bench+.004,.85,1.28);S.adapt.squat=clamp(S.adapt.squat+.004,.85,1.28);S.adapt.dead=clamp(S.adapt.dead+.004,.85,1.28);S.adapt.run=clamp(S.adapt.run+.003,.82,1.22)}
+  else if(feel==="hard"){S.adapt.bench=clamp(S.adapt.bench-.006,.85,1.28);S.adapt.squat=clamp(S.adapt.squat-.006,.85,1.28);S.adapt.dead=clamp(S.adapt.dead-.006,.85,1.28);S.adapt.run=clamp(S.adapt.run-.005,.82,1.22)}
+}
+function todayPlanFiltered(){
+  autoWeek();
+  const d=new Date(),w=S.program.week;
+  const base=dayPlan(d.getDay(),w);
+  const skip=new Set((S.skippedEidsByDate&&S.skippedEidsByDate[iso()])||[]);
+  let exs=(base.exs||[]).filter(ex=>!skip.has(ex.eid));
+  const qm=Number((S.profile.prefs||{}).quickSessionMin)||0;
+  const quickNote=qm>0&&base.exs.length>2;
+  if(qm>0&&exs.length>2)exs=exs.slice(0,2);
+  return{...base,exs,quickNote};
+}
+function scrollToHashAfterRender(hash){if(!hash)return;requestAnimationFrame(()=>{const el=document.querySelector(hash);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})})}
 function nextScheduledDayTeaser(){const days=S.schedule.days||[1,2,3,4,5];const t=new Date();for(let k=1;k<=8;k++){const d=new Date(t);d.setDate(t.getDate()+k);if(days.includes(d.getDay()))return`Next session: ${DAYS[d.getDay()]}.`}return""}
 function sessionBreadcrumb(w,plan){const phase=phaseName(w);const head=(plan.focus||"Today's session").split("·")[0].trim().slice(0,52);return`Week ${w} · ${phase} · ${head}${plan.finisher?" + finisher":""}`}
 function parseRestSec(restStr){
@@ -479,7 +572,7 @@ function formatPlateResult(r,barLb){
   const parts=r.plates.map(x=>x.n+"×"+x.lb).join(" + ");
   return`${r.perSide} lb per side: ${parts||"(none)"} — check total: ${barLb+2*r.perSide} lb`;
 }
-function normalizeTabs(){if(tab==="dash"){tab=TAB_YOU;youSub="home"}else if(tab==="today"){tab=TAB_TRAIN;trainSub="workout"}else if(tab==="log"){tab=TAB_TRAIN;trainSub="log"}else if(tab==="program")tab=TAB_PLAN;else if(tab==="settings"){tab=TAB_YOU;youSub="settings"}else if(tab==="ref"){tab=TAB_YOU;youSub="home"}}
+function normalizeTabs(){if(tab==="dash"){tab=TAB_YOU;youSub="home"}else if(tab==="today"){tab=TAB_TRAIN;trainSub="workout"}else if(tab==="log"){tab=TAB_TRAIN;trainSub="log"}else if(tab==="program")tab=TAB_PLAN;else if(tab==="settings"){tab=TAB_YOU;youSub="settings"}else if(tab==="ref"){tab=TAB_YOU;youSub="ref"}}
 function isExLoggedToday(eid){const e=exById(eid),name=e?e.name:eid;return S.logs.some(l=>l.date===iso()&&l.exercise===name)}
 function inferType(n){n=(n||"").toLowerCase();if(n.includes("bench")||n.includes("incline")||n.includes("close")||n.includes("dip"))return"bench";if((n.includes("squat")&&!n.includes("air"))||n.includes("bulgarian"))return"squat";if(n.includes("deadlift")||n.includes("rdl"))return"dead";if(n.includes("run")||n.includes("800")||n.includes("tempo"))return"run";return"acc"}
 function getStreak(){const dates=new Set(S.logs.map(l=>l.date));let s=0;const d=new Date();for(let i=0;i<30;i++){const dd=new Date(d);dd.setDate(dd.getDate()-i);if(dates.has(dd.toISOString().slice(0,10)))s++;else if(i>0)break;}return s}
@@ -1179,13 +1272,14 @@ function applyLog(log){
     } else log.score=1;
   }
   else log.score=+liftScore.toFixed(2);
+  applyFeelToLogAdapt(log);
   return log;
 }
 
 // ═══════════════════════════════════════════════════════════
 //  PERSISTENCE & AUTH
 // ═══════════════════════════════════════════════════════════
-function load(){try{const r=localStorage.getItem("hw5");return r?merge(structuredClone(DEF),JSON.parse(r)):structuredClone(DEF)}catch{return structuredClone(DEF)}}
+function load(){try{const r=localStorage.getItem("hw5");const s=r?merge(structuredClone(DEF),JSON.parse(r)):structuredClone(DEF);trimStaleSkipped(s);return s}catch{return structuredClone(DEF)}}
 function merge(b,s){if(!s||typeof s!=="object")return b;for(const k of Object.keys(s)){if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k]))b[k]=merge(b[k]||{},s[k]);else b[k]=s[k]}return b}
 function save(){localStorage.setItem("hw5",JSON.stringify(S))}
 async function persist(){save();if(currentUser)await cloudPush()}
@@ -1221,6 +1315,7 @@ async function cloudPullOnce(uid){
 }
 
 async function enterApp(user){
+  offlineMode=false;
   currentUser=user;
   showAuthLoading();
   await cloudPullOnce(user.uid); // ensure newest cross-device state is loaded before onboarding decision
@@ -1232,18 +1327,38 @@ async function enterApp(user){
   startSync();
   render();
 }
-function enterOffline(){offlineMode=true;document.getElementById("authScreen").style.display="none";applyVisualTheme(false);if(!S.profile.onboarded){showOnboarding();return}document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";render()}
-async function doSignOut(){if(fbAuth)await fbAuth.signOut();currentUser=null;document.getElementById("authScreen").style.display="flex";document.getElementById("mainNav").style.display="none";document.getElementById("app").style.display="none";showAuthLogin()}
+async function doSignOut(){
+  offlineMode=false;
+  if(fbAuth)await fbAuth.signOut();
+  currentUser=null;
+  document.getElementById("authScreen").style.display="flex";
+  document.getElementById("mainNav").style.display="none";
+  document.getElementById("app").style.display="none";
+  getSavedCfg()?showAuthLogin():showAuthSetup();
+}
 function showAuthSetup(){
   document.getElementById("auth-setup").style.display="block";
   document.getElementById("auth-login").style.display="none";
   document.getElementById("auth-loading").style.display="none";
-  // Never reveal saved config (especially apiKey) in UI
   const cfgInput=document.getElementById("auth-cfg");
   if(cfgInput)cfgInput.value="";
 }
-function showAuthLogin(){document.getElementById("auth-setup").style.display="none";document.getElementById("auth-login").style.display="block";document.getElementById("auth-loading").style.display="none"}
-function showAuthLoading(){document.getElementById("auth-setup").style.display="none";document.getElementById("auth-login").style.display="none";document.getElementById("auth-loading").style.display="block"}
+function applyAuthTabUI(){
+  document.querySelectorAll(".auth-tab").forEach(x=>x.classList.toggle("active",x.dataset.m===authMode));
+  const go=document.getElementById("auth-go");
+  if(go)go.textContent=authMode==="in"?"Sign In":"Create Account";
+}
+function showAuthLogin(){
+  document.getElementById("auth-setup").style.display="none";
+  document.getElementById("auth-login").style.display="block";
+  document.getElementById("auth-loading").style.display="none";
+  applyAuthTabUI();
+}
+function showAuthLoading(){
+  document.getElementById("auth-setup").style.display="none";
+  document.getElementById("auth-login").style.display="none";
+  document.getElementById("auth-loading").style.display="block";
+}
 function showAuthErr(m){const el=document.getElementById("authErr");el.textContent=m;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),6000)}
 function parseFirebaseConfig(raw){
   const txt=(raw||"").trim();
@@ -1273,16 +1388,16 @@ function bindAuthUI(){
       saveCfg(cfg);
       showAuthLoading();
       await initFB(cfg);
+      authMode="up";
       showAuthLogin();
-      toast("Firebase config saved.");
+      toast("Config saved — create your account below.");
     }catch(e){
       showAuthErr(e.message||"Invalid config JSON.");
       showAuthSetup();
     }
   };
-  document.getElementById("auth-skip-btn").onclick=()=>enterOffline();
-  document.querySelectorAll(".auth-tab").forEach(t=>t.onclick=()=>{authMode=t.dataset.m;document.querySelectorAll(".auth-tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");document.getElementById("auth-go").textContent=authMode==="in"?"Sign In":"Create Account"});
-  document.getElementById("auth-go").onclick=async()=>{const em=document.getElementById("auth-email").value.trim(),pw=document.getElementById("auth-pass").value;if(!em||!pw){showAuthErr("Enter email and password.");return}if(pw.length<6){showAuthErr("Password must be 6+ characters.");return}try{showAuthLoading();const c=authMode==="in"?await fbAuth.signInWithEmailAndPassword(em,pw):await fbAuth.createUserWithEmailAndPassword(em,pw);enterApp(c.user)}catch(e){showAuthLogin();showAuthErr(e.code==="auth/user-not-found"?"No account. Try Create Account.":e.code==="auth/wrong-password"||e.code==="auth/invalid-credential"?"Wrong email or password.":e.code==="auth/email-already-in-use"?"Email in use. Try Sign In.":e.message)}};
+  document.querySelectorAll(".auth-tab").forEach(t=>t.onclick=()=>{authMode=t.dataset.m;applyAuthTabUI()});
+  document.getElementById("auth-go").onclick=async()=>{const em=document.getElementById("auth-email").value.trim(),pw=document.getElementById("auth-pass").value;if(!em||!pw){showAuthErr("Enter email and password.");return}if(pw.length<6){showAuthErr("Password must be 6+ characters.");return}try{showAuthLoading();const c=authMode==="in"?await fbAuth.signInWithEmailAndPassword(em,pw):await fbAuth.createUserWithEmailAndPassword(em,pw);await enterApp(c.user)}catch(e){showAuthLogin();showAuthErr(e.code==="auth/user-not-found"?"No account. Switch to Create Account.":e.code==="auth/wrong-password"||e.code==="auth/invalid-credential"?"Wrong email or password.":e.code==="auth/email-already-in-use"?"Email in use. Switch to Sign In.":e.message)}};
   document.getElementById("auth-change-cfg").onclick=()=>showAuthSetup();
   document.getElementById("auth-pass").onkeydown=e=>{if(e.key==="Enter")document.getElementById("auth-go").click()};
 }
@@ -1420,8 +1535,8 @@ function renderOB(){
 // ═══════════════════════════════════════════════════════════
 function renderNav(){
   const el=document.getElementById("navInner");const w=S.program.week;
-  const tabs=[[TAB_TRAIN,"Train",""],[TAB_PLAN,"Plan",""],[TAB_YOU,"You",""]];
-  el.innerHTML=`<div class="logo">Hybrid<span class="logo-tag">Training</span></div>`+tabs.map(([id,lb,ic])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button"><span class="nav-ic">${ic}</span>${lb}</button>`).join("")+
+  const tabs=[[TAB_TRAIN,"Train","Today & log"],[TAB_PLAN,"Plan","13-week calendar"],[TAB_YOU,"You","Progress & settings"]];
+  el.innerHTML=`<div class="logo">Hybrid<span class="logo-tag">Training</span></div>`+tabs.map(([id,lb,hint])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""}><span class="nav-ic"></span>${lb}</button>`).join("")+
     `<div class="nav-pill" id="navPill">Week ${w}/13 · ${phaseName(w)}</div>`+
     (currentUser?`<button class="nav-btn" id="nav-so" style="color:var(--text3);flex-shrink:0;font-size:11px" type="button" title="${(currentUser.email||"").replace(/"/g,"&quot;")}">Sign out</button>`:offlineMode?`<span style="font-size:10px;color:var(--text3)">Offline</span>`:``);
   el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
@@ -1431,6 +1546,23 @@ function renderNav(){
 // ═══════════════════════════════════════════════════════════
 //  RENDER — DASHBOARD
 // ═══════════════════════════════════════════════════════════
+function trainingDayHint(){
+  const days=S.schedule.days||[1,2,3,4,5];
+  const d0=new Date(S.program.start+"T00:00:00");
+  for(let k=0;k<10;k++){
+    const dt=new Date();dt.setHours(12,0,0,0);dt.setDate(dt.getDate()+k);
+    const ds=dt.toISOString().slice(0,10);
+    const dow=dt.getDay();
+    if(!days.includes(dow))continue;
+    const wk=clamp(Math.floor((new Date(ds+"T12:00:00")-d0)/864e5/7)+1,1,13);
+    const pl=dayPlan(dow,wk);
+    const when=k===0?"Today":k===1?"Tomorrow":DAYS[dow];
+    if(!pl.exs.length)return`${when}: recovery or light day — optional easy movement.`;
+    const focus=(pl.focus||"Training").split("·")[0].trim().slice(0,48);
+    return`${when}: ${focus} · ${pl.exs.length} exercise${pl.exs.length!==1?"s":""}`;
+  }
+  return"Add training days under Settings → Training & profile.";
+}
 function renderDash(){
   autoWeek();
   const d=new Date(),w=S.program.week,plan=dayPlan(d.getDay(),w);
@@ -1453,9 +1585,20 @@ function renderDash(){
   const ringLen=113;const pctRing=mg.target?Math.min(1,mg.logged/mg.target):0;const off=ringLen*(1-pctRing);
   const openDet=sessionStorage.getItem("hw-dash-details")==="1";
   const weekLogEmpty=mg.target>0&&mg.logged===0;
+  const dateLine=d.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+  const nextLine=trainingDayHint();
+  const progPct=Math.round(w/13*100);
+  const intentLine=weekIntentLine(w);
+  const ms=firstMissedScheduledSession();
+  const mile=milestoneCheckpointCopy(w);
+  const trustUntil=Number(sessionStorage.getItem("hw-trust-until"))||0;
+  const showTrust=!((S.profile.prefs||{}).trustDataHide)&&Date.now()>trustUntil;
 
   return`
   ${lastLogSummary?`<div class="session-banner" id="dash-sum"><b style="color:var(--text)">Logged.</b> ${lastLogSummary.name} · Current streak: <b>${lastLogSummary.streak}</b> day${lastLogSummary.streak!==1?"s":""}.${lastLogSummary.vol?` Volume (est.): <b>${lastLogSummary.vol}</b>.`:""} ${lastLogSummary.next} <button type="button" class="details-toggle" id="sum-dismiss" style="margin-left:6px">Dismiss</button></div>`:""}
+  ${showTrust?`<div class="trust-banner" id="trust-ban"><span>Signed-in data syncs to your Firebase project. Export a JSON backup anytime in Settings — your data belongs to you.</span><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button type="button" class="btn btn-sm btn-secondary-solid" id="trust-later">Remind in a week</button><button type="button" class="btn btn-sm btn-ghost" id="trust-hide">Don't show again</button></div></div>`:""}
+  ${mile?`<div class="card section milestone-card"><div style="font-size:14px;font-weight:600">${mile.title}</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5">${mile.body}</p></div>`:""}
+  ${ms?`<div class="card section missed-card"><div style="font-size:14px;font-weight:600">Still room for ${ms.dayName}</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">No log for <b style="color:var(--text)">${ms.date}</b> — that happens. When you're ready, backfill it or carry the session forward without guilt.</p><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px"><button type="button" class="btn btn-cta btn-sm" id="dash-miss-log" data-d="${ms.date}">Log ${ms.dayName}</button><button type="button" class="btn btn-secondary-solid btn-sm" id="dash-miss-plan">Open calendar</button></div></div>`:""}
   <div class="hero-card">
     <div class="hero-title">${heroTitle}</div>
     <div class="breadcrumb">${bc}</div>
@@ -1464,6 +1607,21 @@ function renderDash(){
     <div class="hero-target">${heroTarget}</div>
     <button type="button" class="btn btn-cta btn-block hero-cta" id="dash-start-workout">Open today's session</button>
     <button type="button" class="btn btn-secondary-solid btn-block" id="dash-whats-today" style="margin-top:8px">Review session details</button>
+  </div>
+  <div class="card dash-context section" style="padding:14px">
+    <div style="font-size:13px;font-weight:600;color:var(--text)">${dateLine}</div>
+    <div style="font-size:12px;color:var(--ice);margin-top:8px;line-height:1.45">${intentLine}</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">${nextLine}</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>Program block</span><span>Week ${w} of 13</span></div>
+    <div class="prog-bar" aria-hidden="true"><i style="width:${progPct}%"></i></div>
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px">
+      <button type="button" class="btn btn-cta btn-sm" id="dash-q-session">Today's session</button>
+      <button type="button" class="btn btn-secondary-solid btn-sm" id="dash-q-log">Quick log</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="dash-q-plan">13-week plan</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="dash-q-ref">Exercise ref</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="dash-q-health">Health</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="dash-q-ease">Ease load</button>
+    </div>
   </div>
   <div class="micro-goal card" style="padding:14px;display:flex;align-items:center;gap:14px">
     <div class="micro-ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="rbg" cx="26" cy="26" r="18"/><circle class="rfill" cx="26" cy="26" r="18" stroke-dasharray="${ringLen}" stroke-dashoffset="${off}"/></svg><span>${mg.logged}/${mg.target}</span></div>
@@ -1534,6 +1692,18 @@ function bindDash(){
   const st=document.getElementById("dash-start-workout");if(st)st.onclick=()=>{tab=TAB_TRAIN;trainSub="workout";render()};
   const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{tab=TAB_TRAIN;trainSub="workout";render()};
   const gl=document.getElementById("dash-go-log");if(gl)gl.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
+  const qs=document.getElementById("dash-q-session");if(qs)qs.onclick=()=>{tab=TAB_TRAIN;trainSub="workout";render()};
+  const ql=document.getElementById("dash-q-log");if(ql)ql.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
+  const qp=document.getElementById("dash-q-plan");if(qp)qp.onclick=()=>{tab=TAB_PLAN;render()};
+  const qr=document.getElementById("dash-q-ref");if(qr)qr.onclick=()=>{tab=TAB_YOU;youSub="ref";render()};
+  const qh=document.getElementById("dash-q-health");if(qh)qh.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-health");render()};
+  const qe=document.getElementById("dash-q-ease");if(qe)qe.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-ease");sessionStorage.setItem("ease-open","1");render()};
+  const tLat=document.getElementById("trust-later"),tHi=document.getElementById("trust-hide");
+  if(tLat)tLat.onclick=()=>{sessionStorage.setItem("hw-trust-until",String(Date.now()+7*864e5));render()};
+  if(tHi)tHi.onclick=async()=>{S.profile.prefs={...(S.profile.prefs||{}),trustDataHide:true};await persist();render()};
+  const ml=document.getElementById("dash-miss-log"),mp=document.getElementById("dash-miss-plan");
+  if(ml)ml.onclick=()=>{logDate=ml.dataset.d;tab=TAB_TRAIN;trainSub="log";render()};
+  if(mp)mp.onclick=()=>{tab=TAB_PLAN;render()};
   const dt=document.getElementById("dash-details-toggle");if(dt)dt.onclick=()=>{const o=sessionStorage.getItem("hw-dash-details")==="1";sessionStorage.setItem("hw-dash-details",o?"0":"1");render()};
   const sd=document.getElementById("sum-dismiss");if(sd)sd.onclick=()=>{lastLogSummary=null;render()};
   const el=document.getElementById("d-save");
@@ -1565,7 +1735,7 @@ function renderTrain(){
   return`<div class="subtab-row"><button type="button" class="subtab ${trainSub==="workout"?"on":""} train-sub" data-s="workout">Session</button><button type="button" class="subtab ${trainSub==="log"?"on":""} train-sub" data-s="log">Log</button></div><div id="train-inner">${trainSub==="workout"?renderToday():renderLog()}</div>`;
 }
 function renderYou(){
-  return`<div class="subtab-row"><button type="button" class="subtab ${youSub==="home"?"on":""} you-sub" data-s="home">Overview</button><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" data-s="settings">Settings</button></div><div id="you-inner">${youSub==="home"?renderDash():renderSettings()}</div>`;
+  return`<div class="subtab-row"><button type="button" class="subtab ${youSub==="home"?"on":""} you-sub" data-s="home">Overview</button><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" data-s="settings">Settings</button><button type="button" class="subtab ${youSub==="ref"?"on":""} you-sub" data-s="ref">Reference</button></div><div id="you-inner">${youSub==="home"?renderDash():youSub==="settings"?renderSettings():renderRef()}</div>`;
 }
 function bindTrain(){
   document.querySelectorAll(".train-sub").forEach(b=>b.onclick=()=>{trainSub=b.dataset.s;render()});
@@ -1573,47 +1743,75 @@ function bindTrain(){
 }
 function bindYou(){
   document.querySelectorAll(".you-sub").forEach(b=>b.onclick=()=>{youSub=b.dataset.s;render()});
-  if(youSub==="home")bindDash();else bindSettings();
+  if(youSub==="home")bindDash();else if(youSub==="settings")bindSettings();else bindRef();
 }
 
 // ═══════════════════════════════════════════════════════════
 //  RENDER — TODAY
 // ═══════════════════════════════════════════════════════════
 function renderToday(){
-  autoWeek();const d=new Date(),w=S.program.week,plan=dayPlan(d.getDay(),w);
+  const plan=todayPlanFiltered();
+  const d=new Date(),w=S.program.week;
   const meta=slotMeta(plan.slot||"");
   const safety=getSafetyMode();
   const micro=(S.profile.sex==="female"&&safety==="postpartum")?postpartumMicroRoutine(d.getDay()):null;
   const zones=mergeZones(plan);
   const bc=sessionBreadcrumb(w,plan);
+  const qm=Number((S.profile.prefs||{}).quickSessionMin)||0;
+  const skipped=((S.skippedEidsByDate||{})[iso()]||[]);
+  const skippedLbl=skipped.map(id=>(exById(id)||{}).name||id).join(", ");
+  const sf=S.sessionFeelByDate&&S.sessionFeelByDate[iso()];
   return`<div id="p-today">
   <div class="hero-title" style="font-size:20px;margin-bottom:4px">${DAYS[d.getDay()]}</div>
   <div class="breadcrumb">${bc}</div>
+  <div class="train-aids section">
+    <button type="button" class="btn btn-secondary-solid ${qm>0?"btn-fire":""}" id="train-quick">${qm>0?"15-min mode on":"Minimum session (~15 min)"}</button>
+    <button type="button" class="btn btn-ghost" id="train-ref">Exercise ref</button>
+    <button type="button" class="btn btn-ghost" id="train-open-health">Health metrics</button>
+    <button type="button" class="btn btn-ghost" id="train-open-ease">Ease load…</button>
+  </div>
   ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Today's impact map</h2></div><div class="fig-wrap"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div></div>`:""}
   ${meta?`<div class="card section"><button type="button" class="details-toggle" id="why-toggle" style="width:100%;text-align:left">Why this session? (coaching notes)</button><div class="details-panel" id="why-body"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">Posture / prehab add-on</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">Warm-up</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
-  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const mm=exMuscles(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);const done=isExLoggedToday(ex.eid);const lw=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?S.lastLiftByEid[ex.eid]:(ex.target||0);return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${e?e.name:ex.eid}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button type="button" class="btn btn-sm btn-ghost ex-rest" data-i="${i}" title="Rest timer (${e&&e.rest?e.rest:"~90s"})">Rest</button><button type="button" class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Details</button><button type="button" class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="quick-log-row"><span style="font-size:11px;color:var(--text3);align-self:center">Quick log (remembers load)</span><div><label>Reps</label><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"></div><button type="button" class="btn btn-secondary-solid btn-sm q-save" data-i="${i}">Log 1 set</button></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>`}</div>
-  ${plan.finisher?`<div class="finisher finisher-block"><h3>Finisher</h3><p>${plan.finisher}</p></div>`:""}
+  ${plan.quickNote?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Minimum session:</b> first two lifts keep your streak honest. Finisher below is optional — add it if you have bandwidth.</div></div>`:""}
+  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const mm=exMuscles(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);const done=isExLoggedToday(ex.eid);const lw=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?S.lastLiftByEid[ex.eid]:(ex.target||0);return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${e?e.name:ex.eid}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button type="button" class="btn btn-sm btn-ghost ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><button type="button" class="btn btn-sm btn-ghost ex-rest" data-i="${i}" title="Rest timer (${e&&e.rest?e.rest:"~90s"})">Rest</button><button type="button" class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Details</button><button type="button" class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>This lift felt:</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard</button></div><div class="quick-log-row"><span style="font-size:11px;color:var(--text3);align-self:center">Quick log (remembers load)</span><div><label>Reps</label><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"></div><button type="button" class="btn btn-secondary-solid btn-sm q-save" data-i="${i}">Log 1 set</button></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>`}</div>
+  ${skipped.length?`<div class="card section" style="font-size:12px;color:var(--text2)">Skipped today: <b style="color:var(--text)">${skippedLbl||"—"}</b> · <button type="button" class="details-toggle" id="skip-restore">Restore skipped lifts</button></div>`:""}
+  ${plan.exs.length?`<div class="card section"><div style="font-size:13px;font-weight:600;margin-bottom:4px">After the session</div><p style="font-size:11px;color:var(--text3);margin-bottom:10px">Optional autoregulation — nudges next week slightly if everything felt heavy or light.</p>${sf?`<div style="font-size:12px;color:var(--mint);margin-bottom:8px">Saved as: <b>${sf==="easy"?"Easier than expected":sf==="hard"?"Harder than expected":"About right"}</b></div>`:""}<div class="row" style="flex-wrap:wrap;gap:8px"><button type="button" class="btn btn-sm btn-secondary-solid" data-sfeel="easy">Easier than expected</button><button type="button" class="btn btn-sm btn-secondary-solid" data-sfeel="ok">About right</button><button type="button" class="btn btn-sm btn-secondary-solid" data-sfeel="hard">Harder than expected</button></div></div>`:""}
+  ${plan.finisher?`<div class="finisher finisher-block"><h3>Finisher${plan.quickNote?" (optional)":""}</h3><p>${plan.finisher}</p></div>`:""}
   </div>`;
 }
+function readLiftFeel(i){const on=document.querySelector(`#p-today .feel-chip.on[data-i="${i}"]`);return(on&&on.dataset.feel)||"ok"}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   const wt=document.getElementById("why-toggle"),wb=document.getElementById("why-body");
   if(wt&&wb)wt.onclick=()=>{wb.classList.toggle("open");wt.textContent=wb.classList.contains("open")?"Why this session? (hide)":"Why this session? (coaching notes)"};
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
+  document.querySelectorAll("#p-today .feel-chip").forEach(chip=>{chip.onclick=()=>{const i=chip.dataset.i;document.querySelectorAll(`#p-today .feel-chip[data-i="${i}"]`).forEach(c=>c.classList.toggle("on",c===chip))}});
+  const tq=document.getElementById("train-quick");if(tq)tq.onclick=async()=>{const cur=Number((S.profile.prefs||{}).quickSessionMin)||0;S.profile.prefs={...(S.profile.prefs||{}),quickSessionMin:cur>0?0:15};await persist();render();toast(cur>0?"Showing full session":"15-min mode — first two lifts")};
+  const tr=document.getElementById("train-ref");if(tr)tr.onclick=()=>{tab=TAB_YOU;youSub="ref";render()};
+  const th=document.getElementById("train-open-health");if(th)th.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-health");render()};
+  const te=document.getElementById("train-open-ease");if(te)te.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-ease");sessionStorage.setItem("ease-open","1");render()};
+  document.querySelectorAll("#p-today [data-sfeel]").forEach(b=>b.onclick=async()=>{
+    if((S.sessionFeelByDate||{})[iso()]){toast("Already saved today's overall feel — it helps once per day.");return}
+    const feel=b.dataset.sfeel;if(!S.sessionFeelByDate)S.sessionFeelByDate={};applySessionFeelNudge(feel);S.sessionFeelByDate[iso()]=feel;await persist();render();toast("Session feel saved — loads will follow.")
+  });
+  document.querySelectorAll(".ex-skip").forEach(b=>b.onclick=async()=>{
+    const eid=b.dataset.eid;if(!S.skippedEidsByDate)S.skippedEidsByDate={};const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate));const skip=new Set(S.skippedEidsByDate[iso()]||[]);skip.add(eid);S.skippedEidsByDate[iso()]=[...skip];await persist();toast("Skipped for today",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()
+  });
+  const sr=document.getElementById("skip-restore");if(sr)sr.onclick=async()=>{const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate||{}));if(S.skippedEidsByDate)delete S.skippedEidsByDate[iso()];await persist();toast("Restored today's lifts",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()};
   document.querySelectorAll(".ex-rest").forEach(b=>b.onclick=()=>{
     const i=+b.dataset.i;
-    const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];if(!ex)return;
+    const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;
     const e=exById(ex.eid);
     const sec=parseRestSec(e&&e.rest);
     startRestTimer(sec,e?e.name:ex.eid);
     try{b.blur()}catch{}
   });
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=()=>document.getElementById("exb-"+b.dataset.i).classList.toggle("open"));
-  document.querySelectorAll(".ex-how").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const how=document.getElementById("exhow-"+i);const pdf=document.getElementById("expdf-"+i);if(!body.classList.contains("open"))body.classList.add("open");how.style.display=how.style.display==="none"?"block":"none";const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);if(e&&e.books.length){const bk=e.books[0],src=S.pdfs[bk];if(src){pdf.innerHTML=`<p style="color:var(--text3);font-size:11px">Searching ${bk}…</p>`;try{const doc=await getPdf(bk,src);let best={pg:1,sc:-1};for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const txt=tc.items.map(x=>x.str).join(" ").toLowerCase();let sc=0;for(const k of e.kw)if(txt.includes(k))sc++;if(sc>best.sc)best={pg:p,sc};if(sc>=Math.min(e.kw.length,3))break}const pg=await doc.getPage(best.pg);const vp=pg.getViewport({scale:1.4});const cvs=document.createElement("canvas");cvs.width=vp.width;cvs.height=vp.height;cvs.style.cssText="width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px";await pg.render({canvasContext:cvs.getContext("2d"),viewport:vp}).promise;pdf.innerHTML=`<p style="color:var(--mint);font-size:11px">Page ${best.pg} of ${bk}</p>`;pdf.appendChild(cvs)}catch{pdf.innerHTML=`<p style="color:var(--red);font-size:11px">Could not load PDF preview.</p>`}}else pdf.innerHTML=`<p style="color:var(--gold);font-size:11px">PDF preview not configured. Use the How-To steps and video above.</p>`}});
+  document.querySelectorAll(".ex-how").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const how=document.getElementById("exhow-"+i);const pdf=document.getElementById("expdf-"+i);if(!body.classList.contains("open"))body.classList.add("open");how.style.display=how.style.display==="none"?"block":"none";const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);if(e&&e.books.length){const bk=e.books[0],src=S.pdfs[bk];if(src){pdf.innerHTML=`<p style="color:var(--text3);font-size:11px">Searching ${bk}…</p>`;try{const doc=await getPdf(bk,src);let best={pg:1,sc:-1};for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const txt=tc.items.map(x=>x.str).join(" ").toLowerCase();let sc=0;for(const k of e.kw)if(txt.includes(k))sc++;if(sc>best.sc)best={pg:p,sc};if(sc>=Math.min(e.kw.length,3))break}const pg=await doc.getPage(best.pg);const vp=pg.getViewport({scale:1.4});const cvs=document.createElement("canvas");cvs.width=vp.width;cvs.height=vp.height;cvs.style.cssText="width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px";await pg.render({canvasContext:cvs.getContext("2d"),viewport:vp}).promise;pdf.innerHTML=`<p style="color:var(--mint);font-size:11px">Page ${best.pg} of ${bk}</p>`;pdf.appendChild(cvs)}catch{pdf.innerHTML=`<p style="color:var(--red);font-size:11px">Could not load PDF preview.</p>`}}else pdf.innerHTML=`<p style="color:var(--gold);font-size:11px">PDF preview not configured. Use the How-To steps and video above.</p>`}});
   document.querySelectorAll(".q-save").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;document.getElementById("t-s"+i).value=1;document.getElementById("t-r"+i).value=document.getElementById("tq-r"+i).value;document.getElementById("t-w"+i).value=document.getElementById("tq-w"+i).value;document.querySelector(`.ex-save[data-i="${i}"]`).click()});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const log=applyLog({id:crypto.randomUUID(),date:iso(),week:S.program.week,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW});S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};toast(`${name} saved`,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
+  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const log=applyLog({id:crypto.randomUUID(),date:iso(),week:S.program.week,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i)});S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};toast(`${name} saved`,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1637,7 +1835,7 @@ function bindLog(){
   const di=document.getElementById("log-date");if(di)di.onchange=()=>{logDate=di.value;render()};
   const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const log=applyLog({id:crypto.randomUUID(),date:logDate,week:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||""});S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);await persist();render();toast(`${c} exercises saved/updated`)};
   document.querySelectorAll(".log-edit").forEach(b=>b.onclick=()=>{logDate=b.dataset.d;render();toast("Loaded date for editing. Update values and save.")});
-  document.querySelectorAll(".log-del").forEach(b=>b.onclick=async()=>{if(!confirm("Delete logs for "+b.dataset.d+"?"))return;S.logs=S.logs.filter(l=>l.date!==b.dataset.d);await persist();render()});
+  document.querySelectorAll(".log-del").forEach(b=>b.onclick=async()=>{const ds=b.dataset.d;if(!confirm("Delete logs for "+ds+"?"))return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1645,9 +1843,10 @@ function bindLog(){
 // ═══════════════════════════════════════════════════════════
 function renderProgram(){
   autoWeek();const cur=S.program.week;if(expandedWeek===null)expandedWeek=cur;
+  const compact=sessionStorage.getItem("hw-plan-compact")==="1";
   const hm=weeklyExpectedChanges();
   const ws=womenProgramSummary();
-  return`<div class="section"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="font-size:18px;font-weight:600;letter-spacing:-0.02em">Thirteen-week block</h2><span style="font-size:12px;color:var(--text3)">Loads follow your logs</span></div>
+  return`<div id="p-plan" class="${compact?"plan-compact":""}"><div class="section"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h2 style="font-size:18px;font-weight:600;letter-spacing:-0.02em">Thirteen-week block</h2><div class="row" style="gap:8px;align-items:center"><span style="font-size:12px;color:var(--text3)">Loads follow your logs</span><button type="button" class="btn btn-sm btn-ghost" id="plan-compact-toggle">${compact?"Show all exercises":"Simpler view"}</button></div></div>
     ${ws?`<div class="card" style="margin-bottom:10px;border-left:3px solid var(--mint)"><div class="card-h"><h2>Women's Program Summary</h2><span class="badge badge-mint">${ws.label}</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:8px">Baseline: <b style="color:var(--text)">${ws.tier}</b> · Life stage: <b style="color:var(--text)">${ws.life}</b> · Equipment: <b style="color:var(--text)">${ws.eq}</b> · Session style: <b style="color:var(--text)">${ws.style}</b></div><div style="display:grid;gap:4px">${ws.tracks.map(t=>`<div style="font-size:11px;color:var(--text2)">• ${t}</div>`).join("")}</div>${ws.fa.length?`<div style="margin-top:8px;font-size:10px;color:var(--text3)">Goals: ${ws.fa.join(" · ")}</div>`:""}</div>`:""}
     <div class="card" style="margin-bottom:10px"><div class="card-h"><h2>Expected Changes Heatmap</h2></div><div class="row" style="gap:14px"><div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">${hm.glutes}%</b></div><div style="font-size:11px;color:var(--text2)">Core <b style="color:var(--mint)">${hm.core}%</b></div><div style="font-size:11px;color:var(--text2)">Back <b style="color:var(--mint)">${hm.back}%</b></div><div style="font-size:11px;color:var(--text2)">Posture <b style="color:var(--mint)">${hm.posture}%</b></div></div></div>
     <div class="timeline">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" title="Wk ${w}">${w}</div>`}).join("")}</div></div>
@@ -1656,9 +1855,14 @@ function renderProgram(){
     let bodyHTML="";
     if(isOpen){bodyHTML=wkDays.concat([6]).map(d=>{const p=dayPlan(d,w);const isToday=d===new Date().getDay()&&w===cur;return`<div class="pw-day ${isToday?"pw-day-today":""}"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${DAYS[d]}</span>${isToday?` <span class="badge badge-ice" style="font-size:8px;letter-spacing:0.05em">Today</span>`:""} · ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--text3);margin:2px 0 0 16px">Finisher · ${p.finisher}</div></div>`}).join("")}
     return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · Deload":""}</span>${w===cur?`<span class="badge badge-ice" style="font-size:9px">This week</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${logCount?logCount+" entries":"scheduled"}</span></div>
-    <div class="pw-body ${isOpen?"open":""}">${bodyHTML}</div></div>`}).join("")}</div>`;
+    <div class="pw-body ${isOpen?"open":""}">${bodyHTML}</div></div>`}).join("")}</div></div>`;
 }
-function bindProgram(){document.querySelectorAll(".tl-wk").forEach(el=>el.onclick=()=>{expandedWeek=+el.dataset.w;render()});document.querySelectorAll(".pw-head").forEach(el=>el.onclick=()=>{const w=+el.dataset.w;expandedWeek=expandedWeek===w?null:w;render()})}
+function bindProgram(){
+  const pc=document.getElementById("plan-compact-toggle");
+  if(pc)pc.onclick=()=>{sessionStorage.setItem("hw-plan-compact",sessionStorage.getItem("hw-plan-compact")==="1"?"0":"1");render()};
+  document.querySelectorAll(".tl-wk").forEach(el=>el.onclick=()=>{expandedWeek=+el.dataset.w;render()});
+  document.querySelectorAll(".pw-head").forEach(el=>el.onclick=()=>{const w=+el.dataset.w;expandedWeek=expandedWeek===w?null:w;render()});
+}
 
 // ═══════════════════════════════════════════════════════════
 //  RENDER — REFERENCE
@@ -1678,8 +1882,19 @@ function bindRef(){
 // ═══════════════════════════════════════════════════════════
 function renderSettings(){
   return`<label class="settings-search"><span style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">Search settings</span><input type="search" id="s-filter" placeholder="e.g. bench, export, too hard…" autocomplete="off"></label>
+  <div class="card settings-section" data-k="help guide tips get started how overview train plan you log sync" style="padding:14px;margin-bottom:14px">
+    <button type="button" class="details-toggle" id="help-toggle" aria-expanded="false" style="width:100%;text-align:left">How to get the most from this app</button>
+    <div class="details-panel" id="help-body">
+      <ul style="font-size:12px;color:var(--text2);margin:10px 0 0;padding-left:18px;line-height:1.55">
+        <li><b style="color:var(--text)">Log after you train</b> — entries tune adaptation so prescribed loads stay realistic.</li>
+        <li><b style="color:var(--text)">Train</b> — Session is your in-gym checklist; Log is for entering what you did (any date).</li>
+        <li><b style="color:var(--text)">Plan</b> — Full 13-week calendar; use it to see what is coming and stay oriented.</li>
+        <li><b style="color:var(--text)">You</b> — Overview for streaks and goals; Settings for profile, backup, and if the block feels too hard.</li>
+      </ul>
+    </div>
+  </div>
   <div class="grid2 section">
-    <div class="card settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style adaptation save"><div class="card-h"><h2>Training & profile</h2></div>
+    <div class="card settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style appearance theme light dark adaptation save"><div class="card-h"><h2>Training & profile</h2></div>
       <div class="grid3"><div><label>Bench 1RM</label><input id="s-b" type="number" value="${S.profile.bench1RM}"></div><div><label>Squat 1RM</label><input id="s-sq" type="number" value="${S.profile.squat1RM}"></div><div><label>Deadlift 1RM</label><input id="s-dl" type="number" value="${S.profile.dead1RM}"></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Weight</label><input id="s-wt" type="number" value="${S.profile.weight}"></div><div><label>Goal Wt</label><input id="s-gw" type="number" value="${S.profile.goalWt}"></div><div><label>4mi (mm:ss)</label><input id="s-run" value="${mmss(S.profile.run4mi)}"></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Waist (in)</label><input id="s-waist" type="number" step="0.1" value="${S.profile.waist||""}"></div><div><label>Hips (in)</label><input id="s-hips" type="number" step="0.1" value="${S.profile.hips||""}"></div><div><label>Shoulders (in)</label><input id="s-shoulders" type="number" step="0.1" value="${S.profile.shoulders||""}"></div></div>
@@ -1687,6 +1902,7 @@ function renderSettings(){
       <div class="grid3" style="margin-top:8px"><div><label>Sex</label><select id="s-sex"><option value="male" ${S.profile.sex==="male"?"selected":""}>Male</option><option value="female" ${S.profile.sex==="female"?"selected":""}>Female</option></select></div><div><label>Life Stage</label><select id="s-life"><option value="general" ${((S.profile.prefs||{}).lifeStage||"general")==="general"?"selected":""}>General</option><option value="pregnancy" ${((S.profile.prefs||{}).lifeStage||"")==="pregnancy"?"selected":""}>Pregnancy</option><option value="postpartum" ${((S.profile.prefs||{}).lifeStage||"")==="postpartum"?"selected":""}>Postpartum</option></select></div><div><label>Women's Mode</label><select id="s-wm"><option value="auto" ${((S.profile.prefs||{}).womenMode||"auto")==="auto"?"selected":""}>Auto</option><option value="hourglass" ${((S.profile.prefs||{}).womenMode||"")==="hourglass"?"selected":""}>Hourglass</option><option value="glute_shelf" ${((S.profile.prefs||{}).womenMode||"")==="glute_shelf"?"selected":""}>Glute Shelf</option><option value="posture" ${((S.profile.prefs||{}).womenMode||"")==="posture"?"selected":""}>Posture</option><option value="pilates" ${((S.profile.prefs||{}).womenMode||"")==="pilates"?"selected":""}>Pilates</option><option value="home" ${((S.profile.prefs||{}).womenMode||"")==="home"?"selected":""}>Home Sculpt</option></select></div></div>
       <div class="grid2" style="margin-top:8px"><div><label>Equipment</label><select id="s-eq"><option value="gym" ${((S.profile.prefs||{}).equipment||"gym")==="gym"?"selected":""}>Gym</option><option value="home" ${((S.profile.prefs||{}).equipment||"")==="home"?"selected":""}>Home</option></select></div><div><label>Session Style</label><select id="s-style"><option value="balanced" ${((S.profile.prefs||{}).style||"balanced")==="balanced"?"selected":""}>Balanced</option><option value="burner" ${((S.profile.prefs||{}).style||"")==="burner"?"selected":""}>Burner (10-20 min)</option></select></div></div>
       <div style="margin-top:8px"><label>Appearance</label><select id="s-appearance"><option value="dark" ${((S.profile.prefs||{}).appearance||"dark")!=="light"?"selected":""}>Calm dark (default)</option><option value="light" ${((S.profile.prefs||{}).appearance||"")==="light"?"selected":""}>Light (bright room / daytime)</option></select></div>
+      <div style="margin-top:8px"><label>When time is tight (Train tab)</label><select id="s-quick"><option value="0" ${!(Number((S.profile.prefs||{}).quickSessionMin))?"selected":""}>Full session</option><option value="15" ${Number((S.profile.prefs||{}).quickSessionMin)>0?"selected":""}>~15 min — first two lifts only</option></select></div>
       <button class="btn btn-cta btn-block" id="s-save" style="margin-top:10px">Save & recalculate</button>
       <div style="margin-top:10px;padding:10px;background:var(--surface);border-radius:var(--radius-sm)">
         <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:4px">ADAPTATION</div>
@@ -1702,40 +1918,52 @@ function renderSettings(){
       <button class="btn btn-ghost btn-block" id="s-reonboard" style="margin-top:8px">Re-run Onboarding Wizard</button>
     </div>
         </div>
-  <div class="card section settings-section" data-k="plate barbell calculator load weight gym plates per side olympic"><div class="card-h"><h2>Bar load helper</h2></div>
+  <details class="settings-fold settings-section" data-k="plate barbell calculator load weight gym plates per side olympic" open><summary>Bar load helper</summary><div class="settings-fold-body">
     <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Pairs per side for a standard Olympic set (45, 35, 25, 10, 5, 2.5 lb). Enter total barbell weight.</p>
     <div class="grid3"><div><label>Target total (lb)</label><input type="number" id="pl-total" step="0.5" placeholder="e.g. 225" min="0"></div><div><label>Bar weight</label><select id="pl-bar"><option value="45">45 lb</option><option value="35">35 lb</option><option value="20">20 lb technique</option><option value="0">No bar (check only plates)</option></select></div><div style="align-self:end"><button type="button" class="btn btn-secondary-solid btn-block" id="pl-calc">Calculate</button></div></div>
     <div id="pl-out" style="font-size:13px;color:var(--text);margin-top:12px;line-height:1.45;font-weight:500"></div>
-  </div>
-  <div class="card section settings-section" data-k="data backup export import clear logs difficult hard ease deload recovery too program"><div class="card-h"><h2>Data & backup</h2></div>
+  </div></details>
+  <details class="settings-fold settings-section" id="settings-health" data-k="health wearables apple google fit steps calories activity privacy clipboard manual sync"><summary>Activity &amp; wearables</summary><div class="settings-fold-body">
+    <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px">Browser apps cannot read Apple Health or Google Fit directly. Nothing leaves your device unless you enable Firebase sync or copy an export — optional entries below are yours to keep or delete.</p>
+    <label>Log steps for today (manual / paste from tracker)</label>
+    <div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap"><input type="number" id="health-steps-quick" placeholder="e.g. 8420" style="max-width:140px"><button type="button" class="btn btn-sm btn-mint" id="health-steps-save">Save to health log</button><button type="button" class="btn btn-sm btn-ghost" id="health-paste-steps">Paste from clipboard</button></div>
+    <p style="font-size:10px;color:var(--text3);margin-top:8px">Tip: on phone, copy steps from Health or Fit, then tap Paste.</p>
+  </div></details>
+  <details class="settings-fold settings-section" data-k="data backup export import clear logs difficult hard ease deload recovery too program" id="settings-ease" open><summary>Data, backup &amp; program ease</summary><div class="settings-fold-body">
     <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Export a full backup of your training state, or import a saved JSON file from another device.</p>
     <div class="row" style="flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="s-clear">Clear logs</button><button type="button" class="btn btn-ghost" id="s-export">Export</button><button type="button" class="btn btn-ghost" id="s-import-btn">Import</button><input type="file" id="s-import-file" accept="application/json" style="display:none"></div>
     <button type="button" class="btn btn-secondary-solid btn-block" id="s-ease-open" style="margin-top:12px">Program feels too hard</button>
     <div class="ease-wizard" id="ease-wiz"><p style="font-size:12px;color:var(--text2);margin-bottom:8px">We'll nudge adaptation down ~5% and add a few minutes to your session budget (cap 75 min) so targets feel more doable.</p><button type="button" class="btn btn-cta btn-sm" id="ease-go">Ease my program</button></div>
-  </div>`;
+  </div></details>`;
 }
 function bindSettings(){
+  const ht=document.getElementById("help-toggle"),hb=document.getElementById("help-body");
+  if(ht&&hb)ht.onclick=()=>{hb.classList.toggle("open");const o=hb.classList.contains("open");ht.setAttribute("aria-expanded",o?"true":"false");ht.textContent=o?"How to get the most from this app (hide)":"How to get the most from this app"};
   const fil=document.getElementById("s-filter");
   if(fil)fil.oninput=()=>{const q=fil.value.toLowerCase().trim();document.querySelectorAll(".settings-section").forEach(sec=>{const blob=((sec.dataset.k||"")+" "+(sec.textContent||"")).toLowerCase();sec.classList.toggle("hidden",q.length>0&&!blob.includes(q))})};
   const eo=document.getElementById("s-ease-open"),ew=document.getElementById("ease-wiz");
   if(eo&&ew)eo.onclick=()=>ew.classList.toggle("show");
   const eg=document.getElementById("ease-go");
   if(eg)eg.onclick=async()=>{
+    const snapA={...S.adapt},snapM=Number(S.schedule.sessionMin)||45;
     S.adapt.bench=clamp(S.adapt.bench*.95,.85,1.2);S.adapt.squat=clamp(S.adapt.squat*.95,.85,1.2);S.adapt.dead=clamp(S.adapt.dead*.95,.85,1.2);S.adapt.run=clamp(S.adapt.run*.95,.85,1.2);
     S.schedule.sessionMin=Math.min(75,(Number(S.schedule.sessionMin)||45)+5);
-    await persist();render();toast("Program eased — check Train for updated feel.");
+    await persist();render();toast("Program eased — check Train for updated feel.",{undo:()=>{S.adapt=snapA;S.schedule.sessionMin=snapM;persist();render()}});
   };
+  const hsq=document.getElementById("health-steps-save"),hst=document.getElementById("health-steps-quick"),hpa=document.getElementById("health-paste-steps");
+  if(hsq&&hst)hsq.onclick=async()=>{const steps=Number(hst.value)||0;if(steps<500){toast("Enter a realistic step count (500+).");return}const snap=S.healthLog.slice(),ar=S.adapt.run;S.healthLog.push({date:iso(),cal:0,exMin:0,steps});S.healthLog=S.healthLog.slice(-120);if(steps>10500)S.adapt.run=clamp(S.adapt.run+0.01,.85,1.2);if(steps<3500)S.adapt.run=clamp(S.adapt.run-0.01,.85,1.2);hst.value="";await persist();render();toast("Steps saved",{undo:()=>{S.healthLog=snap;S.adapt.run=ar;persist();render()}})};
+  if(hpa&&hst)hpa.onclick=async()=>{try{const t=await navigator.clipboard.readText();const n=parseInt(String(t).replace(/[^0-9]/g,""),10);if(n>=500)hst.value=String(n);else toast("Clipboard did not look like a step count.")}catch{toast("Allow clipboard access or type steps manually.")}};
   const plBtn=document.getElementById("pl-calc"),plOut=document.getElementById("pl-out");
   if(plBtn&&plOut)plBtn.onclick=()=>{const total=Number(document.getElementById("pl-total").value)||0,bar=Number(document.getElementById("pl-bar").value)||45;if(total<=0){plOut.textContent="Enter a target weight.";return}const r=calcPlatesPerSide(total,bar);plOut.textContent=formatPlateResult(r,bar)};
-  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;S.profile.sex=document.getElementById("s-sex").value;const appEl=document.getElementById("s-appearance");S.profile.prefs={...(S.profile.prefs||{}),lifeStage:document.getElementById("s-life").value,womenMode:document.getElementById("s-wm").value,equipment:document.getElementById("s-eq").value,style:document.getElementById("s-style").value,appearance:(appEl&&appEl.value)||"dark"};const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();applyAppearanceMeta();render();toast("Saved")};
-  document.getElementById("s-reset").onclick=async()=>{S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Reset")};
-  const so=document.getElementById("s-signout");if(so)so.onclick=()=>{if(confirm("Sign out?"))doSignOut()};
-  document.getElementById("s-plan-save").onclick=async()=>{S.planId=Number(document.getElementById("s-plan").value);await persist();render();toast("Switched to: "+PLANS[S.planId].name)};
-  document.getElementById("s-reonboard").onclick=()=>{S.profile.onboarded=false;save();showOnboarding()};
-  document.getElementById("s-clear").onclick=async()=>{if(!confirm("Clear all logs?"))return;S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Cleared")};
+  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;S.profile.sex=document.getElementById("s-sex").value;const appEl=document.getElementById("s-appearance");const qm=Number(document.getElementById("s-quick")?.value)||0;S.profile.prefs={...(S.profile.prefs||{}),lifeStage:document.getElementById("s-life").value,womenMode:document.getElementById("s-wm").value,equipment:document.getElementById("s-eq").value,style:document.getElementById("s-style").value,appearance:(appEl&&appEl.value)||"dark",quickSessionMin:qm};const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();applyAppearanceMeta();render();toast("Saved")};
+  document.getElementById("s-reset").onclick=async()=>{const prev={...S.adapt};S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Adaptation reset",{undo:()=>{S.adapt=prev;persist();render()}})};
+  const so=document.getElementById("s-signout");if(so)so.onclick=()=>{if(confirm("Sign out? You can sign back in later; local data on this device stays until you clear it."))doSignOut()};
+       document.getElementById("s-plan-save").onclick=async()=>{const next=Number(document.getElementById("s-plan").value);const nm=PLANS[next].name;if(!confirm(`Switch to plan "${nm}"? Week alignment stays the same; review Plan when ready.`))return;S.planId=next;await persist();render();toast("Switched to: "+nm)};
+  document.getElementById("s-reonboard").onclick=()=>{if(!confirm("Re-run the full onboarding wizard? Your logs stay saved, but you'll step through goals and schedule again."))return;S.profile.onboarded=false;save();showOnboarding()};
+  document.getElementById("s-clear").onclick=async()=>{if(!confirm("Clear all workout logs and weight history? This cannot be auto-restored except via undo in the next few seconds or an exported backup."))return;const logs=S.logs.slice(),wl=S.weightLog.slice(),ad={...S.adapt};S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Logs cleared.",{undo:()=>{S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
   document.getElementById("s-export").onclick=()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="hybrid-warrior-backup.json";a.click()};
   document.getElementById("s-import-btn").onclick=()=>document.getElementById("s-import-file").click();
-  document.getElementById("s-import-file").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{S=merge(structuredClone(DEF),JSON.parse(await f.text()));await persist();render();toast("Imported")}catch{toast("Invalid file")}};
+  document.getElementById("s-import-file").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const prev=structuredClone(S);S=merge(structuredClone(DEF),JSON.parse(await f.text()));trimStaleSkipped(S);await persist();render();toast("Imported state.",{undo:()=>{S=prev;persist();render()},duration:7200})}catch{toast("Invalid file")}};
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1759,6 +1987,8 @@ function render(){
   else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
   app.innerHTML=html;
   bindFn();
+  const hs=sessionStorage.getItem("hw-scroll");if(hs){sessionStorage.removeItem("hw-scroll");scrollToHashAfterRender(hs)}
+  if(sessionStorage.getItem("ease-open")==="1"){sessionStorage.removeItem("ease-open");requestAnimationFrame(()=>document.getElementById("ease-wiz")?.classList.add("show"))}
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1795,10 +2025,12 @@ function initRestBarDock(){
 }
 (async function(){
   initRestBarDock();
+  const sk=document.getElementById("skip-main");
+  if(sk)sk.addEventListener("click",()=>{requestAnimationFrame(()=>{const a=document.getElementById("app");if(a)try{a.focus()}catch{}})});
   if(tryThemePreviewBoot())return;
   applyVisualTheme(true);
   bindAuthUI();let cfg=getSavedCfg();
-  if(cfg){try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else showAuthLogin()})}catch{showAuthSetup()}}
+  if(cfg){try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else{offlineMode=false;showAuthLogin()}})}catch{showAuthSetup()}}
   else showAuthSetup();
   if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){
     navigator.serviceWorker.register("./sw.js").catch(()=>{});
