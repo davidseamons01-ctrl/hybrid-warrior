@@ -11,8 +11,31 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 :root{--bg:#09090f;--surface:#111118;--card:#16161f;--card-hover:#1c1c28;--border:#2a2a38;--border-lit:#3d3d55;--text:#f0f0f5;--text2:#9898a8;--text3:#5e5e70;--fire:#ff6b35;--ice:#00c8ff;--mint:#00e676;--gold:#ffd740;--red:#ff5252;--radius:14px;--radius-sm:10px}
+body.theme-neutral{--fire:#ff6b35;--ice:#00c8ff;--mint:#00e676;--gold:#ffd740;--border-lit:#3d3d55}
+body.theme-feminine{--fire:#ff5ca8;--ice:#9b8bff;--mint:#6ff2d0;--gold:#ffd8ef;--border-lit:#594a7a}
+body.theme-masculine{--fire:#ff7b2c;--ice:#40a9ff;--mint:#3fd57e;--gold:#ffc85c;--border-lit:#425066}
 *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body.theme-feminine{letter-spacing:.01em}
+body.theme-feminine .card,body.theme-feminine .goal-option,body.theme-feminine .btn,body.theme-feminine .chip,body.theme-feminine input,body.theme-feminine select,body.theme-feminine textarea{border-radius:18px}
+body.theme-feminine .nav{background:linear-gradient(180deg,rgba(17,13,26,.95),rgba(9,9,15,.92))}
+body.theme-feminine .logo{font-style:italic;text-shadow:0 0 16px rgba(255,92,168,.22)}
+body.theme-feminine .btn-fire{background:linear-gradient(135deg,var(--fire),#ff88c3)}
+body.theme-feminine .btn-ice{background:linear-gradient(135deg,var(--ice),#b8a9ff)}
+body.theme-feminine .card{box-shadow:0 8px 22px rgba(155,139,255,.10)}
+body.theme-feminine .nav-btn.active{background:rgba(255,92,168,.16)}
+body.theme-feminine .goal-option.selected{background:rgba(255,92,168,.09)}
+body.theme-feminine .badge-fire{background:rgba(255,92,168,.2)}
+body.theme-masculine{letter-spacing:0}
+body.theme-masculine .card,body.theme-masculine .goal-option,body.theme-masculine .btn,body.theme-masculine .chip,body.theme-masculine input,body.theme-masculine select,body.theme-masculine textarea{border-radius:10px}
+body.theme-masculine .nav{background:linear-gradient(180deg,rgba(12,16,23,.96),rgba(9,9,15,.92))}
+body.theme-masculine .logo{text-transform:uppercase;letter-spacing:.02em;text-shadow:0 0 14px rgba(64,169,255,.2)}
+body.theme-masculine .btn-fire{background:linear-gradient(135deg,var(--fire),#ff9a57)}
+body.theme-masculine .btn-ice{background:linear-gradient(135deg,var(--ice),#5dc4ff)}
+body.theme-masculine .card{box-shadow:0 8px 22px rgba(64,169,255,.08)}
+body.theme-masculine .nav-btn.active{background:rgba(64,169,255,.14)}
+body.theme-masculine .goal-option.selected{background:rgba(64,169,255,.08)}
+body.theme-masculine .badge-fire{background:rgba(255,123,44,.2)}
 
 .nav{position:sticky;top:0;z-index:100;background:rgba(9,9,15,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 20px}
 .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:6px;height:56px;overflow-x:auto}
@@ -702,6 +725,16 @@ function womenProgramSummary(){
   if(life==="pregnancy"||life==="postpartum"){tracks[0]="Life-stage-safe core + pelvic floor restoration";tracks[3]="Low-impact recovery circuit (DR/pelvic safe)";}
   return{label,tier,life,eq,style,fa,tracks};
 }
+function applyVisualTheme(forceNeutral=false){
+  const b=document.body;
+  if(!b)return;
+  b.classList.remove("theme-neutral","theme-feminine","theme-masculine");
+  if(forceNeutral||!S.profile.onboarded){
+    b.classList.add("theme-neutral");
+  }else{
+    b.classList.add(S.profile.sex==="female"?"theme-feminine":"theme-masculine");
+  }
+}
 
 function applyWomenBlueprint(out,slot,w){
   if(womenBlueprintMode()==="none")return out;
@@ -1066,13 +1099,14 @@ async function enterApp(user){
   showAuthLoading();
   await cloudPullOnce(user.uid); // ensure newest cross-device state is loaded before onboarding decision
   document.getElementById("authScreen").style.display="none";
+  applyVisualTheme(false);
   if(!S.profile.onboarded){showOnboarding();return}
   document.getElementById("mainNav").style.display="";
   document.getElementById("app").style.display="";
   startSync();
   render();
 }
-function enterOffline(){offlineMode=true;document.getElementById("authScreen").style.display="none";if(!S.profile.onboarded){showOnboarding();return}document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";render()}
+function enterOffline(){offlineMode=true;document.getElementById("authScreen").style.display="none";applyVisualTheme(false);if(!S.profile.onboarded){showOnboarding();return}document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";render()}
 async function doSignOut(){if(fbAuth)await fbAuth.signOut();currentUser=null;document.getElementById("authScreen").style.display="flex";document.getElementById("mainNav").style.display="none";document.getElementById("app").style.display="none";showAuthLogin()}
 function showAuthSetup(){
   document.getElementById("auth-setup").style.display="block";
@@ -1130,8 +1164,8 @@ function bindAuthUI(){
 // ═══════════════════════════════════════════════════════════
 //  ONBOARDING WIZARD
 // ═══════════════════════════════════════════════════════════
-function showOnboarding(){document.getElementById("obScreen").classList.add("show");obStep=0;renderOB()}
-function hideOnboarding(){document.getElementById("obScreen").classList.remove("show");document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";startSync();render()}
+function showOnboarding(){applyVisualTheme(true);document.getElementById("obScreen").classList.add("show");obStep=0;renderOB()}
+function hideOnboarding(){document.getElementById("obScreen").classList.remove("show");document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";applyVisualTheme(false);startSync();render()}
 
 function renderOB(){
   const steps=5;const card=document.getElementById("obCard");
@@ -1142,7 +1176,7 @@ function renderOB(){
       <div class="ob-title">About You</div><div class="ob-sub">Basic info to personalize your program.</div>
       <div class="grid2">
         <div><label>Name</label><input id="ob-name" value="${S.profile.name}" placeholder="David"></div>
-        <div><label>Sex</label><select id="ob-sex"><option value="male" ${S.profile.sex==="male"?"selected":""}>Male</option><option value="female" ${S.profile.sex==="female"?"selected":""}>Female</option></select></div>
+        <div><label>Profile Type</label><select id="ob-sex"><option value="male" ${S.profile.sex==="male"?"selected":""}>Man</option><option value="female" ${S.profile.sex==="female"?"selected":""}>Woman</option></select></div>
       </div>
       <div class="grid3" style="margin-top:10px">
         <div><label>Age</label><input id="ob-age" type="number" value="${S.profile.age||24}"></div>
@@ -1504,7 +1538,9 @@ async function getPdf(n,s){await ensurePdf();if(pdfCache.has(n))return pdfCache.
 //  MASTER RENDER
 // ═══════════════════════════════════════════════════════════
 function render(){
-  autoWeek();renderNav();
+  autoWeek();
+  applyVisualTheme(document.getElementById("obScreen")&&document.getElementById("obScreen").classList.contains("show"));
+  renderNav();
   const app=document.getElementById("app");
   const renderers={dash:renderDash,today:renderToday,log:renderLog,program:renderProgram,ref:renderRef,settings:renderSettings};
   const binders={dash:bindDash,today:bindToday,log:bindLog,program:bindProgram,ref:bindRef,settings:bindSettings};
