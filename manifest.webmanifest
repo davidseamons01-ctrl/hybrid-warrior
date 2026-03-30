@@ -1,4 +1,5 @@
 {
+  "id": "./index.html",
   "name": "Hybrid Training",
   "short_name": "Hybrid",
   "start_url": "./index.html",
@@ -9,5 +10,18 @@
   "theme_color": "#17171d",
   "description": "13-week hybrid strength and conditioning: logging, adaptation, goals, and cloud sync.",
   "categories": ["health", "fitness", "lifestyle"],
-  "icons": []
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }

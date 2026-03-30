@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hybrid Training — Redirect</title>
+<script>
+(function () {
+  var path = location.pathname;
+  var last = path.lastIndexOf("/");
+  var base = last >= 0 ? path.slice(0, last + 1) : "/";
+  if (!base.endsWith("/")) base += "/";
+  var target = base + "index.html" + location.search + location.hash;
+  location.replace(target);
+})();
+</script>
+</head>
+<body style="font-family:system-ui,sans-serif;background:#17171d;color:#b8b8c4;padding:2rem;text-align:center">
+<p>Redirecting to the app…</p>
+<p style="font-size:14px;margin-top:1rem"><a href="./index.html" style="color:#7d9eb4">Open Hybrid Training</a></p>
+</body>
+</html>

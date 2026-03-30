@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Hybrid Training">
+  <rect width="512" height="512" rx="96" fill="#17171d"/>
+  <rect x="48" y="48" width="416" height="416" rx="72" fill="none" stroke="#7d9eb4" stroke-width="12"/>
+  <text x="256" y="330" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-size="240" font-weight="700" fill="#f4f4f7">H</text>
+</svg>

@@ -1,9 +1,12 @@
-const CACHE_NAME = "hybrid-warrior-v9";
+const CACHE_NAME = "hybrid-warrior-v10";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./workout_tracker.html",
-  "./manifest.webmanifest"
+  "./404.html",
+  "./manifest.webmanifest",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
