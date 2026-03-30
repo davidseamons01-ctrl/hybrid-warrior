@@ -82,6 +82,7 @@ label{display:block;font-size:10px;font-weight:600;color:var(--text2);margin-bot
 .anatomy-panel{background:#0f111c;border:1px solid #24273a;border-radius:8px;padding:6px}
 .anatomy-panel svg{width:100%;height:auto;display:block}
 .anatomy-lbl{font-size:9px;color:var(--text3);text-align:center;margin-top:2px}
+.anat-view.active{border-color:var(--mint)!important;color:var(--mint)!important;background:rgba(0,230,118,.1)}
 .finisher{background:linear-gradient(135deg,rgba(255,107,53,.07),rgba(0,200,255,.05));border:1px solid rgba(255,107,53,.2);border-radius:var(--radius);padding:16px;margin-top:12px}
 .finisher h3{color:var(--fire);font-size:13px;margin-bottom:4px}.finisher p{font-size:12px;color:var(--text2)}
 
@@ -227,7 +228,21 @@ const EX=[
   {id:"air_squat",name:"Air Squat",tags:["legs","bodyweight"],rest:"—",howTo:["Feet shoulder-width.","Sit below parallel.","Drive up explosively."],books:["28DayPlan_FinalVersion.pdf"],kw:["air","squat"]},
   {id:"shadow",name:"Shadow Wrestling / Sprawls",tags:["conditioning","wrestling"],rest:"—",howTo:["Athletic stance, feet moving.","Mix sprawls, level changes.","Max intensity — simulate match."],books:["WrestlingEBook2_FINAL.compressed.pdf"],kw:["shadow","wrestle","sprawl"]},
   {id:"dip",name:"Dip",tags:["chest","triceps","upper"],rest:"90s",howTo:["Support on bars, arms locked.","Lower until upper arms parallel.","Press to lockout."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["dip","triceps"]},
-  {id:"lat_raise",name:"Lateral Raise",tags:["shoulders","upper"],rest:"45s",howTo:["Light DBs at sides.","Raise to shoulder height.","Lower slowly."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["lateral","raise","shoulder"]}
+  {id:"lat_raise",name:"Lateral Raise",tags:["shoulders","upper"],rest:"45s",howTo:["Light DBs at sides.","Raise to shoulder height.","Lower slowly."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["lateral","raise","shoulder"]},
+  {id:"kb_around",name:"KB Around the World",tags:["core","pilates","home"],rest:"30s",howTo:["Hold kettlebell at chest height.","Circle slowly around head/body while bracing.","Keep ribs down and hips square."],books:["28DayPlan_FinalVersion.pdf"],kw:["kettlebell","around the world","core"]},
+  {id:"suitcase",name:"Suitcase Carry",tags:["core","obliques","home"],rest:"45s",howTo:["Hold one DB/KB at side.","Walk tall without leaning.","Switch sides each set."],books:["28DayPlan_FinalVersion.pdf"],kw:["suitcase","carry","oblique"]},
+  {id:"db_leg_raise",name:"DB Leg Raise",tags:["core","lower abs","home"],rest:"30s",howTo:["Hold DB between feet if able.","Lift legs with lower back pressed down.","Lower slowly without arching."],books:["28DayPlan_FinalVersion.pdf"],kw:["leg raise","lower abs","dumbbell"]},
+  {id:"toe_tap",name:"Toe Tap (Dead Bug)",tags:["core","postpartum","home"],rest:"30s",howTo:["Lie on back, knees at 90 degrees.","Alternate tapping toes to floor.","Exhale and brace each rep."],books:["28DayPlan_FinalVersion.pdf"],kw:["toe tap","dead bug","core"]},
+  {id:"cross_press",name:"DB Cross Press",tags:["back","arms","hourglass"],rest:"45s",howTo:["Slight hinge with dumbbells in front.","Press diagonally across body.","Control return and keep shoulders down."],books:["28DayPlan_FinalVersion.pdf"],kw:["cross press","dumbbell","back"]},
+  {id:"chest_sweep",name:"Chest Sweep",tags:["arms","posture","pilates"],rest:"45s",howTo:["Light DBs, elbows soft.","Sweep arms in a controlled arc.","Keep ribcage down and neck long."],books:["28DayPlan_FinalVersion.pdf"],kw:["chest sweep","arms","tone"]},
+  {id:"champagne",name:"Champagne Pour",tags:["shoulders","arms","posture"],rest:"45s",howTo:["Hold DBs in front with elbows bent.","Rotate outward like pouring glasses.","Pause and control lowering."],books:["28DayPlan_FinalVersion.pdf"],kw:["champagne pour","shoulders","arms"]},
+  {id:"medball_circuit",name:"Medball Sculpt Circuit",tags:["conditioning","home","fullbody"],rest:"30s",howTo:["Cycle through slams, squat-to-press, and rotations.","Move continuously for circuit time.","Use smooth, controlled transitions."],books:["28DayPlan_FinalVersion.pdf"],kw:["medicine ball","circuit","full body"]},
+  {id:"pelvic_breath",name:"Pelvic Floor Breathing",tags:["pregnancy","postpartum","recovery"],rest:"30s",howTo:["Inhale through nose, expand ribcage.","Exhale long and gently engage pelvic floor.","Stay pain-free and controlled."],books:["28DayPlan_FinalVersion.pdf"],kw:["pelvic floor","breathing","postpartum"]},
+  {id:"hip_thrust",name:"DB/Band Hip Thrust",tags:["glutes","home","lower"],rest:"45s",howTo:["Upper back on bench/sofa edge.","Drive hips up and squeeze glutes hard.","Lower with control and repeat."],books:["28DayPlan_FinalVersion.pdf"],kw:["hip thrust","glute bridge","glutes"]},
+  {id:"fire_hydrant",name:"Fire Hydrant",tags:["glutes","home","medius"],rest:"30s",howTo:["All fours, neutral spine.","Lift knee out to side without rotating torso.","Pause at top and lower slow."],books:["28DayPlan_FinalVersion.pdf"],kw:["fire hydrant","glute medius"]},
+  {id:"clamshell",name:"Banded Clamshell",tags:["glutes","home","medius"],rest:"30s",howTo:["Side-lying, knees bent, band above knees.","Open top knee while heels stay together.","Control down slowly."],books:["28DayPlan_FinalVersion.pdf"],kw:["clamshell","glute medius","band"]},
+  {id:"donkey_kick",name:"Donkey Kick",tags:["glutes","home"],rest:"30s",howTo:["All fours, brace core.","Drive heel up/back without arching low back.","Squeeze glute at top."],books:["28DayPlan_FinalVersion.pdf"],kw:["donkey kick","glute"]},
+  {id:"side_leg_raise",name:"Side-Lying Leg Raise",tags:["glutes","hips","home"],rest:"30s",howTo:["Lie on side, bottom leg bent.","Raise top leg with toes slightly down.","Feel outer glute and lower slowly."],books:["28DayPlan_FinalVersion.pdf"],kw:["side leg raise","hip dip","glute medius"]}
 ];
 function exById(id){return EX.find(e=>e.id===id)}
 const EX_MEDIA={
@@ -252,37 +267,65 @@ const EX_MEDIA={
   air_squat:{video:"https://www.youtube.com/embed/aclHkVaku9U",grow:["quads","glutes"],burn:["lowerBody"]},
   shadow:{video:"https://www.youtube.com/embed/mPaM4y4VVqg",grow:["core","legs","shoulders"],burn:["fullBody","cardio"]},
   dip:{video:"https://www.youtube.com/embed/2z8JmcrW-As",grow:["triceps","chest"],burn:["upperBody"]},
-  lat_raise:{video:"https://www.youtube.com/embed/3VcKaXpzqRo",grow:["sideShoulders"],burn:["upperBody"]}
+  lat_raise:{video:"https://www.youtube.com/embed/3VcKaXpzqRo",grow:["sideShoulders"],burn:["upperBody"]},
+  kb_around:{video:"https://www.youtube.com/embed/vSoM2QK6LUs",grow:["core","shoulders"],burn:["core"]},
+  suitcase:{video:"https://www.youtube.com/embed/V5Kx0M5Q5i0",grow:["core","forearms"],burn:["fullBody"]},
+  db_leg_raise:{video:"https://www.youtube.com/embed/JB2oyawG9KI",grow:["core"],burn:["core"]},
+  toe_tap:{video:"https://www.youtube.com/embed/HK7sB2Ht8b4",grow:["core"],burn:["core"]},
+  cross_press:{video:"https://www.youtube.com/embed/FWJR5Ve8bnQ",grow:["back","rearShoulders"],burn:["upperBody"]},
+  chest_sweep:{video:"https://www.youtube.com/embed/3VcKaXpzqRo",grow:["frontShoulders","chest"],burn:["upperBody"]},
+  champagne:{video:"https://www.youtube.com/embed/3VcKaXpzqRo",grow:["rearShoulders","sideShoulders"],burn:["upperBody"]},
+  medball_circuit:{video:"https://www.youtube.com/embed/G4kPvK4UQ9E",grow:["legs","core","shoulders"],burn:["fullBody","cardio"]},
+  pelvic_breath:{video:"https://www.youtube.com/embed/4syPT8gMDDA",grow:["core"],burn:["core"]},
+  hip_thrust:{video:"https://www.youtube.com/embed/LM8XHLYJoYs",grow:["glutes","hamstrings"],burn:["lowerBody"]},
+  fire_hydrant:{video:"https://www.youtube.com/embed/La3xYT8MGks",grow:["glutes","hips"],burn:["lowerBody"]},
+  clamshell:{video:"https://www.youtube.com/embed/EG5_gXcfozw",grow:["glutes","hips"],burn:["lowerBody"]},
+  donkey_kick:{video:"https://www.youtube.com/embed/SjYQq3Y1GzQ",grow:["glutes"],burn:["lowerBody"]},
+  side_leg_raise:{video:"https://www.youtube.com/embed/jgh6sGwtTwk",grow:["glutes","hips"],burn:["lowerBody"]}
 };
 const EX_MUSCLE_IDS={
-  bench:{grow:["pectoralis_major_l","pectoralis_major_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r","anterior_deltoid_l","anterior_deltoid_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
-  incline_db:{grow:["pectoralis_major_l","pectoralis_major_r","anterior_deltoid_l","anterior_deltoid_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],burn:["rectus_abdominis_1"]},
-  cgbench:{grow:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r","pectoralis_major_l","pectoralis_major_r"],burn:["rectus_abdominis_1"]},
-  ohp:{grow:["anterior_deltoid_l","anterior_deltoid_r","lateral_deltoid_l","lateral_deltoid_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
-  squat:{grow:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r","vastus_medialis_l","vastus_medialis_r","gluteus_maximus_l","gluteus_maximus_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
-  deadlift:{grow:["gluteus_maximus_l","gluteus_maximus_r","biceps_femoris_l","biceps_femoris_r","semitendinosus_l","semitendinosus_r","latissimus_dorsi_l","latissimus_dorsi_r","trapezius_middle_l","trapezius_middle_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
-  rdl:{grow:["biceps_femoris_l","biceps_femoris_r","semitendinosus_l","semitendinosus_r","gluteus_maximus_l","gluteus_maximus_r"],burn:["rectus_abdominis_1"]},
-  row:{grow:["latissimus_dorsi_l","latissimus_dorsi_r","infraspinatus_l","infraspinatus_r","trapezius_middle_l","trapezius_middle_r","biceps_brachii_caput_longum_l","biceps_brachii_caput_longum_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
-  pullup:{grow:["latissimus_dorsi_l","latissimus_dorsi_r","biceps_brachii_caput_longum_l","biceps_brachii_caput_longum_r","trapezius_upper_l","trapezius_upper_r"],burn:["rectus_abdominis_1"]},
-  face_pull:{grow:["posterior_deltoid_l","posterior_deltoid_r","trapezius_middle_l","trapezius_middle_r","infraspinatus_l","infraspinatus_r"],burn:["upperBody"]},
-  lunge:{grow:["rectus_femoris_l","rectus_femoris_r","vastus_medialis_l","vastus_medialis_r","gluteus_maximus_l","gluteus_maximus_r","adductor_longus_l","adductor_longus_r"],burn:["lowerBody"]},
-  bss:{grow:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r","gluteus_maximus_l","gluteus_maximus_r"],burn:["lowerBody"]},
-  pushup:{grow:["pectoralis_major_l","pectoralis_major_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r","anterior_deltoid_l","anterior_deltoid_r"],burn:["rectus_abdominis_1"]},
-  burpee:{grow:["rectus_femoris_l","rectus_femoris_r","pectoralis_major_l","pectoralis_major_r","anterior_deltoid_l","anterior_deltoid_r"],burn:["fullBody"]},
-  int800:{grow:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r","gastrocnemius_l","gastrocnemius_r"],burn:["fullBody"]},
-  tempo:{grow:["rectus_femoris_l","rectus_femoris_r","gastrocnemius_l","gastrocnemius_r"],burn:["fullBody"]},
-  farmer:{grow:["trapezius_upper_l","trapezius_upper_r","brachioradialis_l","brachioradialis_r","external_oblique_1_l","external_oblique_1_r"],burn:["fullBody"]},
-  plank:{grow:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"],burn:["core"]},
-  air_squat:{grow:["rectus_femoris_l","rectus_femoris_r","gluteus_maximus_l","gluteus_maximus_r"],burn:["lowerBody"]},
-  shadow:{grow:["external_oblique_1_l","external_oblique_1_r","anterior_deltoid_l","anterior_deltoid_r","rectus_femoris_l","rectus_femoris_r"],burn:["fullBody"]},
-  dip:{grow:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r","pectoralis_major_l","pectoralis_major_r","anterior_deltoid_l","anterior_deltoid_r"],burn:["upperBody"]},
-  lat_raise:{grow:["lateral_deltoid_l","lateral_deltoid_r"],burn:["upperBody"]}
+  bench:{primary:["pectoralis_major_l","pectoralis_major_r"],secondary:["triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],tertiary:["anterior_deltoid_l","anterior_deltoid_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
+  incline_db:{primary:["pectoralis_major_l","pectoralis_major_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],burn:["rectus_abdominis_1"]},
+  cgbench:{primary:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],secondary:["pectoralis_major_l","pectoralis_major_r"],tertiary:["anterior_deltoid_l","anterior_deltoid_r"],burn:["rectus_abdominis_1"]},
+  ohp:{primary:["anterior_deltoid_l","anterior_deltoid_r"],secondary:["lateral_deltoid_l","lateral_deltoid_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],tertiary:["external_oblique_1_l","external_oblique_1_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
+  squat:{primary:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r","vastus_medialis_l","vastus_medialis_r"],secondary:["gluteus_maximus_l","gluteus_maximus_r"],tertiary:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
+  deadlift:{primary:["gluteus_maximus_l","gluteus_maximus_r","biceps_femoris_l","biceps_femoris_r","semitendinosus_l","semitendinosus_r"],secondary:["latissimus_dorsi_l","latissimus_dorsi_r","trapezius_middle_l","trapezius_middle_r"],tertiary:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
+  rdl:{primary:["biceps_femoris_l","biceps_femoris_r","semitendinosus_l","semitendinosus_r"],secondary:["gluteus_maximus_l","gluteus_maximus_r"],tertiary:["rectus_abdominis_1"],burn:["rectus_abdominis_1"]},
+  row:{primary:["latissimus_dorsi_l","latissimus_dorsi_r"],secondary:["infraspinatus_l","infraspinatus_r","trapezius_middle_l","trapezius_middle_r"],tertiary:["biceps_brachii_caput_longum_l","biceps_brachii_caput_longum_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
+  pullup:{primary:["latissimus_dorsi_l","latissimus_dorsi_r"],secondary:["biceps_brachii_caput_longum_l","biceps_brachii_caput_longum_r"],tertiary:["trapezius_upper_l","trapezius_upper_r"],burn:["rectus_abdominis_1"]},
+  face_pull:{primary:["posterior_deltoid_l","posterior_deltoid_r"],secondary:["trapezius_middle_l","trapezius_middle_r","infraspinatus_l","infraspinatus_r"],tertiary:[],burn:["trapezius_middle_l","trapezius_middle_r"]},
+  lunge:{primary:["rectus_femoris_l","rectus_femoris_r","vastus_medialis_l","vastus_medialis_r"],secondary:["gluteus_maximus_l","gluteus_maximus_r"],tertiary:["adductor_longus_l","adductor_longus_r"],burn:["rectus_femoris_l","rectus_femoris_r"]},
+  bss:{primary:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r"],secondary:["gluteus_maximus_l","gluteus_maximus_r"],tertiary:["external_oblique_1_l","external_oblique_1_r"],burn:["rectus_femoris_l","rectus_femoris_r"]},
+  pushup:{primary:["pectoralis_major_l","pectoralis_major_r"],secondary:["triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],tertiary:["anterior_deltoid_l","anterior_deltoid_r","rectus_abdominis_1"],burn:["rectus_abdominis_1"]},
+  burpee:{primary:["rectus_femoris_l","rectus_femoris_r","pectoralis_major_l","pectoralis_major_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["rectus_abdominis_1"],burn:["rectus_femoris_l","rectus_femoris_r","rectus_abdominis_1"]},
+  int800:{primary:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r"],secondary:["gastrocnemius_l","gastrocnemius_r"],tertiary:["external_oblique_1_l","external_oblique_1_r"],burn:["rectus_femoris_l","rectus_femoris_r","gastrocnemius_l","gastrocnemius_r"]},
+  tempo:{primary:["rectus_femoris_l","rectus_femoris_r"],secondary:["gastrocnemius_l","gastrocnemius_r"],tertiary:["external_oblique_1_l","external_oblique_1_r"],burn:["rectus_femoris_l","rectus_femoris_r","gastrocnemius_l","gastrocnemius_r"]},
+  farmer:{primary:["trapezius_upper_l","trapezius_upper_r","brachioradialis_l","brachioradialis_r"],secondary:["external_oblique_1_l","external_oblique_1_r"],tertiary:["latissimus_dorsi_l","latissimus_dorsi_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
+  plank:{primary:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"],secondary:[],tertiary:[],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
+  air_squat:{primary:["rectus_femoris_l","rectus_femoris_r"],secondary:["gluteus_maximus_l","gluteus_maximus_r"],tertiary:["gastrocnemius_l","gastrocnemius_r"],burn:["rectus_femoris_l","rectus_femoris_r"]},
+  shadow:{primary:["external_oblique_1_l","external_oblique_1_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["rectus_femoris_l","rectus_femoris_r"],burn:["external_oblique_1_l","external_oblique_1_r","rectus_femoris_l","rectus_femoris_r"]},
+  dip:{primary:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r"],secondary:["pectoralis_major_l","pectoralis_major_r"],tertiary:["anterior_deltoid_l","anterior_deltoid_r"],burn:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r"]},
+  lat_raise:{primary:["lateral_deltoid_l","lateral_deltoid_r"],secondary:[],tertiary:[],burn:["lateral_deltoid_l","lateral_deltoid_r"]},
+  kb_around:{primary:["external_oblique_1_l","external_oblique_1_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["rectus_abdominis_1"],burn:["external_oblique_1_l","external_oblique_1_r"]},
+  suitcase:{primary:["external_oblique_1_l","external_oblique_1_r"],secondary:["brachioradialis_l","brachioradialis_r"],tertiary:["rectus_abdominis_1"],burn:["external_oblique_1_l","external_oblique_1_r"]},
+  db_leg_raise:{primary:["rectus_abdominis_1"],secondary:["external_oblique_1_l","external_oblique_1_r"],tertiary:[],burn:["rectus_abdominis_1"]},
+  toe_tap:{primary:["rectus_abdominis_1"],secondary:["external_oblique_1_l","external_oblique_1_r"],tertiary:["transverse_abdominis"],burn:["rectus_abdominis_1"]},
+  cross_press:{primary:["latissimus_dorsi_l","latissimus_dorsi_r"],secondary:["posterior_deltoid_l","posterior_deltoid_r"],tertiary:["biceps_brachii_caput_longum_l","biceps_brachii_caput_longum_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
+  chest_sweep:{primary:["anterior_deltoid_l","anterior_deltoid_r"],secondary:["pectoralis_major_l","pectoralis_major_r"],tertiary:["biceps_brachii_caput_longum_l","biceps_brachii_caput_longum_r"],burn:["anterior_deltoid_l","anterior_deltoid_r"]},
+  champagne:{primary:["posterior_deltoid_l","posterior_deltoid_r"],secondary:["lateral_deltoid_l","lateral_deltoid_r"],tertiary:["infraspinatus_l","infraspinatus_r"],burn:["posterior_deltoid_l","posterior_deltoid_r"]},
+  medball_circuit:{primary:["rectus_femoris_l","rectus_femoris_r","external_oblique_1_l","external_oblique_1_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["gluteus_maximus_l","gluteus_maximus_r"],burn:["rectus_femoris_l","rectus_femoris_r","external_oblique_1_l","external_oblique_1_r"]},
+  pelvic_breath:{primary:["rectus_abdominis_1"],secondary:["external_oblique_1_l","external_oblique_1_r"],tertiary:[],burn:["rectus_abdominis_1"]},
+  hip_thrust:{primary:["gluteus_maximus_l","gluteus_maximus_r"],secondary:["biceps_femoris_l","biceps_femoris_r"],tertiary:["rectus_abdominis_1"],burn:["gluteus_maximus_l","gluteus_maximus_r"]},
+  fire_hydrant:{primary:["gluteus_maximus_l","gluteus_maximus_r"],secondary:["gluteus_medius_l","gluteus_medius_r"],tertiary:["external_oblique_1_l","external_oblique_1_r"],burn:["gluteus_maximus_l","gluteus_maximus_r"]},
+  clamshell:{primary:["gluteus_medius_l","gluteus_medius_r"],secondary:["gluteus_maximus_l","gluteus_maximus_r"],tertiary:[],burn:["gluteus_medius_l","gluteus_medius_r"]},
+  donkey_kick:{primary:["gluteus_maximus_l","gluteus_maximus_r"],secondary:["biceps_femoris_l","biceps_femoris_r"],tertiary:["external_oblique_1_l","external_oblique_1_r"],burn:["gluteus_maximus_l","gluteus_maximus_r"]},
+  side_leg_raise:{primary:["gluteus_medius_l","gluteus_medius_r"],secondary:["tensor_fasciae_latae_l","tensor_fasciae_latae_r"],tertiary:["external_oblique_1_l","external_oblique_1_r"],burn:["gluteus_medius_l","gluteus_medius_r"]}
 };
 
 const iso=()=>new Date().toISOString().slice(0,10);
 const DEF={
   v:5,
-  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none"}},
+  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto"}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   program:{week:1,start:iso()},
@@ -324,8 +367,13 @@ function estCalories(type,mins,weightLb){const kg=weightLb*0.4536;const met=type
 function weightTrend(){const wl=S.weightLog.slice(-14);if(wl.length<2)return null;const first=wl[0].wt,last=wl[wl.length-1].wt;return{change:last-first,perWeek:(last-first)/(wl.length/7||1),last}}
 function exMedia(eid){return EX_MEDIA[eid]||{video:"",grow:["fullBody"],burn:["fullBody"]}}
 function exMuscles(eid){
-  const m=EX_MUSCLE_IDS[eid]||{grow:[],burn:[]};
-  return{grow:[...new Set(m.grow)],burn:[...new Set(m.burn)]};
+  const m=EX_MUSCLE_IDS[eid]||{primary:[],secondary:[],tertiary:[],burn:[]};
+  return{
+    primary:[...new Set(m.primary||[])],
+    secondary:[...new Set(m.secondary||[])],
+    tertiary:[...new Set(m.tertiary||[])],
+    burn:[...new Set(m.burn||[])]
+  };
 }
 function ytId(u){
   if(!u)return"";
@@ -344,7 +392,7 @@ function openVideoUrl(u){
 const ANATOMY_ASSET_FRONT="./assets_muscle_layer_front.svg";
 const ANATOMY_ASSET_BACK="./assets_muscle_layer_back.svg";
 let anatomySvgCache={front:"",back:""};
-function anatomyContainer(grow,burn){return`<div class="anatomy-target" data-grow="${grow.join(",")}" data-burn="${burn.join(",")}"></div>`}
+function anatomyContainer(payload){return`<div class="anatomy-target" data-map="${encodeURIComponent(JSON.stringify(payload))}"></div>`}
 function muscleTokensForZone(z){
   const M={
     chest:["pectoralis","serratus"],
@@ -375,23 +423,40 @@ async function loadAnatomySvg(which){
   anatomySvgCache[which]=txt;
   return txt;
 }
-function tintAnatomySvg(svgText,grow,burn){
+function prettyMuscleName(id){
+  return (id||"").replace(/_/g," ").replace(/\b(l|r)\b/gi,"").replace(/\s+/g," ").trim().replace(/\b\w/g,m=>m.toUpperCase());
+}
+function tintAnatomySvg(svgText,intensity){
+  const primary=intensity.primary||[],secondary=intensity.secondary||[],tertiary=intensity.tertiary||[],burn=intensity.burn||[];
   const isIdList=(arr)=>arr.some(x=>(x||"").includes("_")||["fullBody","upperBody","lowerBody","core"].includes(x));
-  const growTokens=isIdList(grow)?[]:[...new Set(grow.flatMap(muscleTokensForZone))];
-  const burnTokens=isIdList(burn)?[]:[...new Set(burn.flatMap(muscleTokensForZone))];
-  const growIds=new Set(isIdList(grow)?grow:[]);
-  const burnIds=new Set(isIdList(burn)?burn:[]);
+  const pTokens=isIdList(primary)?[]:[...new Set(primary.flatMap(muscleTokensForZone))];
+  const sTokens=isIdList(secondary)?[]:[...new Set(secondary.flatMap(muscleTokensForZone))];
+  const tTokens=isIdList(tertiary)?[]:[...new Set(tertiary.flatMap(muscleTokensForZone))];
+  const bTokens=isIdList(burn)?[]:[...new Set(burn.flatMap(muscleTokensForZone))];
+  const pIds=new Set(isIdList(primary)?primary:[]);
+  const sIds=new Set(isIdList(secondary)?secondary:[]);
+  const tIds=new Set(isIdList(tertiary)?tertiary:[]);
+  const bIds=new Set(isIdList(burn)?burn:[]);
   const doc=new DOMParser().parseFromString(svgText,"image/svg+xml");
   [...doc.querySelectorAll("[id]")].forEach(el=>{
     const id=el.id||"";
-    const g=growIds.has(id)||hasToken(id,growTokens);
-    const b=burnIds.has(id)||hasToken(id,burnTokens);
-    if(g&&b){el.setAttribute("fill","#ffd740");el.setAttribute("fill-opacity","0.98")}
-    else if(g){el.setAttribute("fill","#00e676");el.setAttribute("fill-opacity","0.95")}
-    else if(b){el.setAttribute("fill","#ff6b35");el.setAttribute("fill-opacity","0.95")}
-    else{
+    const p=pIds.has(id)||hasToken(id,pTokens);
+    const s=sIds.has(id)||hasToken(id,sTokens);
+    const t=tIds.has(id)||hasToken(id,tTokens);
+    const b=bIds.has(id)||hasToken(id,bTokens);
+    let lvl=p?1:s?0.72:t?0.45:0;
+    const hit=p||s||t;
+    if(hit&&b){el.setAttribute("fill","#ffd740");el.setAttribute("fill-opacity",String(Math.max(0.45,lvl)))}
+    else if(hit){el.setAttribute("fill","#00e676");el.setAttribute("fill-opacity",String(Math.max(0.35,lvl)))}
+    else if(b){el.setAttribute("fill","#ff6b35");el.setAttribute("fill-opacity","0.65")}
+    else {
       const base=el.getAttribute("fill");
       if(base&&base!=="none"){el.setAttribute("fill","#50546a");el.setAttribute("fill-opacity","0.35")}
+    }
+    if(hit||b){
+      el.style.cursor="pointer";
+      el.setAttribute("data-muscle-name",prettyMuscleName(id));
+      el.setAttribute("data-intensity",p?"Primary":s?"Secondary":t?"Tertiary":"Burn");
     }
   });
   return new XMLSerializer().serializeToString(doc.documentElement);
@@ -401,17 +466,37 @@ async function hydrateAnatomyTargets(scope=document){
   if(!nodes.length)return;
   const [frontSrc,backSrc]=await Promise.all([loadAnatomySvg("front"),loadAnatomySvg("back")]);
   for(const node of nodes){
-    const grow=(node.dataset.grow||"").split(",").filter(Boolean);
-    const burn=(node.dataset.burn||"").split(",").filter(Boolean);
-    const front=tintAnatomySvg(frontSrc,grow,burn);
-    const back=tintAnatomySvg(backSrc,grow,burn);
-    node.innerHTML=`<div class="anatomy-grid"><div class="anatomy-panel">${front}<div class="anatomy-lbl">FRONT</div></div><div class="anatomy-panel">${back}<div class="anatomy-lbl">BACK</div></div></div>`;
+    const parsed=JSON.parse(decodeURIComponent(node.dataset.map||"%7B%7D"));
+    const front=tintAnatomySvg(frontSrc,parsed);
+    const back=tintAnatomySvg(backSrc,parsed);
+    node.innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:6px"><div class="row" style="gap:6px"><button class="btn btn-sm btn-ghost anat-view active" data-view="both">Both</button><button class="btn btn-sm btn-ghost anat-view" data-view="front">Front</button><button class="btn btn-sm btn-ghost anat-view" data-view="back">Back</button></div><div style="font-size:11px;color:var(--text2)" class="anat-readout">Tap a highlighted muscle to inspect</div></div><div class="anatomy-grid"><div class="anatomy-panel anat-front">${front}<div class="anatomy-lbl">FRONT</div></div><div class="anatomy-panel anat-back">${back}<div class="anatomy-lbl">BACK</div></div></div>`;
+    const setView=v=>{
+      const f=node.querySelector(".anat-front"),b=node.querySelector(".anat-back");
+      if(v==="front"){f.style.display="block";b.style.display="none";}
+      else if(v==="back"){f.style.display="none";b.style.display="block";}
+      else {f.style.display="block";b.style.display="block";}
+      node.querySelectorAll(".anat-view").forEach(btn=>btn.classList.toggle("active",btn.dataset.view===v));
+    };
+    node.querySelectorAll(".anat-view").forEach(btn=>btn.onclick=()=>setView(btn.dataset.view));
+    const read=node.querySelector(".anat-readout");
+    node.querySelectorAll("[data-muscle-name]").forEach(el=>{
+      const update=()=>{read.textContent=`${el.getAttribute("data-muscle-name")} — ${el.getAttribute("data-intensity")}`};
+      el.addEventListener("mouseenter",update);
+      el.addEventListener("click",update);
+      el.addEventListener("touchstart",update,{passive:true});
+    });
   }
 }
 function mergeZones(plan){
-  const g=new Set(),b=new Set();
-  (plan.exs||[]).forEach(ex=>{const m=exMuscles(ex.eid);(m.grow||[]).forEach(z=>g.add(z));(m.burn||[]).forEach(z=>b.add(z))});
-  return{grow:[...g],burn:[...b]};
+  const out={primary:[],secondary:[],tertiary:[],burn:[]};
+  (plan.exs||[]).forEach(ex=>{
+    const m=exMuscles(ex.eid);
+    out.primary.push(...m.primary);
+    out.secondary.push(...m.secondary);
+    out.tertiary.push(...m.tertiary);
+    out.burn.push(...m.burn);
+  });
+  return out;
 }
 function bodyMapSVG(grow=[],burn=[]){
   const has=z=>grow.includes(z)||burn.includes(z);
@@ -499,15 +584,43 @@ const PLANS=(function(){
     }
   };
 
+  function feminizeSlots(goal,slots,isExpress){
+    let out=slots.map(sl=>{
+      const map={
+        HP:"HYL",
+        HPL:"HYL",
+        HL:"GL",
+        HYG:"GL",
+        PW:"GL",
+        SR:isExpress?"CT":"HB",
+        TR:isExpress?"CT":"HB",
+        FB:"HB"
+      };
+      return map[sl]||sl;
+    });
+    if(goal==="fat_loss"){
+      out=out.map(sl=>sl==="HB"?"CT":sl);
+    }
+    if(!out.includes("GL"))out[0]="GL";
+    if(!out.includes("HYL")&&!out.includes("HPL"))out[Math.min(1,out.length-1)]="HYL";
+    if(!out.includes("CT"))out[Math.min(2,out.length-1)]="CT";
+    return out;
+  }
+
   const plans=[];
   for(let g=0;g<4;g++)for(let f=0;f<2;f++)for(let d=0;d<2;d++)for(let s=0;s<2;s++)for(let e=0;e<2;e++){
     let sl=[...base[G[g]][""+f+d]];
-    if(s===1) sl=sl.map(x=>x==="HL"?"GL":x==="HYG"?"GL":x);
+    if(s===1) sl=feminizeSlots(G[g],sl,d===0);
     if(e===0) sl=sl.map(x=>x==="PW"?"FB":x==="HPL"?"FB":x);
     plans.push({id:g*16+f*8+d*4+s*2+e,name:`${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`,goal:G[g],slots:sl});
   }
   return plans;
 })();
+
+function isWomensPlanSelected(){
+  const pid=S.planId!=null?S.planId:0;
+  return (((pid>>1)&1)===1);
+}
 
 function selectPlan(){
   const fa=S.goals.focusAreas||[];
@@ -523,7 +636,152 @@ function selectPlan(){
   const s=S.profile.sex==="female"?1:0;
   const total=(S.profile.bench1RM||0)+(S.profile.squat1RM||0)+(S.profile.dead1RM||0);
   const e=S.profile.weight>0&&total/S.profile.weight>3.5?1:0;
+  if(S.profile.sex==="female"&&fa.length){
+    const hasPilates=fa.includes("Pilates Plus Tone");
+    const hasHourglass=fa.includes("Hourglass Shape");
+    const hasGluteShelf=fa.includes("Glute Shelf");
+    const hasPosture=fa.includes("Posture & Back Tone");
+    const hasConditioning=fa.includes("Improve Conditioning")||fa.includes("Lose Weight");
+    if((hasHourglass||hasGluteShelf||hasPosture||hasPilates)&&!lift&&!run){
+      g=hasConditioning?2:3;
+    }
+  }
   return g*16+f*8+d*4+s*2+e;
+}
+
+function womenBlueprintMode(){
+  const fa=S.goals.focusAreas||[];
+  const womenGoals=["Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone","Home-Friendly Workouts","Pregnancy Safe","Postpartum Recovery"];
+  const eligible=S.profile.sex==="female"||isWomensPlanSelected()||fa.some(a=>womenGoals.includes(a))||(((S.profile.prefs||{}).womenMode||"auto")!=="auto");
+  if(!eligible)return "none";
+  const p=S.profile.prefs||{};
+  if(p.womenMode&&p.womenMode!=="auto")return p.womenMode;
+  if(fa.includes("Pregnancy Safe"))return "pregnancy";
+  if(fa.includes("Postpartum Recovery"))return "postpartum";
+  if(fa.includes("Glute Shelf"))return "glute_shelf";
+  if(fa.includes("Hourglass Shape"))return "hourglass";
+  if(fa.includes("Posture & Back Tone"))return "posture";
+  if(fa.includes("Pilates Plus Tone"))return "pilates";
+  if(fa.includes("Home-Friendly Workouts"))return "home";
+  return "balanced";
+}
+
+function womenBaselineTier(){
+  const p=S.profile||{};
+  const wt=Math.max(1,p.weight||0);
+  const strength=((p.squat1RM||0)+(p.dead1RM||0)+(p.bench1RM||0))/wt;
+  if((S.profile.prefs||{}).lifeStage==="pregnancy"||(S.profile.prefs||{}).lifeStage==="postpartum")return "rebuild";
+  if(strength>=4.2)return "advanced";
+  if(strength>=2.8)return "intermediate";
+  return "beginner";
+}
+function womenProgramSummary(){
+  if(womenBlueprintMode()==="none")return null;
+  const mode=womenBlueprintMode();
+  const tier=womenBaselineTier();
+  const life=(S.profile.prefs||{}).lifeStage||"general";
+  const eq=(S.profile.prefs||{}).equipment||"gym";
+  const style=(S.profile.prefs||{}).style||"balanced";
+  const fa=S.goals.focusAreas||[];
+  const label={
+    hourglass:"Hourglass Sculpt",
+    glute_shelf:"Glute Shelf Program",
+    posture:"Back + Posture Tone",
+    pilates:"Pilates Plus Tone",
+    home:"Home Sculpt",
+    pregnancy:"Pregnancy Safe",
+    postpartum:"Postpartum Recovery",
+    balanced:"Balanced Sculpt"
+  }[mode]||"Balanced Sculpt";
+  const tracks=[
+    "Glute shelf/side-booty block (thrusts, hydrants, clamshells, kicks)",
+    "Hourglass back/arms block (rows, cross press, posture work)",
+    "Lower-belly deep-core block (toe taps, suitcase, leg raise, plank)",
+    "10-20 min saveable finisher circuits"
+  ];
+  if(life==="pregnancy"||life==="postpartum"){tracks[0]="Life-stage-safe core + pelvic floor restoration";tracks[3]="Low-impact recovery circuit (DR/pelvic safe)";}
+  return{label,tier,life,eq,style,fa,tracks};
+}
+
+function applyWomenBlueprint(out,slot,w){
+  if(womenBlueprintMode()==="none")return out;
+  const mode=womenBlueprintMode();
+  const tier=womenBaselineTier();
+  const quick=(S.profile.prefs||{}).style==="burner"||S.schedule.sessionMin<=35;
+  const life=(S.profile.prefs||{}).lifeStage||"general";
+  const isHome=(S.profile.prefs||{}).equipment==="home"||mode==="home";
+  const dn=w===4||w===8?" (DELOAD)":"";
+  const phase=w<=4?"foundation":w<=8?"build":w<=12?"intensify":"test";
+  const phaseSetBoost=phase==="build"?1:phase==="intensify"?1:0;
+  const phaseRepShift=phase==="foundation"?2:phase==="intensify"?-2:phase==="test"?-1:0;
+  const phaseLoad=phase==="foundation"?0.92:phase==="build"?1:phase==="intensify"?1.08:0.96;
+  const isDeload=w===4||w===8;
+  const roundSets=Math.max(2,(quick?2:(tier==="advanced"?4:3))+phaseSetBoost-(isDeload?1:0));
+  const repMain=Math.max(8,(tier==="advanced"?12:15)+phaseRepShift);
+  const repHigh=Math.max(10,(tier==="advanced"?15:20)+phaseRepShift);
+  const squatBase=Math.max(10,r5((S.profile.squat1RM||95)*0.15));
+  const hingeBase=Math.max(20,r5((S.profile.dead1RM||135)*0.35));
+  const rowBase=Math.max(12,r5((S.profile.bench1RM||95)*0.4));
+
+  const block={
+    glute:[{eid:"hip_thrust",sets:roundSets,reps:repMain,target:hingeBase,unit:"lb/band",reason:"Glute shelf mass builder"},
+      {eid:"fire_hydrant",sets:roundSets,reps:repHigh,target:0,unit:"BW/band",reason:"Glute medius and side booty"},
+      {eid:"clamshell",sets:roundSets,reps:repHigh,target:0,unit:"BW/band",reason:"Hip stability and outer glute"},
+      {eid:"donkey_kick",sets:roundSets,reps:repHigh,target:0,unit:"BW/band",reason:"Round glute shape"},
+      {eid:"side_leg_raise",sets:roundSets,reps:repHigh,target:0,unit:"BW/band",reason:"Hip-dip and abductors"}],
+    backArms:[{eid:"row",sets:roundSets,reps:repMain,target:rowBase,unit:"lb/hand",reason:"Hourglass V-taper width"},
+      {eid:"cross_press",sets:roundSets,reps:repMain,target:10,unit:"lb/hand",reason:"Back + arm sculpt"},
+      {eid:"face_pull",sets:roundSets,reps:repHigh,target:0,unit:"band",reason:"Posture and rounded-shoulder fix"},
+      {eid:"chest_sweep",sets:roundSets,reps:repHigh,target:5,unit:"lb/hand",reason:"Long and lean arm tone"},
+      {eid:"champagne",sets:roundSets,reps:repHigh,target:5,unit:"lb/hand",reason:"Shoulder definition"}],
+    abs:[{eid:"kb_around",sets:roundSets,reps:repMain,target:10,unit:"lb",reason:"Deep core anti-rotation"},
+      {eid:"suitcase",sets:roundSets,reps:35,target:12,unit:"sec/side",reason:"Oblique and waistline control"},
+      {eid:"db_leg_raise",sets:roundSets,reps:repMain,target:0,unit:"BW",reason:"Lower belly control"},
+      {eid:"toe_tap",sets:roundSets,reps:repHigh,target:0,unit:"BW",reason:"DR-friendly deep core"},
+      {eid:"plank",sets:roundSets,reps:40,target:0,unit:"sec",reason:"Corset stability"}],
+    medball:[{eid:"medball_circuit",sets:roundSets,reps:45,target:0,unit:"sec",reason:"Full body medball power"},
+      {eid:"air_squat",sets:roundSets,reps:repHigh,target:0,unit:"BW",reason:"Metabolic lower-body burn"},
+      {eid:"suitcase",sets:roundSets,reps:30,target:12,unit:"sec/side",reason:"Core under fatigue"},
+      {eid:"chest_sweep",sets:roundSets,reps:repHigh,target:5,unit:"lb/hand",reason:"Upper body toning"},
+      {eid:"toe_tap",sets:roundSets,reps:repHigh,target:0,unit:"BW",reason:"Core finisher"}],
+    postpartum:[{eid:"pelvic_breath",sets:3,reps:10,target:0,unit:"breaths",reason:"360 breathing + pelvic floor"},
+      {eid:"toe_tap",sets:3,reps:12,target:0,unit:"BW",reason:"Modified deadbug / DR safe"},
+      {eid:"hip_thrust",sets:3,reps:15,target:0,unit:"BW",reason:"Glute + pelvic support"},
+      {eid:"face_pull",sets:2,reps:15,target:0,unit:"band",reason:"Posture restoration"},
+      {eid:"side_leg_raise",sets:2,reps:12,target:0,unit:"BW",reason:"Hip stability and alignment"}],
+    pregnancy:[{eid:"pelvic_breath",sets:3,reps:10,target:0,unit:"breaths",reason:"Prenatal breath-pelvic coordination"},
+      {eid:"toe_tap",sets:3,reps:10,target:0,unit:"BW",reason:"Gentle abs activation"},
+      {eid:"hip_thrust",sets:3,reps:12,target:0,unit:"BW",reason:"Bridge pelvic tilt pattern"},
+      {eid:"lunge",sets:2,reps:10,target:0,unit:"BW",reason:"Labor prep lower-body strength"},
+      {eid:"suitcase",sets:2,reps:20,target:8,unit:"sec/side",reason:"Safe trunk stability"}]
+  };
+
+  if(life==="pregnancy"||mode==="pregnancy"){out.focus="Pregnancy Safe Core + Mobility"+dn;out.exs=block.pregnancy;out.warmup="5 min walk + hip circles + side-body breathing";out.finisher="Gentle prenatal flow: child pose, happy baby, breathing (2 rounds).";return out}
+  if(life==="postpartum"||mode==="postpartum"){out.focus="Postpartum Core Restore"+dn;out.exs=block.postpartum;out.warmup="3-5 min walk + 360 breathing + pelvic tilts";out.finisher="DR-friendly circuit: toe taps, bridges, bird-dog pattern (2-3 rounds).";return out}
+
+  const fa=S.goals.focusAreas||[];
+  const wantsGlute=fa.includes("Glute Shelf");
+  const wantsPosture=fa.includes("Posture & Back Tone");
+  const wantsAbs=fa.includes("Pilates Plus Tone")||fa.includes("Hourglass Shape");
+  if(["GL","HYG","HL"].includes(slot)){out.focus=(mode==="glute_shelf"?"Glute Shelf Program":"Hourglass Glute Sculpt")+" · Focus: glutes/hips"+dn;out.exs=block.glute}
+  else if(["HYL","HPL","HP"].includes(slot)){out.focus=(mode==="posture"?"Back & Posture Tone":"Hourglass Back Circuit")+" · Focus: upper-back/arms"+dn;out.exs=block.backArms}
+  else if(["CT","FB","FBC","HB","HYP"].includes(slot)){
+    if(wantsGlute&&!wantsPosture){out.focus="Glute + Lower Belly Sculpt · Focus: shelf + core"+dn;out.exs=w%2?block.glute:block.abs}
+    else if(wantsPosture&&!wantsGlute){out.focus="Posture + Core Sculpt · Focus: back + waistline"+dn;out.exs=w%2?block.backArms:block.abs}
+    else if(wantsAbs){out.focus="Lower Belly Sculpt Flow · Focus: deep core"+dn;out.exs=(isHome||quick)?block.medball:block.abs}
+    else{out.focus=(mode==="pilates"?"Pilates Plus Abs & Arms":"Lower Belly Sculpt Flow")+" · Focus: core conditioning"+dn;out.exs=(isHome||quick)?block.medball:block.abs}
+  }
+  else if(slot==="SR"||slot==="TR"){out.focus="Runner Core + Shin Splint Prep"+dn;out.exs=[{eid:"toe_tap",sets:roundSets,reps:repHigh,target:0,unit:"BW",reason:"Core stability for running"},{eid:"side_leg_raise",sets:roundSets,reps:repMain,target:0,unit:"BW",reason:"Hip abduction alignment"},{eid:"suitcase",sets:roundSets,reps:30,target:10,unit:"sec/side",reason:"Oblique control"}]}
+  else {out.focus="Targeted Home Sculpt Session"+dn;out.exs=(isHome||quick)?block.medball:block.abs}
+
+  out.warmup="Dynamic prep: leg swings 10/side, high lunge, downward dog, glute activation";
+  out.exs=out.exs.map(ex=>({...ex,target:(typeof ex.target==="number"&&ex.target>0)?r5(ex.target*phaseLoad):ex.target}));
+  out.finisher=mode==="glute_shelf"
+    ?"Glute Burnout (2-3 rounds): hydrants 20/side, donkey kicks 20/side, clamshells 20/side."
+    :mode==="pilates"
+    ?"Pilates Arm + Core Burner (2-3 rounds): chest sweeps 15, champagne pours 15, toe taps 16."
+    :"Hourglass Circuit (2-3 rounds): rows 12, cross press 12, suitcase hold 30s/side.";
+  return out;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -630,6 +888,7 @@ function mkDay(slot,w){
       finisher:"5-min AMRAP Burpees"+xf}
   };
   const out=S_[slot]||{focus:"Recovery",exs:[],finisher:"Rest."};
+  applyWomenBlueprint(out,slot,w);
   if(S.profile.prefs&&S.profile.prefs.equipment==="home"){
     out.exs=out.exs.map(ex=>{
       if(ex.eid==="bench")return {...ex,eid:"pushup",target:0,unit:"BW",reason:"Home-friendly push alternative"};
@@ -677,9 +936,10 @@ function dayPlan(dayIdx,w){
 function getSafetyMode(){
   if(S.profile.sex!=="female")return "none";
   const life=((S.profile.prefs||{}).lifeStage||"general");
+  const wm=((S.profile.prefs||{}).womenMode||"auto");
   const fa=S.goals.focusAreas||[];
-  if(life==="pregnancy"||fa.includes("Pregnancy Safe"))return "pregnancy";
-  if(life==="postpartum"||fa.includes("Postpartum Recovery"))return "postpartum";
+  if(life==="pregnancy"||wm==="pregnancy"||fa.includes("Pregnancy Safe"))return "pregnancy";
+  if(life==="postpartum"||wm==="postpartum"||fa.includes("Postpartum Recovery"))return "postpartum";
   return "none";
 }
 
@@ -955,10 +1215,11 @@ function renderOB(){
         <div><label>Session Style</label><select id="ob-style"><option value="balanced" ${(S.profile.prefs||{}).style!=="burner"?"selected":""}>Balanced Strength + Cardio</option><option value="burner" ${(S.profile.prefs||{}).style==="burner"?"selected":""}>10-20 min Burners</option></select></div>
         <div><label>Life Stage</label><select id="ob-life"><option value="general" ${(S.profile.prefs||{}).lifeStage==="general"||!(S.profile.prefs||{}).lifeStage?"selected":""}>General</option><option value="pregnancy" ${(S.profile.prefs||{}).lifeStage==="pregnancy"?"selected":""}>Pregnancy Safe</option><option value="postpartum" ${(S.profile.prefs||{}).lifeStage==="postpartum"?"selected":""}>Postpartum (gentle core)</option></select></div>
       </div>
+      ${S.profile.sex==="female"?`<div style="margin-top:10px"><label>Women's Program Emphasis</label><select id="ob-wm"><option value="auto" ${((S.profile.prefs||{}).womenMode||"auto")==="auto"?"selected":""}>Auto (from goals)</option><option value="hourglass" ${(S.profile.prefs||{}).womenMode==="hourglass"?"selected":""}>Hourglass Sculpt</option><option value="glute_shelf" ${(S.profile.prefs||{}).womenMode==="glute_shelf"?"selected":""}>Glute Shelf Builder</option><option value="posture" ${(S.profile.prefs||{}).womenMode==="posture"?"selected":""}>Posture + Back Tone</option><option value="pilates" ${(S.profile.prefs||{}).womenMode==="pilates"?"selected":""}>Pilates Plus Tone</option><option value="home" ${(S.profile.prefs||{}).womenMode==="home"?"selected":""}>Home-Friendly Minimal Equipment</option></select></div>`:""}
       <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">← Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Next →</button></div>`;
     document.querySelectorAll(".day-toggle").forEach(t=>t.onclick=()=>t.classList.toggle("on"));
     document.getElementById("ob-back").onclick=()=>{obStep=2;renderOB()};
-    document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;S.profile.prefs={...(S.profile.prefs||{}),equipment:document.getElementById("ob-eq").value,style:document.getElementById("ob-style").value,lifeStage:document.getElementById("ob-life").value};obStep=4;renderOB()};
+    document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;S.profile.prefs={...(S.profile.prefs||{}),equipment:document.getElementById("ob-eq").value,style:document.getElementById("ob-style").value,lifeStage:document.getElementById("ob-life").value,womenMode:(document.getElementById("ob-wm")||{value:(S.profile.prefs||{}).womenMode||"auto"}).value};obStep=4;renderOB()};
   } else if(obStep===4){
     const pid=selectPlan();const plan=PLANS[pid];const tDays=S.schedule.days||[1,2,3,4,5];
     const dayPreview=plan.slots.map((sl,i)=>{const d=tDays[i];return d!=null?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:600;font-size:12px">${DAYS[d]}</span><span style="font-size:12px;color:var(--text2)">${mkDay(sl,1).focus.replace(" (DELOAD)","")}</span></div>`:""}).join("");
@@ -1104,11 +1365,11 @@ function renderToday(){
   const micro=(S.profile.sex==="female"&&safety==="postpartum")?postpartumMicroRoutine(d.getDay()):null;
   const zones=mergeZones(plan);
   return`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div class="row" style="gap:10px"><h2 style="font-size:20px;font-weight:900">${DAYS[d.getDay()]}</h2><span style="color:${phaseColor(w)};font-weight:700;font-size:13px">${plan.focus}</span></div><span style="font-size:12px;color:var(--text3)">Week ${w} · ${phaseName(w)}</span></div>
-  ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Daily Impact Map</h2><span class="badge badge-ice">All Exercises Today</span></div><div class="fig-wrap"><div class="fig-title">Combined expected stimulus</div>${anatomyContainer(zones.grow,zones.burn)}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth emphasis</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / calorie-burn emphasis</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div></div>`:""}
+  ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Daily Impact Map</h2><span class="badge badge-ice">All Exercises Today</span></div><div class="fig-wrap"><div class="fig-title">Combined expected stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn/Cardio</span><span><span class="dot" style="background:#ffd740"></span>Growth + Burn</span></div></div></div>`:""}
   ${meta?`<div class="card section" style="border-left:3px solid var(--mint)"><div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">WHY THIS SESSION</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Expected Progress:</b> ${meta.expect}</div></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">WEEKLY POSTURE / PREHAB MICRO-ROUTINE</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
-  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const mm=exMuscles(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${anatomyContainer(mm.grow||[],mm.burn||[])}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / burn</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
+  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const mm=exMuscles(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
   ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
 }
 function bindToday(){
@@ -1148,7 +1409,9 @@ function bindLog(){
 function renderProgram(){
   autoWeek();const cur=S.program.week;if(expandedWeek===null)expandedWeek=cur;
   const hm=weeklyExpectedChanges();
+  const ws=womenProgramSummary();
   return`<div class="section"><div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="font-size:20px;font-weight:900">13-Week Program</h2><span style="font-size:12px;color:var(--text3)">Weights adapt from your logs</span></div>
+    ${ws?`<div class="card" style="margin-bottom:10px;border-left:3px solid var(--mint)"><div class="card-h"><h2>Women's Program Summary</h2><span class="badge badge-mint">${ws.label}</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:8px">Baseline: <b style="color:var(--text)">${ws.tier}</b> · Life stage: <b style="color:var(--text)">${ws.life}</b> · Equipment: <b style="color:var(--text)">${ws.eq}</b> · Session style: <b style="color:var(--text)">${ws.style}</b></div><div style="display:grid;gap:4px">${ws.tracks.map(t=>`<div style="font-size:11px;color:var(--text2)">• ${t}</div>`).join("")}</div>${ws.fa.length?`<div style="margin-top:8px;font-size:10px;color:var(--text3)">Goals: ${ws.fa.join(" · ")}</div>`:""}</div>`:""}
     <div class="card" style="margin-bottom:10px"><div class="card-h"><h2>Expected Changes Heatmap</h2></div><div class="row" style="gap:14px"><div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">${hm.glutes}%</b></div><div style="font-size:11px;color:var(--text2)">Core <b style="color:var(--mint)">${hm.core}%</b></div><div style="font-size:11px;color:var(--text2)">Back <b style="color:var(--mint)">${hm.back}%</b></div><div style="font-size:11px;color:var(--text2)">Posture <b style="color:var(--mint)">${hm.posture}%</b></div></div></div>
     <div class="timeline">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" title="Wk ${w}">${w}</div>`}).join("")}</div></div>
   <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;const wkDays=S.schedule.days||[1,2,3,4,5];
@@ -1183,6 +1446,8 @@ function renderSettings(){
       <div class="grid3" style="margin-top:8px"><div><label>Weight</label><input id="s-wt" type="number" value="${S.profile.weight}"></div><div><label>Goal Wt</label><input id="s-gw" type="number" value="${S.profile.goalWt}"></div><div><label>4mi (mm:ss)</label><input id="s-run" value="${mmss(S.profile.run4mi)}"></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Waist (in)</label><input id="s-waist" type="number" step="0.1" value="${S.profile.waist||""}"></div><div><label>Hips (in)</label><input id="s-hips" type="number" step="0.1" value="${S.profile.hips||""}"></div><div><label>Shoulders (in)</label><input id="s-shoulders" type="number" step="0.1" value="${S.profile.shoulders||""}"></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Body Fat %</label><input id="s-bf" type="number" step="0.1" value="${S.profile.bodyFat||""}"></div><div></div><div></div></div>
+      <div class="grid3" style="margin-top:8px"><div><label>Sex</label><select id="s-sex"><option value="male" ${S.profile.sex==="male"?"selected":""}>Male</option><option value="female" ${S.profile.sex==="female"?"selected":""}>Female</option></select></div><div><label>Life Stage</label><select id="s-life"><option value="general" ${((S.profile.prefs||{}).lifeStage||"general")==="general"?"selected":""}>General</option><option value="pregnancy" ${((S.profile.prefs||{}).lifeStage||"")==="pregnancy"?"selected":""}>Pregnancy</option><option value="postpartum" ${((S.profile.prefs||{}).lifeStage||"")==="postpartum"?"selected":""}>Postpartum</option></select></div><div><label>Women's Mode</label><select id="s-wm"><option value="auto" ${((S.profile.prefs||{}).womenMode||"auto")==="auto"?"selected":""}>Auto</option><option value="hourglass" ${((S.profile.prefs||{}).womenMode||"")==="hourglass"?"selected":""}>Hourglass</option><option value="glute_shelf" ${((S.profile.prefs||{}).womenMode||"")==="glute_shelf"?"selected":""}>Glute Shelf</option><option value="posture" ${((S.profile.prefs||{}).womenMode||"")==="posture"?"selected":""}>Posture</option><option value="pilates" ${((S.profile.prefs||{}).womenMode||"")==="pilates"?"selected":""}>Pilates</option><option value="home" ${((S.profile.prefs||{}).womenMode||"")==="home"?"selected":""}>Home Sculpt</option></select></div></div>
+      <div class="grid2" style="margin-top:8px"><div><label>Equipment</label><select id="s-eq"><option value="gym" ${((S.profile.prefs||{}).equipment||"gym")==="gym"?"selected":""}>Gym</option><option value="home" ${((S.profile.prefs||{}).equipment||"")==="home"?"selected":""}>Home</option></select></div><div><label>Session Style</label><select id="s-style"><option value="balanced" ${((S.profile.prefs||{}).style||"balanced")==="balanced"?"selected":""}>Balanced</option><option value="burner" ${((S.profile.prefs||{}).style||"")==="burner"?"selected":""}>Burner (10-20 min)</option></select></div></div>
       <button class="btn btn-fire btn-block" id="s-save" style="margin-top:10px">Save & Recalculate</button>
       <div style="margin-top:10px;padding:10px;background:var(--surface);border-radius:var(--radius-sm)">
         <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:4px">ADAPTATION</div>
@@ -1205,7 +1470,7 @@ function renderSettings(){
   </div>`;
 }
 function bindSettings(){
-  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();render();toast("Saved")};
+  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;S.profile.sex=document.getElementById("s-sex").value;S.profile.prefs={...(S.profile.prefs||{}),lifeStage:document.getElementById("s-life").value,womenMode:document.getElementById("s-wm").value,equipment:document.getElementById("s-eq").value,style:document.getElementById("s-style").value};const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();render();toast("Saved")};
   document.getElementById("s-reset").onclick=async()=>{S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Reset")};
   const so=document.getElementById("s-signout");if(so)so.onclick=()=>{if(confirm("Sign out?"))doSignOut()};
   document.getElementById("s-plan-save").onclick=async()=>{S.planId=Number(document.getElementById("s-plan").value);await persist();render();toast("Switched to: "+PLANS[S.planId].name)};
