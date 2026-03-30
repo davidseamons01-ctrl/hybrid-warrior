@@ -443,7 +443,29 @@ function dayPlan(dayIdx,w){
   const tDays=S.schedule.days||[1,2,3,4,5];
   const slotIdx=tDays.indexOf(dayIdx);
   if(slotIdx<0||slotIdx>=plan.slots.length) return{focus:"Active Recovery",exs:[],finisher:"Light walk + foam rolling."};
-  return mkDay(plan.slots[slotIdx],w);
+  const p=mkDay(plan.slots[slotIdx],w);
+  p.slot=plan.slots[slotIdx];
+  return p;
+}
+
+function slotMeta(slot){
+  const meta={
+    HP:{muscles:"Chest, triceps, upper-back balance",why:"Build pressing strength and upper-body muscle while keeping shoulders healthy.",expect:"Bench/press numbers trend up; chest and arm growth."},
+    HPL:{muscles:"Lats, mid-back, rear delts, grip",why:"Improve posture and pulling strength to support an athletic frame.",expect:"Back width and posture improve; stronger pulling."},
+    HL:{muscles:"Quads, glutes, hamstrings, trunk",why:"Heavy lower-body loading drives global strength and body recomposition.",expect:"Leg/hip strength rises and calorie burn stays high."},
+    GL:{muscles:"Glute max/medius, hamstrings, core",why:"Emphasizes lower-body shape, hip stability, and spinal support.",expect:"Better glute development, hip stability, and lower-body tone."},
+    SR:{muscles:"Cardio system, calves, hips, core",why:"Intervals improve speed and 5K performance with measurable pacing targets.",expect:"Faster splits and improved aerobic power."},
+    TR:{muscles:"Cardio system, posterior chain, core",why:"Tempo work improves endurance at hard sustainable pace.",expect:"Lower race pace and improved stamina."},
+    FB:{muscles:"Full-body",why:"Efficient full-body stimulus when time is limited.",expect:"Steady strength and body-composition progress."},
+    FBC:{muscles:"Full-body + cardio",why:"Circuit density increases calorie burn while preserving strength work.",expect:"Higher work capacity and fat-loss support."},
+    HYP:{muscles:"Chest, shoulders, triceps",why:"Higher-volume upper pushing for visible muscle gain.",expect:"More upper-body fullness and definition."},
+    HYL:{muscles:"Back, rear delts, biceps, grip",why:"Volume pulling for back shape and shoulder balance.",expect:"Improved V-taper look and posture."},
+    HYG:{muscles:"Glutes, quads, hamstrings",why:"Leg-focused hypertrophy for shape and strength.",expect:"Leg and glute growth with stronger lower body."},
+    CT:{muscles:"Full-body conditioning",why:"Low-barrier circuits improve fitness and support weight-loss goals.",expect:"Higher daily calorie burn and improved conditioning."},
+    PW:{muscles:"Full-body neural power",why:"High-intensity low-rep work improves force production.",expect:"Explosive strength and athletic power increase."},
+    HB:{muscles:"Upper body, core, conditioning",why:"Hybrid day bridges strength and conditioning for balanced performance.",expect:"Strength maintenance with high work output."}
+  };
+  return meta[slot]||null;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -484,8 +506,28 @@ function saveCfg(c){localStorage.setItem("hw-fb-config",JSON.stringify(c))}
 async function initFB(cfg){await loadFBSDK();if(fbApp)try{fbApp.delete()}catch{};fbApp=firebase.initializeApp(cfg,"hw-"+Date.now());fbAuth=firebase.auth(fbApp);fbDb=firebase.firestore(fbApp)}
 function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);save();render()}})}
 async function cloudPush(){if(offlineMode||!fbDb||!currentUser)return;try{lastPushAt=Date.now();await fbDb.collection("hw").doc(currentUser.uid).set({state:S,at:new Date().toISOString()},{merge:true})}catch(e){console.error(e)}}
+async function cloudPullOnce(uid){
+  if(offlineMode||!fbDb||!uid)return;
+  try{
+    const doc=await fbDb.collection("hw").doc(uid).get();
+    if(doc.exists){
+      const d=doc.data();
+      if(d&&d.state){S=merge(S,d.state);save();}
+    }
+  }catch(e){console.error(e)}
+}
 
-function enterApp(user){currentUser=user;document.getElementById("authScreen").style.display="none";if(!S.profile.onboarded){showOnboarding();return}document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";startSync();render()}
+async function enterApp(user){
+  currentUser=user;
+  showAuthLoading();
+  await cloudPullOnce(user.uid); // ensure newest cross-device state is loaded before onboarding decision
+  document.getElementById("authScreen").style.display="none";
+  if(!S.profile.onboarded){showOnboarding();return}
+  document.getElementById("mainNav").style.display="";
+  document.getElementById("app").style.display="";
+  startSync();
+  render();
+}
 function enterOffline(){offlineMode=true;document.getElementById("authScreen").style.display="none";if(!S.profile.onboarded){showOnboarding();return}document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";render()}
 async function doSignOut(){if(fbAuth)await fbAuth.signOut();currentUser=null;document.getElementById("authScreen").style.display="flex";document.getElementById("mainNav").style.display="none";document.getElementById("app").style.display="none";showAuthLogin()}
 function showAuthSetup(){document.getElementById("auth-setup").style.display="block";document.getElementById("auth-login").style.display="none";document.getElementById("auth-loading").style.display="none"}
@@ -734,7 +776,9 @@ function bindDash(){
 // ═══════════════════════════════════════════════════════════
 function renderToday(){
   autoWeek();const d=new Date(),w=S.program.week,plan=dayPlan(d.getDay(),w);
+  const meta=slotMeta(plan.slot||"");
   return`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div class="row" style="gap:10px"><h2 style="font-size:20px;font-weight:900">${DAYS[d.getDay()]}</h2><span style="color:${phaseColor(w)};font-weight:700;font-size:13px">${plan.focus}</span></div><span style="font-size:12px;color:var(--text3)">Week ${w} · ${phaseName(w)}</span></div>
+  ${meta?`<div class="card section" style="border-left:3px solid var(--mint)"><div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">WHY THIS SESSION</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Expected Progress:</b> ${meta.expect}</div></div>`:""}
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
   <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Log</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
   ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
