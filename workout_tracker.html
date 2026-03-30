@@ -254,6 +254,30 @@ const EX_MEDIA={
   dip:{video:"https://www.youtube.com/embed/2z8JmcrW-As",grow:["triceps","chest"],burn:["upperBody"]},
   lat_raise:{video:"https://www.youtube.com/embed/3VcKaXpzqRo",grow:["sideShoulders"],burn:["upperBody"]}
 };
+const EX_MUSCLE_IDS={
+  bench:{grow:["pectoralis_major_l","pectoralis_major_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r","anterior_deltoid_l","anterior_deltoid_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
+  incline_db:{grow:["pectoralis_major_l","pectoralis_major_r","anterior_deltoid_l","anterior_deltoid_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],burn:["rectus_abdominis_1"]},
+  cgbench:{grow:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r","pectoralis_major_l","pectoralis_major_r"],burn:["rectus_abdominis_1"]},
+  ohp:{grow:["anterior_deltoid_l","anterior_deltoid_r","lateral_deltoid_l","lateral_deltoid_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
+  squat:{grow:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r","vastus_medialis_l","vastus_medialis_r","gluteus_maximus_l","gluteus_maximus_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
+  deadlift:{grow:["gluteus_maximus_l","gluteus_maximus_r","biceps_femoris_l","biceps_femoris_r","semitendinosus_l","semitendinosus_r","latissimus_dorsi_l","latissimus_dorsi_r","trapezius_middle_l","trapezius_middle_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
+  rdl:{grow:["biceps_femoris_l","biceps_femoris_r","semitendinosus_l","semitendinosus_r","gluteus_maximus_l","gluteus_maximus_r"],burn:["rectus_abdominis_1"]},
+  row:{grow:["latissimus_dorsi_l","latissimus_dorsi_r","infraspinatus_l","infraspinatus_r","trapezius_middle_l","trapezius_middle_r","biceps_brachii_caput_longum_l","biceps_brachii_caput_longum_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
+  pullup:{grow:["latissimus_dorsi_l","latissimus_dorsi_r","biceps_brachii_caput_longum_l","biceps_brachii_caput_longum_r","trapezius_upper_l","trapezius_upper_r"],burn:["rectus_abdominis_1"]},
+  face_pull:{grow:["posterior_deltoid_l","posterior_deltoid_r","trapezius_middle_l","trapezius_middle_r","infraspinatus_l","infraspinatus_r"],burn:["upperBody"]},
+  lunge:{grow:["rectus_femoris_l","rectus_femoris_r","vastus_medialis_l","vastus_medialis_r","gluteus_maximus_l","gluteus_maximus_r","adductor_longus_l","adductor_longus_r"],burn:["lowerBody"]},
+  bss:{grow:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r","gluteus_maximus_l","gluteus_maximus_r"],burn:["lowerBody"]},
+  pushup:{grow:["pectoralis_major_l","pectoralis_major_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r","anterior_deltoid_l","anterior_deltoid_r"],burn:["rectus_abdominis_1"]},
+  burpee:{grow:["rectus_femoris_l","rectus_femoris_r","pectoralis_major_l","pectoralis_major_r","anterior_deltoid_l","anterior_deltoid_r"],burn:["fullBody"]},
+  int800:{grow:["rectus_femoris_l","rectus_femoris_r","vastus_lateralis_l","vastus_lateralis_r","gastrocnemius_l","gastrocnemius_r"],burn:["fullBody"]},
+  tempo:{grow:["rectus_femoris_l","rectus_femoris_r","gastrocnemius_l","gastrocnemius_r"],burn:["fullBody"]},
+  farmer:{grow:["trapezius_upper_l","trapezius_upper_r","brachioradialis_l","brachioradialis_r","external_oblique_1_l","external_oblique_1_r"],burn:["fullBody"]},
+  plank:{grow:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"],burn:["core"]},
+  air_squat:{grow:["rectus_femoris_l","rectus_femoris_r","gluteus_maximus_l","gluteus_maximus_r"],burn:["lowerBody"]},
+  shadow:{grow:["external_oblique_1_l","external_oblique_1_r","anterior_deltoid_l","anterior_deltoid_r","rectus_femoris_l","rectus_femoris_r"],burn:["fullBody"]},
+  dip:{grow:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r","pectoralis_major_l","pectoralis_major_r","anterior_deltoid_l","anterior_deltoid_r"],burn:["upperBody"]},
+  lat_raise:{grow:["lateral_deltoid_l","lateral_deltoid_r"],burn:["upperBody"]}
+};
 
 const iso=()=>new Date().toISOString().slice(0,10);
 const DEF={
@@ -299,6 +323,10 @@ function gaugeHTML(pct,val,sub,color){const c=282.74,off=c*(1-clamp(pct,0,1));re
 function estCalories(type,mins,weightLb){const kg=weightLb*0.4536;const met=type==="run"?9.5:type==="acc"?5:6.5;return Math.round(met*kg*(mins/60))}
 function weightTrend(){const wl=S.weightLog.slice(-14);if(wl.length<2)return null;const first=wl[0].wt,last=wl[wl.length-1].wt;return{change:last-first,perWeek:(last-first)/(wl.length/7||1),last}}
 function exMedia(eid){return EX_MEDIA[eid]||{video:"",grow:["fullBody"],burn:["fullBody"]}}
+function exMuscles(eid){
+  const m=EX_MUSCLE_IDS[eid]||{grow:[],burn:[]};
+  return{grow:[...new Set(m.grow)],burn:[...new Set(m.burn)]};
+}
 function ytId(u){
   if(!u)return"";
   const m=u.match(/(?:youtube\.com\/embed\/|youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
@@ -348,12 +376,16 @@ async function loadAnatomySvg(which){
   return txt;
 }
 function tintAnatomySvg(svgText,grow,burn){
-  const growTokens=[...new Set(grow.flatMap(muscleTokensForZone))];
-  const burnTokens=[...new Set(burn.flatMap(muscleTokensForZone))];
+  const isIdList=(arr)=>arr.some(x=>(x||"").includes("_")||["fullBody","upperBody","lowerBody","core"].includes(x));
+  const growTokens=isIdList(grow)?[]:[...new Set(grow.flatMap(muscleTokensForZone))];
+  const burnTokens=isIdList(burn)?[]:[...new Set(burn.flatMap(muscleTokensForZone))];
+  const growIds=new Set(isIdList(grow)?grow:[]);
+  const burnIds=new Set(isIdList(burn)?burn:[]);
   const doc=new DOMParser().parseFromString(svgText,"image/svg+xml");
   [...doc.querySelectorAll("[id]")].forEach(el=>{
     const id=el.id||"";
-    const g=hasToken(id,growTokens),b=hasToken(id,burnTokens);
+    const g=growIds.has(id)||hasToken(id,growTokens);
+    const b=burnIds.has(id)||hasToken(id,burnTokens);
     if(g&&b){el.setAttribute("fill","#ffd740");el.setAttribute("fill-opacity","0.98")}
     else if(g){el.setAttribute("fill","#00e676");el.setAttribute("fill-opacity","0.95")}
     else if(b){el.setAttribute("fill","#ff6b35");el.setAttribute("fill-opacity","0.95")}
@@ -378,7 +410,7 @@ async function hydrateAnatomyTargets(scope=document){
 }
 function mergeZones(plan){
   const g=new Set(),b=new Set();
-  (plan.exs||[]).forEach(ex=>{const m=exMedia(ex.eid);(m.grow||[]).forEach(z=>g.add(z));(m.burn||[]).forEach(z=>b.add(z))});
+  (plan.exs||[]).forEach(ex=>{const m=exMuscles(ex.eid);(m.grow||[]).forEach(z=>g.add(z));(m.burn||[]).forEach(z=>b.add(z))});
   return{grow:[...g],burn:[...b]};
 }
 function bodyMapSVG(grow=[],burn=[]){
@@ -1076,7 +1108,7 @@ function renderToday(){
   ${meta?`<div class="card section" style="border-left:3px solid var(--mint)"><div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">WHY THIS SESSION</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Expected Progress:</b> ${meta.expect}</div></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">WEEKLY POSTURE / PREHAB MICRO-ROUTINE</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
-  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${anatomyContainer(m.grow||[],m.burn||[])}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / burn</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
+  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const mm=exMuscles(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${anatomyContainer(mm.grow||[],mm.burn||[])}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / burn</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
   ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
 }
 function bindToday(){
