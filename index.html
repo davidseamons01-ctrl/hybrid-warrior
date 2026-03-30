@@ -1588,7 +1588,7 @@ function renderNavBanners(){
   const rs=document.getElementById("nav-resend-verify");
   if(rs)rs.onclick=async()=>{try{await currentUser.sendEmailVerification();toast("Verification email sent.")}catch(e){toast(e.message||"Could not resend.")}};
   const rv=document.getElementById("nav-refresh-verify");
-  if(rv)rv.onclick=async()=>{try{await currentUser.reload();if(currentUser.emailVerified)toast("Email verified.");render()}catch(e){toast(e.message||"Could not refresh.")}}};
+  if(rv)rv.onclick=async()=>{try{await currentUser.reload();if(currentUser.emailVerified)toast("Email verified.");render()}catch(e){toast(e.message||"Could not refresh.")}};
 }
 function renderNav(){
   renderNavBanners();
