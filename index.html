@@ -1035,7 +1035,15 @@ let fbApp=null,fbDb=null,fbAuth=null,fbUnsub=null,lastPushAt=0;
 async function loadFBSDK(){if(typeof firebase!=="undefined"&&firebase.app)return;const ld=s=>new Promise((r,j)=>{const el=document.createElement("script");el.src=s;el.onload=r;el.onerror=j;document.head.appendChild(el)});await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js");await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js");await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js")}
 function getSavedCfg(){try{return JSON.parse(localStorage.getItem("hw-fb-config")||"")}catch{return null}}
 function saveCfg(c){localStorage.setItem("hw-fb-config",JSON.stringify(c))}
-async function initFB(cfg){await loadFBSDK();if(fbApp)try{fbApp.delete()}catch{};fbApp=firebase.initializeApp(cfg,"hw-"+Date.now());fbAuth=firebase.auth(fbApp);fbDb=firebase.firestore(fbApp)}
+async function initFB(cfg){
+  await loadFBSDK();
+  if(fbApp)try{fbApp.delete()}catch{}
+  fbApp=firebase.initializeApp(cfg,"hw-"+Date.now());
+  fbAuth=firebase.auth(fbApp);
+  fbDb=firebase.firestore(fbApp);
+  // Keep auth session across reloads/devices until explicit sign-out.
+  await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+}
 function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);save();render()}})}
 async function cloudPush(){if(offlineMode||!fbDb||!currentUser)return;try{lastPushAt=Date.now();await fbDb.collection("hw").doc(currentUser.uid).set({state:S,at:new Date().toISOString()},{merge:true})}catch(e){console.error(e)}}
 async function cloudPullOnce(uid){
