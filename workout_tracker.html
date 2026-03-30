@@ -174,7 +174,6 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
       <label>Firebase Config JSON</label>
       <textarea id="auth-cfg" style="min-height:90px;font-size:11px;font-family:monospace" placeholder='{"apiKey":"...","authDomain":"...","projectId":"..."}'></textarea>
       <button class="btn btn-ice btn-block" id="auth-cfg-save" style="margin-top:10px">Save Config & Continue</button>
-      <button class="btn btn-ghost btn-block" id="auth-use-default" style="margin-top:8px">Use Built-In Config</button>
       <div class="auth-skip"><button id="auth-skip-btn">Use offline only (no sync)</button></div>
     </div>
     <div id="auth-login" style="display:none">
@@ -251,15 +250,6 @@ const EX_MEDIA={
 };
 
 const iso=()=>new Date().toISOString().slice(0,10);
-const DEFAULT_FB_CONFIG={
-  apiKey:"AIzaSyBA5C3hp1iscVxZMxNB7lAF-MUvUrH3UaA",
-  authDomain:"workout-dba27.firebaseapp.com",
-  projectId:"workout-dba27",
-  storageBucket:"workout-dba27.firebasestorage.app",
-  messagingSenderId:"692799207312",
-  appId:"1:692799207312:web:d39b8b8f1338c78f406515",
-  measurementId:"G-9CQ8F4H5SZ"
-};
 const DEF={
   v:5,
   profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none"}},
@@ -710,18 +700,6 @@ function bindAuthUI(){
     }
   };
   document.getElementById("auth-skip-btn").onclick=()=>enterOffline();
-  document.getElementById("auth-use-default").onclick=async()=>{
-    try{
-      saveCfg(DEFAULT_FB_CONFIG);
-      showAuthLoading();
-      await initFB(DEFAULT_FB_CONFIG);
-      showAuthLogin();
-      toast("Built-in config loaded.");
-    }catch(e){
-      showAuthErr(e.message||"Could not load built-in config.");
-      showAuthSetup();
-    }
-  };
   document.querySelectorAll(".auth-tab").forEach(t=>t.onclick=()=>{authMode=t.dataset.m;document.querySelectorAll(".auth-tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");document.getElementById("auth-go").textContent=authMode==="in"?"Sign In":"Create Account"});
   document.getElementById("auth-go").onclick=async()=>{const em=document.getElementById("auth-email").value.trim(),pw=document.getElementById("auth-pass").value;if(!em||!pw){showAuthErr("Enter email and password.");return}if(pw.length<6){showAuthErr("Password must be 6+ characters.");return}try{showAuthLoading();const c=authMode==="in"?await fbAuth.signInWithEmailAndPassword(em,pw):await fbAuth.createUserWithEmailAndPassword(em,pw);enterApp(c.user)}catch(e){showAuthLogin();showAuthErr(e.code==="auth/user-not-found"?"No account. Try Create Account.":e.code==="auth/wrong-password"||e.code==="auth/invalid-credential"?"Wrong email or password.":e.code==="auth/email-already-in-use"?"Email in use. Try Sign In.":e.message)}};
   document.getElementById("auth-change-cfg").onclick=()=>showAuthSetup();
@@ -1114,7 +1092,6 @@ function render(){
 // ═══════════════════════════════════════════════════════════
 (async function(){
   bindAuthUI();let cfg=getSavedCfg();
-  if(!cfg)cfg=DEFAULT_FB_CONFIG;
   if(cfg)document.getElementById("auth-cfg").value=JSON.stringify(cfg,null,2);
   if(cfg){try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else showAuthLogin()})}catch{showAuthSetup()}}
   else showAuthSetup();
