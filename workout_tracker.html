@@ -70,6 +70,12 @@ label{display:block;font-size:10px;font-weight:600;color:var(--text2);margin-bot
 .ex-howto{background:var(--surface);border-radius:var(--radius-sm);padding:10px;margin-top:10px}
 .ex-howto ol{margin-left:16px;color:var(--text2);font-size:12px}.ex-howto ol li{margin-bottom:3px}
 .ex-pdf-area{margin-top:10px}.ex-pdf-area canvas{width:100%;border-radius:8px;border:1px solid var(--border)}
+.ex-video{margin-top:10px}
+.ex-video iframe{width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:8px;background:#000}
+.fig-wrap{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px}
+.fig-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.fig-legend{display:flex;gap:12px;font-size:10px;color:var(--text3);margin-top:6px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
 .finisher{background:linear-gradient(135deg,rgba(255,107,53,.07),rgba(0,200,255,.05));border:1px solid rgba(255,107,53,.2);border-radius:var(--radius);padding:16px;margin-top:12px}
 .finisher h3{color:var(--fire);font-size:13px;margin-bottom:4px}.finisher p{font-size:12px;color:var(--text2)}
 
@@ -219,6 +225,30 @@ const EX=[
   {id:"lat_raise",name:"Lateral Raise",tags:["shoulders","upper"],rest:"45s",howTo:["Light DBs at sides.","Raise to shoulder height.","Lower slowly."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["lateral","raise","shoulder"]}
 ];
 function exById(id){return EX.find(e=>e.id===id)}
+const EX_MEDIA={
+  bench:{video:"https://www.youtube.com/embed/rT7DgCr-3pg",grow:["chest","triceps","frontShoulders"],burn:["upperBody"]},
+  incline_db:{video:"https://www.youtube.com/embed/8iPEnn-ltC8",grow:["chest","frontShoulders","triceps"],burn:["upperBody"]},
+  cgbench:{video:"https://www.youtube.com/embed/nEF0bv2FW94",grow:["triceps","chest"],burn:["upperBody"]},
+  ohp:{video:"https://www.youtube.com/embed/qEwKCR5JCog",grow:["frontShoulders","triceps"],burn:["upperBody"]},
+  squat:{video:"https://www.youtube.com/embed/ultWZbUMPL8",grow:["quads","glutes","core"],burn:["lowerBody"]},
+  deadlift:{video:"https://www.youtube.com/embed/op9kVnSso6Q",grow:["hamstrings","glutes","back","core"],burn:["fullBody"]},
+  rdl:{video:"https://www.youtube.com/embed/jEy_czb3RKA",grow:["hamstrings","glutes","back"],burn:["lowerBody"]},
+  row:{video:"https://www.youtube.com/embed/FWJR5Ve8bnQ",grow:["back","biceps"],burn:["upperBody"]},
+  pullup:{video:"https://www.youtube.com/embed/eGo4IYlbE5g",grow:["back","biceps"],burn:["upperBody"]},
+  face_pull:{video:"https://www.youtube.com/embed/rep-qVOkqgk",grow:["rearShoulders","back"],burn:["upperBody"]},
+  lunge:{video:"https://www.youtube.com/embed/QOVaHwm-Q6U",grow:["quads","glutes"],burn:["lowerBody"]},
+  bss:{video:"https://www.youtube.com/embed/2C-uNgKwPLE",grow:["quads","glutes"],burn:["lowerBody"]},
+  pushup:{video:"https://www.youtube.com/embed/IODxDxX7oi4",grow:["chest","triceps","core"],burn:["upperBody"]},
+  burpee:{video:"https://www.youtube.com/embed/dZgVxmf6jkA",grow:["legs","core","shoulders"],burn:["fullBody"]},
+  int800:{video:"https://www.youtube.com/embed/5I4xD4-HRFA",grow:["legs","core"],burn:["fullBody","cardio"]},
+  tempo:{video:"https://www.youtube.com/embed/5I4xD4-HRFA",grow:["legs","core"],burn:["fullBody","cardio"]},
+  farmer:{video:"https://www.youtube.com/embed/rt17lmnaLSM",grow:["core","back","forearms"],burn:["fullBody"]},
+  plank:{video:"https://www.youtube.com/embed/pSHjTRCQxIw",grow:["core"],burn:["core"]},
+  air_squat:{video:"https://www.youtube.com/embed/aclHkVaku9U",grow:["quads","glutes"],burn:["lowerBody"]},
+  shadow:{video:"https://www.youtube.com/embed/mPaM4y4VVqg",grow:["core","legs","shoulders"],burn:["fullBody","cardio"]},
+  dip:{video:"https://www.youtube.com/embed/2z8JmcrW-As",grow:["triceps","chest"],burn:["upperBody"]},
+  lat_raise:{video:"https://www.youtube.com/embed/3VcKaXpzqRo",grow:["sideShoulders"],burn:["upperBody"]}
+};
 
 const iso=()=>new Date().toISOString().slice(0,10);
 const DEFAULT_FB_CONFIG={
@@ -272,6 +302,35 @@ function toast(m){const el=document.getElementById("toast");if(toastTimer)clearT
 function gaugeHTML(pct,val,sub,color){const c=282.74,off=c*(1-clamp(pct,0,1));return`<div class="gauge"><svg width="100" height="100" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="45"/><circle class="gauge-fill" cx="50" cy="50" r="45" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg><div class="gauge-center"><div class="gauge-val">${val}</div><div class="gauge-sub">${sub}</div></div></div>`}
 function estCalories(type,mins,weightLb){const kg=weightLb*0.4536;const met=type==="run"?9.5:type==="acc"?5:6.5;return Math.round(met*kg*(mins/60))}
 function weightTrend(){const wl=S.weightLog.slice(-14);if(wl.length<2)return null;const first=wl[0].wt,last=wl[wl.length-1].wt;return{change:last-first,perWeek:(last-first)/(wl.length/7||1),last}}
+function exMedia(eid){return EX_MEDIA[eid]||{video:"",grow:["fullBody"],burn:["fullBody"]}}
+function mergeZones(plan){
+  const g=new Set(),b=new Set();
+  (plan.exs||[]).forEach(ex=>{const m=exMedia(ex.eid);(m.grow||[]).forEach(z=>g.add(z));(m.burn||[]).forEach(z=>b.add(z))});
+  return{grow:[...g],burn:[...b]};
+}
+function bodyMapSVG(grow=[],burn=[]){
+  const has=z=>grow.includes(z)||burn.includes(z);
+  const color=z=>grow.includes(z)&&burn.includes(z)?"#ffd740":grow.includes(z)?"#00e676":burn.includes(z)?"#ff6b35":"#2a2a38";
+  const cx=(x,y,w,h,z)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(w,h)/3}" fill="${color(z)}" opacity="${has(z)?0.95:0.65}"/>`;
+  return `<svg viewBox="0 0 220 240" width="100%" height="180" role="img" aria-label="Body heatmap">
+    <circle cx="110" cy="22" r="14" fill="${color("head")}"/>
+    ${cx(86,38,48,54,"core")}
+    ${cx(70,42,16,48,"leftArm")} ${cx(134,42,16,48,"rightArm")}
+    ${cx(88,38,14,20,"chest")} ${cx(118,38,14,20,"chest")}
+    ${cx(84,58,12,20,"back")} ${cx(124,58,12,20,"back")}
+    ${cx(70,42,16,18,"frontShoulders")} ${cx(134,42,16,18,"frontShoulders")}
+    ${cx(70,62,16,14,"rearShoulders")} ${cx(134,62,16,14,"rearShoulders")}
+    ${cx(76,62,14,18,"biceps")} ${cx(130,62,14,18,"biceps")}
+    ${cx(74,78,14,16,"triceps")} ${cx(132,78,14,16,"triceps")}
+    ${cx(84,92,52,20,"glutes")}
+    ${cx(84,112,22,44,"quads")} ${cx(114,112,22,44,"quads")}
+    ${cx(84,156,22,28,"hamstrings")} ${cx(114,156,22,28,"hamstrings")}
+    ${cx(84,184,22,26,"calves")} ${cx(114,184,22,26,"calves")}
+    ${cx(88,92,12,18,"hips")} ${cx(120,92,12,18,"hips")}
+    ${cx(70,90,14,20,"forearms")} ${cx(136,90,14,20,"forearms")}
+    ${cx(86,36,48,76,"upperBody")} ${cx(84,112,52,98,"lowerBody")} ${cx(78,36,64,174,"fullBody")}
+  </svg>`;
+}
 
 // ═══════════════════════════════════════════════════════════
 //  64 PRESET PLANS  (goal×4  freq×2  dur×2  sex×2  exp×2)
@@ -916,11 +975,13 @@ function renderToday(){
   const meta=slotMeta(plan.slot||"");
   const safety=getSafetyMode();
   const micro=(S.profile.sex==="female"&&safety==="postpartum")?postpartumMicroRoutine(d.getDay()):null;
+  const zones=mergeZones(plan);
   return`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div class="row" style="gap:10px"><h2 style="font-size:20px;font-weight:900">${DAYS[d.getDay()]}</h2><span style="color:${phaseColor(w)};font-weight:700;font-size:13px">${plan.focus}</span></div><span style="font-size:12px;color:var(--text3)">Week ${w} · ${phaseName(w)}</span></div>
+  ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Daily Impact Map</h2><span class="badge badge-ice">All Exercises Today</span></div><div class="fig-wrap"><div class="fig-title">Combined expected stimulus</div>${bodyMapSVG(zones.grow,zones.burn)}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth emphasis</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / calorie-burn emphasis</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div></div>`:""}
   ${meta?`<div class="card section" style="border-left:3px solid var(--mint)"><div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">WHY THIS SESSION</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Expected Progress:</b> ${meta.expect}</div></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">WEEKLY POSTURE / PREHAB MICRO-ROUTINE</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
-  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Log</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
+  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${m.video}" title="${e?e.name:ex.eid} tutorial video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${bodyMapSVG(m.grow||[],m.burn||[])}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / burn</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
   ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
 }
 function bindToday(){
