@@ -660,7 +660,14 @@ async function enterApp(user){
 }
 function enterOffline(){offlineMode=true;document.getElementById("authScreen").style.display="none";if(!S.profile.onboarded){showOnboarding();return}document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";render()}
 async function doSignOut(){if(fbAuth)await fbAuth.signOut();currentUser=null;document.getElementById("authScreen").style.display="flex";document.getElementById("mainNav").style.display="none";document.getElementById("app").style.display="none";showAuthLogin()}
-function showAuthSetup(){document.getElementById("auth-setup").style.display="block";document.getElementById("auth-login").style.display="none";document.getElementById("auth-loading").style.display="none"}
+function showAuthSetup(){
+  document.getElementById("auth-setup").style.display="block";
+  document.getElementById("auth-login").style.display="none";
+  document.getElementById("auth-loading").style.display="none";
+  // Never reveal saved config (especially apiKey) in UI
+  const cfgInput=document.getElementById("auth-cfg");
+  if(cfgInput)cfgInput.value="";
+}
 function showAuthLogin(){document.getElementById("auth-setup").style.display="none";document.getElementById("auth-login").style.display="block";document.getElementById("auth-loading").style.display="none"}
 function showAuthLoading(){document.getElementById("auth-setup").style.display="none";document.getElementById("auth-login").style.display="none";document.getElementById("auth-loading").style.display="block"}
 function showAuthErr(m){const el=document.getElementById("authErr");el.textContent=m;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),6000)}
@@ -1092,7 +1099,6 @@ function render(){
 // ═══════════════════════════════════════════════════════════
 (async function(){
   bindAuthUI();let cfg=getSavedCfg();
-  if(cfg)document.getElementById("auth-cfg").value=JSON.stringify(cfg,null,2);
   if(cfg){try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else showAuthLogin()})}catch{showAuthSetup()}}
   else showAuthSetup();
   if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){
