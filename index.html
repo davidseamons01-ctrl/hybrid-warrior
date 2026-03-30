@@ -20,8 +20,8 @@ body.theme-feminine{letter-spacing:.01em}
 body.theme-feminine .card,body.theme-feminine .goal-option,body.theme-feminine .btn,body.theme-feminine .chip,body.theme-feminine input,body.theme-feminine select,body.theme-feminine textarea{border-radius:18px}
 body.theme-feminine .nav{background:linear-gradient(180deg,rgba(17,13,26,.95),rgba(9,9,15,.92))}
 body.theme-feminine .logo{font-style:italic;text-shadow:0 0 16px rgba(255,92,168,.22)}
-body.theme-feminine .btn-fire{background:linear-gradient(135deg,var(--fire),#ff88c3)}
-body.theme-feminine .btn-ice{background:linear-gradient(135deg,var(--ice),#b8a9ff)}
+body.theme-feminine .btn-fire{background:var(--fire);color:#140810}
+body.theme-feminine .btn-ice{background:var(--ice);color:#0e0c18}
 body.theme-feminine .card{box-shadow:0 8px 22px rgba(155,139,255,.10)}
 body.theme-feminine .nav-btn.active{background:rgba(255,92,168,.16)}
 body.theme-feminine .goal-option.selected{background:rgba(255,92,168,.09)}
@@ -30,8 +30,8 @@ body.theme-masculine{letter-spacing:0}
 body.theme-masculine .card,body.theme-masculine .goal-option,body.theme-masculine .btn,body.theme-masculine .chip,body.theme-masculine input,body.theme-masculine select,body.theme-masculine textarea{border-radius:10px}
 body.theme-masculine .nav{background:linear-gradient(180deg,rgba(12,16,23,.96),rgba(9,9,15,.92))}
 body.theme-masculine .logo{text-transform:uppercase;letter-spacing:.02em;text-shadow:0 0 14px rgba(64,169,255,.2)}
-body.theme-masculine .btn-fire{background:linear-gradient(135deg,var(--fire),#ff9a57)}
-body.theme-masculine .btn-ice{background:linear-gradient(135deg,var(--ice),#5dc4ff)}
+body.theme-masculine .btn-fire{background:var(--fire);color:#120a06}
+body.theme-masculine .btn-ice{background:var(--ice);color:#061018}
 body.theme-masculine .card{box-shadow:0 8px 22px rgba(64,169,255,.08)}
 body.theme-masculine .nav-btn.active{background:rgba(64,169,255,.14)}
 body.theme-masculine .goal-option.selected{background:rgba(64,169,255,.08)}
@@ -77,17 +77,17 @@ textarea{min-height:70px;resize:vertical}
 label{display:block;font-size:10px;font-weight:600;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
 .input-sm{padding:7px 9px;font-size:12px}
 
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:var(--radius-sm);font:700 12px/1 'Inter',sans-serif;padding:10px 16px;cursor:pointer;transition:.15s;color:#fff}
-.btn-fire{background:linear-gradient(135deg,var(--fire),#e85520)}.btn-fire:hover{filter:brightness(1.12)}
-.btn-ice{background:linear-gradient(135deg,var(--ice),#0080cc)}.btn-ice:hover{filter:brightness(1.12)}
-.btn-mint{background:linear-gradient(135deg,var(--mint),#00b860)}.btn-mint:hover{filter:brightness(1.12)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:var(--radius-sm);font:700 12px/1 'Inter',sans-serif;padding:10px 16px;cursor:pointer;transition:.15s;color:#fff;min-height:40px}
+.btn-fire{background:var(--fire);color:#0a0a0f}.btn-fire:hover{filter:brightness(1.08)}
+.btn-ice{background:var(--ice);color:#0a0a0f}.btn-ice:hover{filter:brightness(1.08)}
+.btn-mint{background:var(--mint);color:#0a0a0f}.btn-mint:hover{filter:brightness(1.08)}
 .btn-ghost{background:var(--surface);border:1px solid var(--border);color:var(--text2)}.btn-ghost:hover{border-color:var(--border-lit);color:var(--text)}
 .btn-sm{padding:6px 10px;font-size:11px}.btn-block{width:100%}
 
 .ex-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .2s}
 .ex-card:hover{border-color:var(--border-lit)}.ex-card.logged{border-color:var(--mint)}
 .ex-top{display:flex;align-items:center;gap:12px;padding:14px 18px}
-.ex-num{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0;background:linear-gradient(135deg,var(--fire),var(--ice));color:#000}
+.ex-num{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;flex-shrink:0;background:var(--surface);border:2px solid var(--fire);color:var(--fire)}
 .ex-info{flex:1;min-width:0}.ex-name{font-size:14px;font-weight:700}.ex-rx{font-size:12px;color:var(--text2);margin-top:2px}
 .ex-reason{font-size:10px;color:var(--text3);margin-top:2px;font-style:italic}.ex-rest{font-size:10px;color:var(--text3);margin-top:3px}
 .ex-actions{display:flex;gap:5px;flex-shrink:0}
@@ -109,7 +109,7 @@ label{display:block;font-size:10px;font-weight:600;color:var(--text2);margin-bot
 .anatomy-panel svg{width:100%;height:auto;display:block}
 .anatomy-lbl{font-size:9px;color:var(--text3);text-align:center;margin-top:2px}
 .anat-view.active{border-color:var(--mint)!important;color:var(--mint)!important;background:rgba(0,230,118,.1)}
-.finisher{background:linear-gradient(135deg,color-mix(in srgb,var(--fire) 12%,transparent),color-mix(in srgb,var(--ice) 10%,transparent));border:1px solid color-mix(in srgb,var(--fire) 32%,transparent);border-radius:var(--radius);padding:16px;margin-top:12px}
+.finisher{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:12px}
 .finisher h3{color:var(--fire);font-size:13px;margin-bottom:4px}.finisher p{font-size:12px;color:var(--text2)}
 
 table{width:100%;border-collapse:collapse}
@@ -147,8 +147,43 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 .ref-item:hover,.ref-item.sel{border-color:var(--fire);background:color-mix(in srgb,var(--fire) 8%,transparent)}.ref-item b{font-size:12px}.ref-item span{font-size:10px;color:var(--text3);display:block;margin-top:1px}
 .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 
-.toast{position:fixed;bottom:20px;right:20px;z-index:999;background:var(--card);border:1px solid var(--mint);border-radius:var(--radius);padding:12px 18px;color:var(--mint);font-weight:600;font-size:13px;transform:translateY(80px);opacity:0;transition:.3s;pointer-events:none;max-width:360px}
-.toast.show{transform:translateY(0);opacity:1}
+.toast{position:fixed;bottom:20px;right:20px;z-index:999;background:var(--card);border:1px solid var(--mint);border-radius:var(--radius);padding:12px 18px;color:var(--text);font-weight:600;font-size:13px;transform:translateY(80px);opacity:0;transition:.3s;pointer-events:none;max-width:420px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.toast.show{transform:translateY(0);opacity:1;pointer-events:auto}
+.toast .toast-msg{flex:1;min-width:140px;color:var(--mint)}
+.toast-undo{background:transparent;border:1px solid var(--border-lit);color:var(--ice);font:700 11px/1 'Inter',sans-serif;padding:6px 12px;border-radius:99px;cursor:pointer;min-height:36px;min-width:64px}
+.toast-undo:hover{border-color:var(--ice);color:var(--text)}
+.subtab-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.subtab{background:var(--surface);border:1px solid var(--border);color:var(--text2);font:600 12px/1 'Inter',sans-serif;padding:8px 14px;border-radius:99px;cursor:pointer;transition:.15s}
+.subtab:hover{color:var(--text);border-color:var(--border-lit)}.subtab.on{border-color:var(--fire);color:var(--fire);background:color-mix(in srgb,var(--fire) 10%,transparent)}
+.breadcrumb{font-size:12px;color:var(--text3);margin:-4px 0 12px;line-height:1.4}
+.hero-card{background:var(--card);border:1px solid var(--border-lit);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+.hero-card .hero-cta{margin-top:12px}
+.hero-title{font-size:18px;font-weight:900;margin-bottom:4px}
+.hero-meta{font-size:13px;color:var(--text2)}
+.hero-target{font-size:20px;font-weight:900;color:var(--text);margin-top:8px;letter-spacing:-0.02em}
+.details-toggle{background:none;border:none;color:var(--ice);font:600 12px 'Inter',sans-serif;cursor:pointer;padding:4px 0;text-decoration:underline}
+.details-panel{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}.details-panel.open{display:block}
+.micro-goal{display:flex;align-items:center;gap:12px;margin:12px 0}
+.micro-ring{position:relative;width:52px;height:52px;flex-shrink:0}
+.micro-ring svg{transform:rotate(-90deg)}.micro-ring .rbg{fill:none;stroke:var(--border);stroke-width:5}.micro-ring .rfill{fill:none;stroke:var(--mint);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .5s ease}
+.micro-ring span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900}
+.session-banner{background:color-mix(in srgb,var(--mint) 10%,transparent);border:1px solid color-mix(in srgb,var(--mint) 35%,transparent);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text2)}
+.ex-card.ex-done{border-color:var(--mint);opacity:.92}.ex-card.ex-done .ex-num{background:var(--mint);color:#000;background-image:none}
+.ex-top-row{display:flex;align-items:flex-start;gap:10px}.ex-check{width:22px;height:22px;border:2px solid var(--border);border-radius:6px;flex-shrink:0;margin-top:10px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--mint);font-weight:900}.ex-card.ex-done .ex-check{border-color:var(--mint);background:color-mix(in srgb,var(--mint) 15%,transparent)}
+.ex-name-lg{font-size:16px;font-weight:800}.ex-rx-lg{font-size:15px;font-weight:700;color:var(--text);margin-top:4px}
+.quick-log-row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.quick-log-row label{font-size:9px}.quick-log-row input{max-width:80px}
+.btn-cta{background:linear-gradient(135deg,var(--fire),#e85520);color:#fff}.btn-cta:hover{filter:brightness(1.1)}
+.btn-secondary-solid{background:var(--surface);border:1px solid var(--border);color:var(--text);font-weight:700}.btn-secondary-solid:hover{border-color:var(--ice);color:var(--ice)}
+.finisher.finisher-block{border:2px solid color-mix(in srgb,var(--ice) 40%,transparent);background:var(--surface);margin-top:16px}
+.finisher.finisher-block h3{font-size:14px}.finisher-fire{font-size:15px;margin-right:6px}
+.nav-ic{opacity:.85;font-size:13px;margin-right:3px}
+.pw-day.pw-day-today{outline:2px solid var(--fire);outline-offset:2px;border-radius:8px}
+.settings-search{margin-bottom:14px}
+.settings-group{margin-bottom:18px}.settings-group-h{font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px}
+.settings-section[data-k]{transition:opacity .15s}
+.settings-section.hidden{display:none}
+.ease-wizard{display:none;margin-top:12px;padding:14px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)}.ease-wizard.show{display:block}
 .trend-up{color:var(--mint)}.trend-down{color:var(--red)}.trend-flat{color:var(--text3)}
 
 /* AUTH */
@@ -230,7 +265,7 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 <script>
 // ═══════════════════════════════════════════════════════════
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const TABS=[{id:"dash",label:"Dashboard",icon:"◉"},{id:"today",label:"Today",icon:"▶"},{id:"log",label:"Log",icon:"✎"},{id:"program",label:"Program",icon:"☰"},{id:"settings",label:"Settings",icon:"⚙"}];
+const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you";
 
 const EX=[
   {id:"bench",name:"Barbell Bench Press",tags:["chest","push","upper"],rest:"2-3 min",howTo:["Retract shoulder blades, arch upper back, plant feet.","Lower bar to lower chest, elbows ~45°.","Drive up explosively to lockout."],books:["Copy of OffSeason_2ndEdition_Final.pdf","IN Season workouts.pdf"],kw:["bench","press","chest"]},
@@ -359,11 +394,12 @@ const DEF={
   logs:[],weightLog:[],healthLog:[],
   planId:null,
   sync:{on:false,cfg:"",uid:""},
-  pdfs:{"28DayPlan_FinalVersion.pdf":"","Copy of OffSeason_2ndEdition_Final.pdf":"","IN Season workouts.pdf":"","WrestlingEBook2_FINAL.compressed.pdf":""}
+  pdfs:{"28DayPlan_FinalVersion.pdf":"","Copy of OffSeason_2ndEdition_Final.pdf":"","IN Season workouts.pdf":"","WrestlingEBook2_FINAL.compressed.pdf":""},
+  lastLiftByEid:{}
 };
 
-let S=load();let tab="dash";let logDate=iso();let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;
-let authMode="in";let currentUser=null;let offlineMode=false;let obStep=0;
+let S=load();let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;
+let authMode="in";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;
 
 // ═══════════════════════════════════════════════════════════
 //  UTILITIES
@@ -383,11 +419,30 @@ function wkFactor(w){return[.62,.65,.68,.60,.72,.76,.79,.65,.80,.84,.88,.92,.85]
 function phaseReps(w){return w<=4?[10,8,8,6]:w<=8?[6,5,4,3]:w<=12?[4,3,2,2]:[3,2,1,1]}
 function phaseSets(w){return w<=4?4:w<=8?5:w<=12?5:3}
 function autoWeek(){const d0=new Date(S.program.start+"T00:00:00");S.program.week=clamp(Math.floor((new Date()-d0)/864e5/7)+1,1,13)}
+function weekBounds(wk){const d0=new Date(S.program.start+"T12:00:00");const start=new Date(d0);start.setDate(d0.getDate()+(wk-1)*7);return start}
+function logsOnScheduleDaysThisWeek(){const wk=S.program.week,start=weekBounds(wk),days=S.schedule.days||[1,2,3,4,5];let logged=0,target=0;for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);const dow=d.getDay();if(!days.includes(dow))continue;target++;const ds=d.toISOString().slice(0,10);if(S.logs.some(l=>l.date===ds))logged++}return{logged,target}}
+function nextScheduledDayTeaser(){const days=S.schedule.days||[1,2,3,4,5];const t=new Date();for(let k=1;k<=8;k++){const d=new Date(t);d.setDate(t.getDate()+k);if(days.includes(d.getDay()))return`Next session: ${DAYS[d.getDay()]}.`}return""}
+function sessionBreadcrumb(w,plan){const phase=phaseName(w);const head=(plan.focus||"Today's session").split("·")[0].trim().slice(0,52);return`Week ${w} · ${phase} · ${head}${plan.finisher?" + finisher":""}`}
+function normalizeTabs(){if(tab==="dash"){tab=TAB_YOU;youSub="home"}else if(tab==="today"){tab=TAB_TRAIN;trainSub="workout"}else if(tab==="log"){tab=TAB_TRAIN;trainSub="log"}else if(tab==="program")tab=TAB_PLAN;else if(tab==="settings"){tab=TAB_YOU;youSub="settings"}else if(tab==="ref"){tab=TAB_YOU;youSub="home"}}
+function isExLoggedToday(eid){const e=exById(eid),name=e?e.name:eid;return S.logs.some(l=>l.date===iso()&&l.exercise===name)}
 function inferType(n){n=(n||"").toLowerCase();if(n.includes("bench")||n.includes("incline")||n.includes("close")||n.includes("dip"))return"bench";if((n.includes("squat")&&!n.includes("air"))||n.includes("bulgarian"))return"squat";if(n.includes("deadlift")||n.includes("rdl"))return"dead";if(n.includes("run")||n.includes("800")||n.includes("tempo"))return"run";return"acc"}
 function getStreak(){const dates=new Set(S.logs.map(l=>l.date));let s=0;const d=new Date();for(let i=0;i<30;i++){const dd=new Date(d);dd.setDate(dd.getDate()-i);if(dates.has(dd.toISOString().slice(0,10)))s++;else if(i>0)break;}return s}
 function weekHasLogs(w){return S.logs.some(l=>l.week===w)}
 function trendArrow(type){const r=S.logs.filter(l=>inferType(l.exercise)===type).slice(-6);if(r.length<2)return{i:"→",c:"trend-flat",t:"Gathering data"};const f=r.slice(0,3).reduce((s,l)=>s+(l.score||1),0)/Math.min(3,r.length);const l=r.slice(-3).reduce((s,x)=>s+(x.score||1),0)/Math.min(3,r.length);if(l>f*1.03)return{i:"↑",c:"trend-up",t:"Improving"};if(l<f*.97)return{i:"↓",c:"trend-down",t:"Consider deload"};return{i:"→",c:"trend-flat",t:"Steady"}}
-function toast(m){const el=document.getElementById("toast");if(toastTimer)clearTimeout(toastTimer);el.textContent=m;el.classList.add("show");toastTimer=setTimeout(()=>el.classList.remove("show"),3000)}
+function toast(m,opt){
+  opt=opt||{};
+  const el=document.getElementById("toast");if(!el)return;
+  if(toastTimer)clearTimeout(toastTimer);
+  el.classList.remove("show");
+  const dur=opt.duration||(opt.undo?6800:3400);
+  requestAnimationFrame(()=>{
+    if(opt.undo){
+      el.innerHTML=`<span class="toast-msg">${m}</span><button type="button" class="toast-undo">Undo</button>`;
+      el.querySelector(".toast-undo").onclick=()=>{opt.undo();el.classList.remove("show");toast("Undone")};
+    }else el.innerHTML=`<span class="toast-msg">${m}</span>`;
+    el.classList.add("show");toastTimer=setTimeout(()=>el.classList.remove("show"),dur);
+  });
+}
 function gaugeHTML(pct,val,sub,color){const c=282.74,off=c*(1-clamp(pct,0,1));return`<div class="gauge"><svg width="100" height="100" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="45"/><circle class="gauge-fill" cx="50" cy="50" r="45" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg><div class="gauge-center"><div class="gauge-val">${val}</div><div class="gauge-sub">${sub}</div></div></div>`}
 function estCalories(type,mins,weightLb){const kg=weightLb*0.4536;const met=type==="run"?9.5:type==="acc"?5:6.5;return Math.round(met*kg*(mins/60))}
 function weightTrend(){const wl=S.weightLog.slice(-14);if(wl.length<2)return null;const first=wl[0].wt,last=wl[wl.length-1].wt;return{change:last-first,perWeek:(last-first)/(wl.length/7||1),last}}
@@ -1304,9 +1359,10 @@ function renderOB(){
 function renderNav(){
   const el=document.getElementById("navInner");const w=S.program.week;
   const u=currentUser?currentUser.email.split("@")[0]:(offlineMode?"offline":"");
-  el.innerHTML=`<div class="logo">HYBRID WARRIOR</div>`+TABS.map(t=>`<button class="nav-btn ${tab===t.id?"active":""}" data-t="${t.id}">${t.icon} ${t.label}</button>`).join("")+
+  const tabs=[[TAB_TRAIN,"Train","◇"],[TAB_PLAN,"Plan","▦"],[TAB_YOU,"You","○"]];
+  el.innerHTML=`<div class="logo">HYBRID WARRIOR</div>`+tabs.map(([id,lb,ic])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button"><span class="nav-ic">${ic}</span>${lb}</button>`).join("")+
     `<div class="nav-pill" id="navPill">Wk ${w}/13 · ${phaseName(w)}</div>`+
-    (currentUser?`<button class="nav-btn" id="nav-so" style="color:var(--red);flex-shrink:0">⏻ ${u}</button>`:offlineMode?`<span style="font-size:10px;color:var(--text3)">offline</span>`:``);
+    (currentUser?`<button class="nav-btn" id="nav-so" style="color:var(--red);flex-shrink:0" type="button">⏻ ${u}</button>`:offlineMode?`<span style="font-size:10px;color:var(--text3)">offline</span>`:``);
   el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
   const so=document.getElementById("nav-so");if(so)so.onclick=()=>{if(confirm("Sign out?"))doSignOut()};
 }
@@ -1315,6 +1371,8 @@ function renderNav(){
 //  RENDER — DASHBOARD
 // ═══════════════════════════════════════════════════════════
 function renderDash(){
+  autoWeek();
+  const d=new Date(),w=S.program.week,plan=dayPlan(d.getDay(),w);
   const p=S.profile,g=S.goals;const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5);const fatLost=p.startWt-p.weight;
   const bP=g.bench?clamp(p.bench1RM/g.bench,0,1):0;const rP=g.fiveK?clamp(g.fiveK/fk,0,1):0;const fP=g.fatLoss?clamp(fatLost/g.fatLoss,0,1):0;
   const streak=getStreak();const bT=trendArrow("bench"),sT=trendArrow("squat"),dT=trendArrow("dead"),rT=trendArrow("run");
@@ -1322,78 +1380,107 @@ function renderDash(){
   const hm=weeklyExpectedChanges();
   const whr=(p.waist>0&&p.hips>0)?(p.waist/p.hips):0;
   const swr=(p.waist>0&&p.shoulders>0)?(p.shoulders/p.waist):0;
-
-  // Weight chart
-  const wl=S.weightLog.slice(-14);const maxW=Math.max(...wl.map(w=>w.wt),p.startWt);const minW=Math.min(...wl.map(w=>w.wt),p.goalWt);
-  const wtBars=wl.map(w=>{const pct=maxW>minW?((w.wt-minW)/(maxW-minW)):0.5;return`<div class="wt-col" style="height:${Math.max(4,pct*100)}%;background:${w.wt<=p.goalWt?"var(--mint)":"var(--ice)"}" title="${w.date}: ${w.wt}lb"></div>`}).join("");
+  const wl=S.weightLog.slice(-14);const maxW=Math.max(...wl.map(x=>x.wt),p.startWt||0,1);const minW=Math.min(...wl.map(x=>x.wt),p.goalWt||0);
+  const wtBars=wl.map(x=>{const pct=maxW>minW?((x.wt-minW)/(maxW-minW)):0.5;return`<div class="wt-col" style="height:${Math.max(4,pct*100)}%;background:${x.wt<=p.goalWt?"var(--mint)":"var(--ice)"}" title="${x.date}: ${x.wt}lb"></div>`}).join("");
+  const bc=sessionBreadcrumb(w,plan);
+  const firstEx=plan.exs[0];const e0=firstEx?exById(firstEx.eid):null;
+  const heroTitle=plan.exs.length?`${DAYS[d.getDay()]} session`:`${DAYS[d.getDay()]} — easy day`;
+  const heroMeta=`~${S.schedule.sessionMin||45} min · ${plan.exs.length?plan.exs.length+" exercises":"recovery"}`;
+  const heroTarget=firstEx&&e0?`${firstEx.sets}×${firstEx.reps} @ ${firstEx.target||"BW"} ${firstEx.unit}`:"Walk or light mobility — optional";
+  const heroExName=e0?e0.name:"No main lift today";
+  const mg=logsOnScheduleDaysThisWeek();
+  const ringLen=113;const pctRing=mg.target?Math.min(1,mg.logged/mg.target):0;const off=ringLen*(1-pctRing);
+  const openDet=sessionStorage.getItem("hw-dash-details")==="1";
+  const weekLogEmpty=mg.target>0&&mg.logged===0;
 
   return`
-  <div class="section"><div class="grid-auto">
-    ${g.bench?`<div class="card"><div class="card-h"><h2>Bench → ${g.bench}lb</h2><span class="badge badge-fire">${Math.round(bP*100)}%</span></div>
+  ${lastLogSummary?`<div class="session-banner" id="dash-sum"><b style="color:var(--text)">Session saved.</b> ${lastLogSummary.name} · Streak <b>${lastLogSummary.streak}</b> day${lastLogSummary.streak!==1?"s":""}.${lastLogSummary.vol?` Rough volume: <b>${lastLogSummary.vol}</b>.`:""} ${lastLogSummary.next} <button type="button" class="details-toggle" id="sum-dismiss" style="margin-left:6px">Dismiss</button></div>`:""}
+  <div class="hero-card">
+    <div class="hero-title">${heroTitle}</div>
+    <div class="breadcrumb">${bc}</div>
+    <div class="hero-meta">${heroMeta}</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">First move · <span class="ex-name-lg" style="display:inline">${heroExName}</span></div>
+    <div class="hero-target">${heroTarget}</div>
+    <button type="button" class="btn btn-cta btn-block hero-cta" id="dash-start-workout">Start today's workout</button>
+    <button type="button" class="btn btn-secondary-solid btn-block" id="dash-whats-today" style="margin-top:8px">What's today? (Train tab)</button>
+  </div>
+  <div class="micro-goal card" style="padding:14px;display:flex;align-items:center;gap:14px">
+    <div class="micro-ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="rbg" cx="26" cy="26" r="18"/><circle class="rfill" cx="26" cy="26" r="18" stroke-dasharray="${ringLen}" stroke-dashoffset="${off}"/></svg><span>${mg.logged}/${mg.target}</span></div>
+    <div><div style="font-size:14px;font-weight:800">This week on your calendar</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Train on each scheduled day (${mg.target} this block). Logging keeps targets honest.</div></div>
+  </div>
+  ${weekLogEmpty?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:800;margin-bottom:4px">No logs yet this week</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px">Logging tells the app what you actually did so weights and reps stay realistic.</p><button type="button" class="btn btn-fire" id="dash-go-log">Open log for today</button></div>`:""}
+
+  <div class="section">
+    <button type="button" class="details-toggle" id="dash-details-toggle">${openDet?"Hide":"Show"} details — measurements, heatmap, health</button>
+    <div class="details-panel ${openDet?"open":""}" id="dash-details-body">
+  <div class="grid-auto">
+    ${g.bench?`<div class="card"><div class="card-h"><h2>Bench → ${g.bench}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(bP*100)}%</div>
       <div class="row">${gaugeHTML(bP,p.bench1RM+"","est 1RM","var(--fire)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.bench} lb</div><div style="font-size:11px" class="${bT.c}">${bT.i} ${bT.t}</div></div></div></div>`:""}
-    ${g.squat?`<div class="card"><div class="card-h"><h2>Squat → ${g.squat}lb</h2><span class="badge badge-gold">${Math.round(clamp(p.squat1RM/g.squat,0,1)*100)}%</span></div>
+    ${g.squat?`<div class="card"><div class="card-h"><h2>Squat → ${g.squat}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(clamp(p.squat1RM/g.squat,0,1)*100)}%</div>
       <div class="row">${gaugeHTML(clamp(p.squat1RM/g.squat,0,1),p.squat1RM+"","est 1RM","var(--gold)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.squat} lb</div><div style="font-size:11px" class="${sT.c}">${sT.i} ${sT.t}</div></div></div></div>`:""}
-    ${g.deadlift?`<div class="card"><div class="card-h"><h2>Dead → ${g.deadlift}lb</h2><span class="badge badge-fire">${Math.round(clamp(p.dead1RM/g.deadlift,0,1)*100)}%</span></div>
+    ${g.deadlift?`<div class="card"><div class="card-h"><h2>Dead → ${g.deadlift}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(clamp(p.dead1RM/g.deadlift,0,1)*100)}%</div>
       <div class="row">${gaugeHTML(clamp(p.dead1RM/g.deadlift,0,1),p.dead1RM+"","est 1RM","var(--fire)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.deadlift} lb</div><div style="font-size:11px" class="${dT.c}">${dT.i} ${dT.t}</div></div></div></div>`:""}
-    ${g.fiveK?`<div class="card"><div class="card-h"><h2>Sub-${mmss(g.fiveK)} 5K</h2><span class="badge badge-ice">${Math.round(rP*100)}%</span></div>
+    ${g.fiveK?`<div class="card"><div class="card-h"><h2>Sub-${mmss(g.fiveK)} 5K</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(rP*100)}%</div>
       <div class="row">${gaugeHTML(rP,mmss(Math.round(fk)),"est 5K","var(--ice)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${mmss(g.fiveK)}</div><div style="font-size:11px" class="${rT.c}">${rT.i} ${rT.t}</div></div></div></div>`:""}
-    ${g.fatLoss?`<div class="card"><div class="card-h"><h2>Lose ${g.fatLoss}lb</h2><span class="badge badge-mint">${Math.round(fP*100)}%</span></div>
+    ${g.fatLoss?`<div class="card"><div class="card-h"><h2>Lose ${g.fatLoss}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(fP*100)}%</div>
       <div class="row">${gaugeHTML(fP,fatLost.toFixed(0)+"","lbs lost","var(--mint)")}<div><div style="font-size:12px;color:var(--text2)">${p.weight}lb → ${p.goalWt}lb</div>
         ${wt?`<div style="font-size:11px;color:${wt.perWeek<0?"var(--mint)":"var(--gold)"}">Trend: ${wt.perWeek.toFixed(1)} lb/wk</div>`:""}</div></div></div>`:""}
-  </div></div>
-  <div class="section"><div class="card"><div class="card-h"><h2>Body Shape Progress</h2><span class="badge badge-gold">Measurements</span></div>
+  </div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Body measurements</h2></div>
     <div class="grid3">
-      <div><div style="font-size:11px;color:var(--text2)">Waist/Hip Ratio</div><div style="font-size:22px;font-weight:900">${whr?whr.toFixed(2):"--"}</div><div style="font-size:10px;color:var(--text3)">Lower can indicate improved waist-to-hip profile.</div></div>
-      <div><div style="font-size:11px;color:var(--text2)">Shoulder/Waist Ratio</div><div style="font-size:22px;font-weight:900">${swr?swr.toFixed(2):"--"}</div><div style="font-size:10px;color:var(--text3)">Higher can indicate V-taper / posture development.</div></div>
-      <div><div style="font-size:11px;color:var(--text2)">Body Fat %</div><div style="font-size:22px;font-weight:900">${p.bodyFat?`${p.bodyFat.toFixed(1)}%`:"--"}</div><div style="font-size:10px;color:var(--text3)">Optional manual check-in for trend tracking.</div></div>
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase">Waist/Hip</div><div style="font-size:22px;font-weight:900">${whr?whr.toFixed(2):"--"}</div></div>
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase">Shoulder/Waist</div><div style="font-size:22px;font-weight:900">${swr?swr.toFixed(2):"--"}</div></div>
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase">Body fat %</div><div style="font-size:22px;font-weight:900">${p.bodyFat?`${p.bodyFat.toFixed(1)}%`:"--"}</div></div>
     </div>
   </div></div>
-  <div class="section"><div class="card"><div class="card-h"><h2>Expected Changes Heatmap</h2><span class="badge badge-mint">All Programs</span></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Expected emphasis (heatmap)</h2></div>
     <div class="grid2">
-      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Glutes</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.glutes}%;background:linear-gradient(90deg,var(--mint),var(--fire))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.glutes}% expected emphasis</div></div>
-      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Core</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.core}%;background:linear-gradient(90deg,var(--mint),var(--fire))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.core}% expected emphasis</div></div>
-      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Back</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.back}%;background:linear-gradient(90deg,var(--mint),var(--fire))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.back}% expected emphasis</div></div>
-      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Posture</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.posture}%;background:linear-gradient(90deg,var(--mint),var(--fire))"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.posture}% expected emphasis</div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Glutes</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.glutes}%;background:var(--mint)"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.glutes}%</div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Core</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.core}%;background:var(--mint)"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.core}%</div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Back</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.back}%;background:var(--mint)"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.back}%</div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Posture</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.posture}%;background:var(--mint)"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.posture}%</div></div>
     </div>
   </div></div>
-
   <div class="section"><div class="grid2">
-    <div class="card">
-      <div class="card-h"><h2>Streak</h2></div>
-      <div style="font-size:36px;font-weight:900;color:${streak>=5?"var(--mint)":streak>=2?"var(--gold)":"var(--text3)"}">${streak} day${streak!==1?"s":""}</div>
-      <div class="streak-bar">${[0,1,2,3,4,5,6].map(i=>{const d=new Date();d.setDate(d.getDate()-6+i);const k=d.toISOString().slice(0,10);const done=S.logs.some(l=>l.date===k);return`<div class="streak-dot ${done?"done":""} ${k===iso()?"today":""}">${DAYS[d.getDay()].slice(0,2)}</div>`}).join("")}</div>
+    <div class="card"><div class="card-h"><h2>Streak</h2></div>
+      <div style="font-size:36px;font-weight:900;color:${streak>=5?"var(--mint)":streak>=2?"var(--gold)":"var(--text3)"}">${streak}</div>
+      <div class="streak-bar">${[0,1,2,3,4,5,6].map(i=>{const dd=new Date();dd.setDate(dd.getDate()-6+i);const k=dd.toISOString().slice(0,10);const done=S.logs.some(l=>l.date===k);return`<div class="streak-dot ${done?"done":""} ${k===iso()?"today":""}">${DAYS[dd.getDay()].slice(0,2)}</div>`}).join("")}</div>
     </div>
-    <div class="card">
-      <div class="card-h"><h2>Weight Log</h2></div>
+    <div class="card"><div class="card-h"><h2>Weight</h2></div>
       <div class="grid2">
-        <div><label>Today's Weight (lb)</label><input id="d-wt" type="number" value="${p.weight}"></div>
-        <div><label>4-Mile Time (mm:ss)</label><input id="d-run" value="${p.run4mi?mmss(p.run4mi):""}"></div>
+        <div><label>Today's weight (lb)</label><input id="d-wt" type="number" value="${p.weight}"></div>
+        <div><label>4-mile (mm:ss)</label><input id="d-run" value="${p.run4mi?mmss(p.run4mi):""}"></div>
       </div>
-      <button class="btn btn-fire btn-block" id="d-save" style="margin-top:8px">Log Weight & Update</button>
+      <button class="btn btn-cta btn-block" id="d-save" style="margin-top:8px">Save weight & run pace</button>
       ${wl.length?`<div class="wt-bar">${wtBars}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">Last ${wl.length} entries</div>`:""}
     </div>
   </div></div>
-  <div class="section"><div class="card">
-    <div class="card-h"><h2>Apple Watch / Health Metrics (Manual)</h2><span class="badge badge-ice">Daily Sync</span></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Health metrics (manual)</h2></div>
     <div class="grid3">
-      <div><label>Active Calories</label><input id="d-cal" type="number" placeholder="e.g. 540"></div>
-      <div><label>Exercise Minutes</label><input id="d-exmin" type="number" placeholder="e.g. 42"></div>
-      <div><label>Steps</label><input id="d-steps" type="number" placeholder="e.g. 9800"></div>
+      <div><label>Active calories</label><input id="d-cal" type="number" placeholder="540"></div>
+      <div><label>Exercise minutes</label><input id="d-exmin" type="number" placeholder="42"></div>
+      <div><label>Steps</label><input id="d-steps" type="number" placeholder="9800"></div>
     </div>
-    <button class="btn btn-ice btn-block" id="d-health-save" style="margin-top:8px">Save Health Metrics</button>
-    <div style="font-size:11px;color:var(--text3);margin-top:6px">Used to auto-adjust conditioning volume and recovery emphasis.</div>
+    <button class="btn btn-ice btn-block" id="d-health-save" style="margin-top:8px">Save health metrics</button>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px">Optional. Nudges conditioning when calories/steps are very high or low.</div>
   </div></div>
-
-  ${recent.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent Activity</h2></div>
-    ${recent.map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${l.date} — ${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${l.aS}×${l.aR} @ ${l.aW}</div></div>`}).join("")}</div></div>`:""}`;
+  ${recent.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent logs</h2></div>
+    ${recent.map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${l.date} — ${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${l.aS}×${l.aR} @ ${l.aW}</div></div>`}).join("")}</div></div>`:""}
+    </div>
+  </div>`;
 }
 function bindDash(){
+  const st=document.getElementById("dash-start-workout");if(st)st.onclick=()=>{tab=TAB_TRAIN;trainSub="workout";render()};
+  const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{tab=TAB_TRAIN;trainSub="workout";render()};
+  const gl=document.getElementById("dash-go-log");if(gl)gl.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
+  const dt=document.getElementById("dash-details-toggle");if(dt)dt.onclick=()=>{const o=sessionStorage.getItem("hw-dash-details")==="1";sessionStorage.setItem("hw-dash-details",o?"0":"1");render()};
+  const sd=document.getElementById("sum-dismiss");if(sd)sd.onclick=()=>{lastLogSummary=null;render()};
   const el=document.getElementById("d-save");
   if(el)el.onclick=async()=>{
-    const wt=Number(document.getElementById("d-wt").value);
-    if(wt>0){S.profile.weight=wt;S.weightLog.push({date:iso(),wt});S.weightLog=S.weightLog.slice(-90)}
+    const wn=Number(document.getElementById("d-wt").value);
+    if(wn>0){S.profile.weight=wn;S.weightLog.push({date:iso(),wt:wn});S.weightLog=S.weightLog.slice(-90)}
     const r=parseMM(document.getElementById("d-run").value);if(r>0)S.profile.run4mi=r;
-    await persist();render();toast("Updated");
+    await persist();render();toast("Saved");
   };
   const hs=document.getElementById("d-health-save");
   if(hs)hs.onclick=async()=>{
@@ -1401,13 +1488,31 @@ function bindDash(){
     const exMin=Number(document.getElementById("d-exmin").value)||0;
     const steps=Number(document.getElementById("d-steps").value)||0;
     if(cal<=0&&exMin<=0&&steps<=0){toast("Enter at least one health metric.");return}
+    const snap=S.healthLog.slice();const ar=S.adapt.run;
     S.healthLog.push({date:iso(),cal,exMin,steps});
     S.healthLog=S.healthLog.slice(-120);
-    // Small adaptive nudge from recovery/load signals
     if(cal>650&&exMin>45)S.adapt.run=clamp(S.adapt.run+0.01,.85,1.2);
     if(cal<220&&steps<4000)S.adapt.run=clamp(S.adapt.run-0.01,.85,1.2);
-    await persist();render();toast("Health metrics saved");
+    await persist();render();toast("Health metrics saved",{undo:()=>{S.healthLog=snap;S.adapt.run=ar;persist();render()}});
   };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER — TRAIN / YOU WRAPPERS
+// ═══════════════════════════════════════════════════════════
+function renderTrain(){
+  return`<div class="subtab-row"><button type="button" class="subtab ${trainSub==="workout"?"on":""} train-sub" data-s="workout">Workout</button><button type="button" class="subtab ${trainSub==="log"?"on":""} train-sub" data-s="log">Log & report</button></div><div id="train-inner">${trainSub==="workout"?renderToday():renderLog()}</div>`;
+}
+function renderYou(){
+  return`<div class="subtab-row"><button type="button" class="subtab ${youSub==="home"?"on":""} you-sub" data-s="home">Overview</button><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" data-s="settings">Settings</button></div><div id="you-inner">${youSub==="home"?renderDash():renderSettings()}</div>`;
+}
+function bindTrain(){
+  document.querySelectorAll(".train-sub").forEach(b=>b.onclick=()=>{trainSub=b.dataset.s;render()});
+  if(trainSub==="workout")bindToday();else bindLog();
+}
+function bindYou(){
+  document.querySelectorAll(".you-sub").forEach(b=>b.onclick=()=>{youSub=b.dataset.s;render()});
+  if(youSub==="home")bindDash();else bindSettings();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1419,19 +1524,27 @@ function renderToday(){
   const safety=getSafetyMode();
   const micro=(S.profile.sex==="female"&&safety==="postpartum")?postpartumMicroRoutine(d.getDay()):null;
   const zones=mergeZones(plan);
-  return`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div class="row" style="gap:10px"><h2 style="font-size:20px;font-weight:900">${DAYS[d.getDay()]}</h2><span style="color:${phaseColor(w)};font-weight:700;font-size:13px">${plan.focus}</span></div><span style="font-size:12px;color:var(--text3)">Week ${w} · ${phaseName(w)}</span></div>
-  ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Daily Impact Map</h2><span class="badge badge-ice">All Exercises Today</span></div><div class="fig-wrap"><div class="fig-title">Combined expected stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn/Cardio</span><span><span class="dot" style="background:#ffd740"></span>Growth + Burn</span></div></div></div>`:""}
-  ${meta?`<div class="card section" style="border-left:3px solid var(--mint)"><div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">WHY THIS SESSION</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Expected Progress:</b> ${meta.expect}</div></div>`:""}
-  ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">WEEKLY POSTURE / PREHAB MICRO-ROUTINE</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
-  ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
-  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const mm=exMuscles(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
-  ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
+  const bc=sessionBreadcrumb(w,plan);
+  return`<div id="p-today">
+  <div class="hero-title" style="font-size:20px;margin-bottom:4px">${DAYS[d.getDay()]}</div>
+  <div class="breadcrumb">${bc}</div>
+  ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Today's impact map</h2></div><div class="fig-wrap"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div></div>`:""}
+  ${meta?`<div class="card section"><button type="button" class="details-toggle" id="why-toggle" style="width:100%;text-align:left">Why this session? (coaching notes)</button><div class="details-panel" id="why-body"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div></div>`:""}
+  ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">Posture / prehab add-on</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
+  ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">Warm-up</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
+  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const mm=exMuscles(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);const done=isExLoggedToday(ex.eid);const lw=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?S.lastLiftByEid[ex.eid]:(ex.target||0);return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${e?e.name:ex.eid}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button type="button" class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Details</button><button type="button" class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="quick-log-row"><span style="font-size:11px;color:var(--text3);align-self:center">Quick log (remembers load)</span><div><label>Reps</label><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"></div><button type="button" class="btn btn-secondary-solid btn-sm q-save" data-i="${i}">Log 1 set</button></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>`}</div>
+  ${plan.finisher?`<div class="finisher finisher-block"><h3><span class="finisher-fire">⚡</span>Finisher</h3><p>${plan.finisher}</p></div>`:""}
+  </div>`;
 }
 function bindToday(){
+  if(!S.lastLiftByEid)S.lastLiftByEid={};
+  const wt=document.getElementById("why-toggle"),wb=document.getElementById("why-body");
+  if(wt&&wb)wt.onclick=()=>{wb.classList.toggle("open");wt.textContent=wb.classList.contains("open")?"Why this session? (hide)":"Why this session? (coaching notes)"};
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=()=>document.getElementById("exb-"+b.dataset.i).classList.toggle("open"));
   document.querySelectorAll(".ex-how").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const how=document.getElementById("exhow-"+i);const pdf=document.getElementById("expdf-"+i);if(!body.classList.contains("open"))body.classList.add("open");how.style.display=how.style.display==="none"?"block":"none";const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);if(e&&e.books.length){const bk=e.books[0],src=S.pdfs[bk];if(src){pdf.innerHTML=`<p style="color:var(--text3);font-size:11px">Searching ${bk}…</p>`;try{const doc=await getPdf(bk,src);let best={pg:1,sc:-1};for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const txt=tc.items.map(x=>x.str).join(" ").toLowerCase();let sc=0;for(const k of e.kw)if(txt.includes(k))sc++;if(sc>best.sc)best={pg:p,sc};if(sc>=Math.min(e.kw.length,3))break}const pg=await doc.getPage(best.pg);const vp=pg.getViewport({scale:1.4});const cvs=document.createElement("canvas");cvs.width=vp.width;cvs.height=vp.height;cvs.style.cssText="width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px";await pg.render({canvasContext:cvs.getContext("2d"),viewport:vp}).promise;pdf.innerHTML=`<p style="color:var(--mint);font-size:11px">Page ${best.pg} of ${bk}</p>`;pdf.appendChild(cvs)}catch{pdf.innerHTML=`<p style="color:var(--red);font-size:11px">Could not load PDF preview.</p>`}}else pdf.innerHTML=`<p style="color:var(--gold);font-size:11px">PDF preview not configured. Use the How-To steps and video above.</p>`}});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);const log=applyLog({id:crypto.randomUUID(),date:iso(),week:S.program.week,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:Number(document.getElementById("t-s"+i).value)||0,aR:Number(document.getElementById("t-r"+i).value)||0,aW:Number(document.getElementById("t-w"+i).value)||0});S.logs.push(log);S.logs=S.logs.slice(-1000);await persist();toast(`${e?e.name:ex.eid} logged`);document.getElementById("exc-"+i).classList.add("logged")});
+  document.querySelectorAll(".q-save").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;document.getElementById("t-s"+i).value=1;document.getElementById("t-r"+i).value=document.getElementById("tq-r"+i).value;document.getElementById("t-w"+i).value=document.getElementById("tq-w"+i).value;document.querySelector(`.ex-save[data-i="${i}"]`).click()});
+  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const log=applyLog({id:crypto.randomUUID(),date:iso(),week:S.program.week,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW});S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};toast(`${name} saved`,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1472,7 +1585,7 @@ function renderProgram(){
   <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;const wkDays=S.schedule.days||[1,2,3,4,5];
     const logCount=weekHasLogs(w)?S.logs.filter(l=>l.week===w).length:0;
     let bodyHTML="";
-    if(isOpen){bodyHTML=wkDays.concat([6]).map(d=>{const p=dayPlan(d,w);return`<div class="pw-day"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${DAYS[d]}</span> — ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--fire);margin:2px 0 0 16px;font-style:italic">🔥 ${p.finisher}</div></div>`}).join("")}
+    if(isOpen){bodyHTML=wkDays.concat([6]).map(d=>{const p=dayPlan(d,w);const isToday=d===new Date().getDay()&&w===cur;return`<div class="pw-day ${isToday?"pw-day-today":""}"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${DAYS[d]}</span>${isToday?` <span class="badge badge-fire" style="font-size:8px">TODAY</span>`:""} — ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--ice);margin:2px 0 0 16px;font-style:italic">⚡ ${p.finisher}</div></div>`}).join("")}
     return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · DELOAD":""}</span>${w===cur?`<span class="badge badge-fire" style="font-size:9px">CURRENT</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${logCount?logCount+" logged":"upcoming"}</span></div>
     <div class="pw-body ${isOpen?"open":""}">${bodyHTML}</div></div>`}).join("")}</div>`;
 }
@@ -1495,22 +1608,23 @@ function bindRef(){
 //  RENDER — SETTINGS
 // ═══════════════════════════════════════════════════════════
 function renderSettings(){
-  return`<div class="grid2 section">
-    <div class="card"><div class="card-h"><h2>Profile</h2></div>
+  return`<label class="settings-search"><span style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">Search settings</span><input type="search" id="s-filter" placeholder="e.g. bench, export, too hard…" autocomplete="off"></label>
+  <div class="grid2 section">
+    <div class="card settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style adaptation save"><div class="card-h"><h2>Training & profile</h2></div>
       <div class="grid3"><div><label>Bench 1RM</label><input id="s-b" type="number" value="${S.profile.bench1RM}"></div><div><label>Squat 1RM</label><input id="s-sq" type="number" value="${S.profile.squat1RM}"></div><div><label>Deadlift 1RM</label><input id="s-dl" type="number" value="${S.profile.dead1RM}"></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Weight</label><input id="s-wt" type="number" value="${S.profile.weight}"></div><div><label>Goal Wt</label><input id="s-gw" type="number" value="${S.profile.goalWt}"></div><div><label>4mi (mm:ss)</label><input id="s-run" value="${mmss(S.profile.run4mi)}"></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Waist (in)</label><input id="s-waist" type="number" step="0.1" value="${S.profile.waist||""}"></div><div><label>Hips (in)</label><input id="s-hips" type="number" step="0.1" value="${S.profile.hips||""}"></div><div><label>Shoulders (in)</label><input id="s-shoulders" type="number" step="0.1" value="${S.profile.shoulders||""}"></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Body Fat %</label><input id="s-bf" type="number" step="0.1" value="${S.profile.bodyFat||""}"></div><div></div><div></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Sex</label><select id="s-sex"><option value="male" ${S.profile.sex==="male"?"selected":""}>Male</option><option value="female" ${S.profile.sex==="female"?"selected":""}>Female</option></select></div><div><label>Life Stage</label><select id="s-life"><option value="general" ${((S.profile.prefs||{}).lifeStage||"general")==="general"?"selected":""}>General</option><option value="pregnancy" ${((S.profile.prefs||{}).lifeStage||"")==="pregnancy"?"selected":""}>Pregnancy</option><option value="postpartum" ${((S.profile.prefs||{}).lifeStage||"")==="postpartum"?"selected":""}>Postpartum</option></select></div><div><label>Women's Mode</label><select id="s-wm"><option value="auto" ${((S.profile.prefs||{}).womenMode||"auto")==="auto"?"selected":""}>Auto</option><option value="hourglass" ${((S.profile.prefs||{}).womenMode||"")==="hourglass"?"selected":""}>Hourglass</option><option value="glute_shelf" ${((S.profile.prefs||{}).womenMode||"")==="glute_shelf"?"selected":""}>Glute Shelf</option><option value="posture" ${((S.profile.prefs||{}).womenMode||"")==="posture"?"selected":""}>Posture</option><option value="pilates" ${((S.profile.prefs||{}).womenMode||"")==="pilates"?"selected":""}>Pilates</option><option value="home" ${((S.profile.prefs||{}).womenMode||"")==="home"?"selected":""}>Home Sculpt</option></select></div></div>
       <div class="grid2" style="margin-top:8px"><div><label>Equipment</label><select id="s-eq"><option value="gym" ${((S.profile.prefs||{}).equipment||"gym")==="gym"?"selected":""}>Gym</option><option value="home" ${((S.profile.prefs||{}).equipment||"")==="home"?"selected":""}>Home</option></select></div><div><label>Session Style</label><select id="s-style"><option value="balanced" ${((S.profile.prefs||{}).style||"balanced")==="balanced"?"selected":""}>Balanced</option><option value="burner" ${((S.profile.prefs||{}).style||"")==="burner"?"selected":""}>Burner (10-20 min)</option></select></div></div>
-      <button class="btn btn-fire btn-block" id="s-save" style="margin-top:10px">Save & Recalculate</button>
+      <button class="btn btn-cta btn-block" id="s-save" style="margin-top:10px">Save & recalculate</button>
       <div style="margin-top:10px;padding:10px;background:var(--surface);border-radius:var(--radius-sm)">
         <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:4px">ADAPTATION</div>
         <div style="display:flex;gap:10px;font-size:12px;color:var(--text2);flex-wrap:wrap"><span>B <b>${S.adapt.bench.toFixed(3)}</b></span><span>S <b>${S.adapt.squat.toFixed(3)}</b></span><span>D <b>${S.adapt.dead.toFixed(3)}</b></span><span>R <b>${S.adapt.run.toFixed(3)}</b></span></div>
         <button class="btn btn-ghost btn-sm" id="s-reset" style="margin-top:6px">Reset to 1.000</button>
         </div>
       </div>
-    <div class="card"><div class="card-h"><h2>Account</h2></div>
+    <div class="card settings-section" data-k="account email firebase sign plan switch onboard offline sync"><div class="card-h"><h2>Account & plan</h2></div>
       ${currentUser?`<div style="font-size:13px;font-weight:700;margin-bottom:4px">${currentUser.email}</div><div style="font-size:10px;color:var(--mint);margin-bottom:10px">Syncing to cloud</div><button class="btn btn-ghost btn-block" id="s-signout">Sign Out</button>`:`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">${offlineMode?"Offline mode":"Not connected"}</div>`}
       <div style="margin-top:12px"><label>Current Plan (#${(S.planId||0)+1}/64)</label>
         <select id="s-plan">${PLANS.map(p=>`<option value="${p.id}" ${p.id===S.planId?"selected":""}>${p.name}</option>`).join("")}</select></div>
@@ -1518,12 +1632,24 @@ function renderSettings(){
       <button class="btn btn-ghost btn-block" id="s-reonboard" style="margin-top:8px">Re-run Onboarding Wizard</button>
     </div>
         </div>
-  <div class="card section"><div class="card-h"><h2>Data & Backup</h2></div>
+  <div class="card section settings-section" data-k="data backup export import clear logs difficult hard ease deload recovery too program"><div class="card-h"><h2>Data & backup</h2></div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Export a full backup of your training state, or import a saved JSON file from another device.</p>
-    <div class="row" style="flex-wrap:wrap"><button class="btn btn-ghost" id="s-clear">Clear Logs</button><button class="btn btn-ghost" id="s-export">Export</button><button class="btn btn-ghost" id="s-import-btn">Import</button><input type="file" id="s-import-file" accept="application/json" style="display:none"></div>
+    <div class="row" style="flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="s-clear">Clear logs</button><button type="button" class="btn btn-ghost" id="s-export">Export</button><button type="button" class="btn btn-ghost" id="s-import-btn">Import</button><input type="file" id="s-import-file" accept="application/json" style="display:none"></div>
+    <button type="button" class="btn btn-secondary-solid btn-block" id="s-ease-open" style="margin-top:12px">Program feels too hard</button>
+    <div class="ease-wizard" id="ease-wiz"><p style="font-size:12px;color:var(--text2);margin-bottom:8px">We'll nudge adaptation down ~5% and add a few minutes to your session budget (cap 75 min) so targets feel more doable.</p><button type="button" class="btn btn-cta btn-sm" id="ease-go">Ease my program</button></div>
   </div>`;
 }
 function bindSettings(){
+  const fil=document.getElementById("s-filter");
+  if(fil)fil.oninput=()=>{const q=fil.value.toLowerCase().trim();document.querySelectorAll(".settings-section").forEach(sec=>{const blob=((sec.dataset.k||"")+" "+(sec.textContent||"")).toLowerCase();sec.classList.toggle("hidden",q.length>0&&!blob.includes(q))})};
+  const eo=document.getElementById("s-ease-open"),ew=document.getElementById("ease-wiz");
+  if(eo&&ew)eo.onclick=()=>ew.classList.toggle("show");
+  const eg=document.getElementById("ease-go");
+  if(eg)eg.onclick=async()=>{
+    S.adapt.bench=clamp(S.adapt.bench*.95,.85,1.2);S.adapt.squat=clamp(S.adapt.squat*.95,.85,1.2);S.adapt.dead=clamp(S.adapt.dead*.95,.85,1.2);S.adapt.run=clamp(S.adapt.run*.95,.85,1.2);
+    S.schedule.sessionMin=Math.min(75,(Number(S.schedule.sessionMin)||45)+5);
+    await persist();render();toast("Program eased — check Train for updated feel.");
+  };
   document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;S.profile.sex=document.getElementById("s-sex").value;S.profile.prefs={...(S.profile.prefs||{}),lifeStage:document.getElementById("s-life").value,womenMode:document.getElementById("s-wm").value,equipment:document.getElementById("s-eq").value,style:document.getElementById("s-style").value};const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();render();toast("Saved")};
   document.getElementById("s-reset").onclick=async()=>{S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Reset")};
   const so=document.getElementById("s-signout");if(so)so.onclick=()=>{if(confirm("Sign out?"))doSignOut()};
@@ -1546,22 +1672,46 @@ async function getPdf(n,s){await ensurePdf();if(pdfCache.has(n))return pdfCache.
 // ═══════════════════════════════════════════════════════════
 function render(){
   autoWeek();
-  if(tab==="ref")tab="dash";
+  normalizeTabs();
   applyVisualTheme(document.getElementById("obScreen")&&document.getElementById("obScreen").classList.contains("show"));
   renderNav();
   const app=document.getElementById("app");
-  const renderers={dash:renderDash,today:renderToday,log:renderLog,program:renderProgram,settings:renderSettings};
-  const binders={dash:bindDash,today:bindToday,log:bindLog,program:bindProgram,settings:bindSettings};
-  const fn=renderers[tab];
-  if(!fn)return;
-  app.innerHTML=`<div class="pane show" id="p-${tab}">${fn()}</div>`;
-  binders[tab]();
+  let html,bindFn;
+  if(tab===TAB_TRAIN){html=`<div class="pane show" id="p-train">${renderTrain()}</div>`;bindFn=bindTrain}
+  else if(tab===TAB_PLAN){html=`<div class="pane show" id="p-plan">${renderProgram()}</div>`;bindFn=bindProgram}
+  else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
+  app.innerHTML=html;
+  bindFn();
 }
 
 // ═══════════════════════════════════════════════════════════
 //  BOOT
 // ═══════════════════════════════════════════════════════════
+function isThemePreviewHost(){
+  const h=(location.hostname||"").toLowerCase();
+  return h==="localhost"||h==="127.0.0.1"||h==="[::1]";
+}
+/** Local dev only: e.g. http://127.0.0.1:8080/index.html?themePreview=female — previews feminine/masculine styling without Firebase (does not save profile). */
+function tryThemePreviewBoot(){
+  if(!isThemePreviewHost())return false;
+  const q=new URLSearchParams(location.search);
+  const t=(q.get("themePreview")||"").toLowerCase();
+  if(!t)return false;
+  const female=t==="female"||t==="feminine"||t==="woman";
+  const male=t==="male"||t==="masculine"||t==="man";
+  if(!female&&!male)return false;
+  S.profile.sex=female?"female":"male";
+  S.profile.onboarded=true;
+  const auth=document.getElementById("authScreen");if(auth)auth.style.display="none";
+  const ob=document.getElementById("obScreen");if(ob)ob.classList.remove("show");
+  const nav=document.getElementById("mainNav");if(nav)nav.style.display="";
+  const appEl=document.getElementById("app");if(appEl)appEl.style.display="";
+  applyVisualTheme(false);
+  render();
+  return true;
+}
 (async function(){
+  if(tryThemePreviewBoot())return;
   bindAuthUI();let cfg=getSavedCfg();
   if(cfg){try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else showAuthLogin()})}catch{showAuthSetup()}}
   else showAuthSetup();

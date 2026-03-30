@@ -1,0 +1,10 @@
+{
+  "name": "Hybrid Warrior",
+  "short_name": "Hybrid",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#09090f",
+  "theme_color": "#09090f",
+  "description": "Adaptive 13-week workout tracker with sync and logging.",
+  "icons": []
+}
