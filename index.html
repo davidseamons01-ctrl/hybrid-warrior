@@ -232,7 +232,7 @@ const DEFAULT_FB_CONFIG={
 };
 const DEF={
   v:5,
-  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none"}},
+  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none"}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   program:{week:1,start:iso()},
@@ -691,10 +691,16 @@ function renderOB(){
         <div><label>Height (inches)</label><input id="ob-ht" type="number" value="${S.profile.height||70}"></div>
         <div><label>Current Weight (lb)</label><input id="ob-wt" type="number" value="${S.profile.weight||""}"></div>
       </div>
+      <div class="grid3" style="margin-top:10px">
+        <div><label>Waist (in)</label><input id="ob-waist" type="number" step="0.1" value="${S.profile.waist||""}" placeholder="e.g. 34"></div>
+        <div><label>Hips (in)</label><input id="ob-hips" type="number" step="0.1" value="${S.profile.hips||""}" placeholder="e.g. 40"></div>
+        <div><label>Shoulders (in)</label><input id="ob-shoulders" type="number" step="0.1" value="${S.profile.shoulders||""}" placeholder="e.g. 46"></div>
+      </div>
       <div class="grid2" style="margin-top:10px">
         <div><label>Goal Weight (lb)</label><input id="ob-gw" type="number" value="${S.profile.goalWt||""}"></div>
-        <div><label>Program Start Date</label><input id="ob-start" type="date" value="${S.program.start}"></div>
+        <div><label>Body Fat % (optional)</label><input id="ob-bf" type="number" step="0.1" value="${S.profile.bodyFat||""}" placeholder="e.g. 22"></div>
       </div>
+      <div class="grid2" style="margin-top:10px"><div><label>Program Start Date</label><input id="ob-start" type="date" value="${S.program.start}"></div><div></div></div>
       <button class="btn btn-fire btn-block" style="margin-top:16px" id="ob-next">Next →</button>`;
     document.getElementById("ob-next").onclick=()=>{
       S.profile.name=document.getElementById("ob-name").value||"Athlete";
@@ -702,6 +708,10 @@ function renderOB(){
       S.profile.age=Number(document.getElementById("ob-age").value)||24;
       S.profile.height=Number(document.getElementById("ob-ht").value)||70;
       S.profile.weight=Number(document.getElementById("ob-wt").value)||180;
+      S.profile.waist=Number(document.getElementById("ob-waist").value)||0;
+      S.profile.hips=Number(document.getElementById("ob-hips").value)||0;
+      S.profile.shoulders=Number(document.getElementById("ob-shoulders").value)||0;
+      S.profile.bodyFat=Number(document.getElementById("ob-bf").value)||0;
       S.profile.startWt=S.profile.weight;
       S.profile.goalWt=Number(document.getElementById("ob-gw").value)||S.profile.weight-20;
       S.program.start=document.getElementById("ob-start").value||iso();
@@ -808,6 +818,8 @@ function renderDash(){
   const streak=getStreak();const bT=trendArrow("bench"),sT=trendArrow("squat"),dT=trendArrow("dead"),rT=trendArrow("run");
   const wt=weightTrend();const recent=S.logs.slice(-6).reverse();
   const hm=weeklyExpectedChanges();
+  const whr=(p.waist>0&&p.hips>0)?(p.waist/p.hips):0;
+  const swr=(p.waist>0&&p.shoulders>0)?(p.shoulders/p.waist):0;
 
   // Weight chart
   const wl=S.weightLog.slice(-14);const maxW=Math.max(...wl.map(w=>w.wt),p.startWt);const minW=Math.min(...wl.map(w=>w.wt),p.goalWt);
@@ -826,6 +838,13 @@ function renderDash(){
     ${g.fatLoss?`<div class="card"><div class="card-h"><h2>Lose ${g.fatLoss}lb</h2><span class="badge badge-mint">${Math.round(fP*100)}%</span></div>
       <div class="row">${gaugeHTML(fP,fatLost.toFixed(0)+"","lbs lost","var(--mint)")}<div><div style="font-size:12px;color:var(--text2)">${p.weight}lb → ${p.goalWt}lb</div>
         ${wt?`<div style="font-size:11px;color:${wt.perWeek<0?"var(--mint)":"var(--gold)"}">Trend: ${wt.perWeek.toFixed(1)} lb/wk</div>`:""}</div></div></div>`:""}
+  </div></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Body Shape Progress</h2><span class="badge badge-gold">Measurements</span></div>
+    <div class="grid3">
+      <div><div style="font-size:11px;color:var(--text2)">Waist/Hip Ratio</div><div style="font-size:22px;font-weight:900">${whr?whr.toFixed(2):"--"}</div><div style="font-size:10px;color:var(--text3)">Lower can indicate improved waist-to-hip profile.</div></div>
+      <div><div style="font-size:11px;color:var(--text2)">Shoulder/Waist Ratio</div><div style="font-size:22px;font-weight:900">${swr?swr.toFixed(2):"--"}</div><div style="font-size:10px;color:var(--text3)">Higher can indicate V-taper / posture development.</div></div>
+      <div><div style="font-size:11px;color:var(--text2)">Body Fat %</div><div style="font-size:22px;font-weight:900">${p.bodyFat?`${p.bodyFat.toFixed(1)}%`:"--"}</div><div style="font-size:10px;color:var(--text3)">Optional manual check-in for trend tracking.</div></div>
+    </div>
   </div></div>
   <div class="section"><div class="card"><div class="card-h"><h2>Expected Changes Heatmap</h2><span class="badge badge-mint">All Programs</span></div>
     <div class="grid2">
@@ -923,13 +942,14 @@ function renderLog(){
     <button class="btn btn-mint btn-block" id="log-save" style="margin-top:12px">Save Report & Adapt Program</button>`:`<div style="padding:16px;color:var(--text3);text-align:center">Recovery day.</div>`}
   </div></div>
   <div class="section"><div class="card"><div class="card-h"><h2>History</h2><span class="badge badge-ice">${S.logs.length} entries</span></div>
-    ${allDates.length?allDates.slice(0,20).map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><div class="row" style="gap:6px"><span class="log-score ${cls}">${avg.toFixed(2)}</span><button class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)">✕</button></div></div>${dl.map(l=>`<div class="log-detail">${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${l.note?" — "+l.note:""}</div>`).join("")}</div>`}).join(""):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`}
+    ${allDates.length?allDates.slice(0,20).map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><div class="row" style="gap:6px"><span class="log-score ${cls}">${avg.toFixed(2)}</span><button class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)">Edit</button><button class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)">✕</button></div></div>${dl.map(l=>`<div class="log-detail">${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${l.note?" — "+l.note:""}</div>`).join("")}</div>`}).join(""):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`}
   </div></div>`;
 }
 function getWkForDate(d){const d0=new Date(S.program.start+"T00:00:00");return clamp(Math.floor((new Date(d+"T12:00:00")-d0)/864e5/7)+1,1,13)}
 function bindLog(){
   const di=document.getElementById("log-date");if(di)di.onchange=()=>{logDate=di.value;render()};
-  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const log=applyLog({id:crypto.randomUUID(),date:logDate,week:wk,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||""});S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);await persist();render();toast(`${c} exercises logged`)};
+  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const log=applyLog({id:crypto.randomUUID(),date:logDate,week:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||""});S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);await persist();render();toast(`${c} exercises saved/updated`)};
+  document.querySelectorAll(".log-edit").forEach(b=>b.onclick=()=>{logDate=b.dataset.d;render();toast("Loaded date for editing. Update values and save.")});
   document.querySelectorAll(".log-del").forEach(b=>b.onclick=async()=>{if(!confirm("Delete logs for "+b.dataset.d+"?"))return;S.logs=S.logs.filter(l=>l.date!==b.dataset.d);await persist();render()});
 }
 
@@ -972,6 +992,8 @@ function renderSettings(){
     <div class="card"><div class="card-h"><h2>Profile</h2></div>
       <div class="grid3"><div><label>Bench 1RM</label><input id="s-b" type="number" value="${S.profile.bench1RM}"></div><div><label>Squat 1RM</label><input id="s-sq" type="number" value="${S.profile.squat1RM}"></div><div><label>Deadlift 1RM</label><input id="s-dl" type="number" value="${S.profile.dead1RM}"></div></div>
       <div class="grid3" style="margin-top:8px"><div><label>Weight</label><input id="s-wt" type="number" value="${S.profile.weight}"></div><div><label>Goal Wt</label><input id="s-gw" type="number" value="${S.profile.goalWt}"></div><div><label>4mi (mm:ss)</label><input id="s-run" value="${mmss(S.profile.run4mi)}"></div></div>
+      <div class="grid3" style="margin-top:8px"><div><label>Waist (in)</label><input id="s-waist" type="number" step="0.1" value="${S.profile.waist||""}"></div><div><label>Hips (in)</label><input id="s-hips" type="number" step="0.1" value="${S.profile.hips||""}"></div><div><label>Shoulders (in)</label><input id="s-shoulders" type="number" step="0.1" value="${S.profile.shoulders||""}"></div></div>
+      <div class="grid3" style="margin-top:8px"><div><label>Body Fat %</label><input id="s-bf" type="number" step="0.1" value="${S.profile.bodyFat||""}"></div><div></div><div></div></div>
       <button class="btn btn-fire btn-block" id="s-save" style="margin-top:10px">Save & Recalculate</button>
       <div style="margin-top:10px;padding:10px;background:var(--surface);border-radius:var(--radius-sm)">
         <div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:4px">ADAPTATION</div>
@@ -994,7 +1016,7 @@ function renderSettings(){
   </div>`;
 }
 function bindSettings(){
-  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();render();toast("Saved")};
+  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();render();toast("Saved")};
   document.getElementById("s-reset").onclick=async()=>{S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Reset")};
   const so=document.getElementById("s-signout");if(so)so.onclick=()=>{if(confirm("Sign out?"))doSignOut()};
   document.getElementById("s-plan-save").onclick=async()=>{S.planId=Number(document.getElementById("s-plan").value);await persist();render();toast("Switched to: "+PLANS[S.planId].name)};
