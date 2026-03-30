@@ -78,6 +78,10 @@ label{display:block;font-size:10px;font-weight:600;color:var(--text2);margin-bot
 .fig-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
 .fig-legend{display:flex;gap:12px;font-size:10px;color:var(--text3);margin-top:6px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.anatomy-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.anatomy-panel{background:#0f111c;border:1px solid #24273a;border-radius:8px;padding:6px}
+.anatomy-panel svg{width:100%;height:auto;display:block}
+.anatomy-lbl{font-size:9px;color:var(--text3);text-align:center;margin-top:2px}
 .finisher{background:linear-gradient(135deg,rgba(255,107,53,.07),rgba(0,200,255,.05));border:1px solid rgba(255,107,53,.2);border-radius:var(--radius);padding:16px;margin-top:12px}
 .finisher h3{color:var(--fire);font-size:13px;margin-bottom:4px}.finisher p{font-size:12px;color:var(--text2)}
 
@@ -308,6 +312,69 @@ function embedVideoUrl(u){
 function openVideoUrl(u){
   const id=ytId(u);
   return id?`https://www.youtube.com/watch?v=${id}`:u;
+}
+const ANATOMY_ASSET_FRONT="./assets_muscle_layer_front.svg";
+const ANATOMY_ASSET_BACK="./assets_muscle_layer_back.svg";
+let anatomySvgCache={front:"",back:""};
+function anatomyContainer(grow,burn){return`<div class="anatomy-target" data-grow="${grow.join(",")}" data-burn="${burn.join(",")}"></div>`}
+function muscleTokensForZone(z){
+  const M={
+    chest:["pectoralis","serratus"],
+    triceps:["triceps"],
+    biceps:["biceps","brachialis"],
+    frontShoulders:["anterior_deltoid","deltoid"],
+    rearShoulders:["posterior_deltoid","lateral_deltoid","deltoid"],
+    sideShoulders:["lateral_deltoid","deltoid"],
+    back:["latissimus","trapezius","rhomboid","infraspinatus","teres","erector_spinae"],
+    core:["rectus_abdominis","oblique","transverse_abdominis"],
+    glutes:["gluteus"],
+    quads:["rectus_femoris","vastus","sartoris"],
+    hamstrings:["biceps_femoris","semitendinosus","semimembranosus"],
+    calves:["gastrocnemius","soleus","tibialis","fibularis"],
+    forearms:["brachioradialis","extensor","flexor","pronator","anconeus"],
+    hips:["adductor","iliotibial","pectineus","gracilis"],
+    upperBody:["pectoralis","deltoid","trapezius","latissimus","biceps","triceps","rhomboid","serratus","forearm","brachio"],
+    lowerBody:["gluteus","quadr","rectus_femoris","vastus","hamstring","gastrocnemius","soleus","tibialis","adductor","sartorius","iliotibial"],
+    fullBody:["pectoralis","deltoid","trapezius","latissimus","biceps","triceps","rectus_abdominis","oblique","gluteus","rectus_femoris","vastus","hamstring","gastrocnemius","soleus","adductor"]
+  };
+  return M[z]||[];
+}
+function hasToken(id,tokens){const s=(id||"").toLowerCase();return tokens.some(t=>s.includes(t.toLowerCase()))}
+async function loadAnatomySvg(which){
+  if(anatomySvgCache[which])return anatomySvgCache[which];
+  const url=which==="front"?ANATOMY_ASSET_FRONT:ANATOMY_ASSET_BACK;
+  const txt=await fetch(url,{cache:"no-store"}).then(r=>r.text());
+  anatomySvgCache[which]=txt;
+  return txt;
+}
+function tintAnatomySvg(svgText,grow,burn){
+  const growTokens=[...new Set(grow.flatMap(muscleTokensForZone))];
+  const burnTokens=[...new Set(burn.flatMap(muscleTokensForZone))];
+  const doc=new DOMParser().parseFromString(svgText,"image/svg+xml");
+  [...doc.querySelectorAll("[id]")].forEach(el=>{
+    const id=el.id||"";
+    const g=hasToken(id,growTokens),b=hasToken(id,burnTokens);
+    if(g&&b){el.setAttribute("fill","#ffd740");el.setAttribute("fill-opacity","0.98")}
+    else if(g){el.setAttribute("fill","#00e676");el.setAttribute("fill-opacity","0.95")}
+    else if(b){el.setAttribute("fill","#ff6b35");el.setAttribute("fill-opacity","0.95")}
+    else{
+      const base=el.getAttribute("fill");
+      if(base&&base!=="none"){el.setAttribute("fill","#50546a");el.setAttribute("fill-opacity","0.35")}
+    }
+  });
+  return new XMLSerializer().serializeToString(doc.documentElement);
+}
+async function hydrateAnatomyTargets(scope=document){
+  const nodes=[...scope.querySelectorAll(".anatomy-target")];
+  if(!nodes.length)return;
+  const [frontSrc,backSrc]=await Promise.all([loadAnatomySvg("front"),loadAnatomySvg("back")]);
+  for(const node of nodes){
+    const grow=(node.dataset.grow||"").split(",").filter(Boolean);
+    const burn=(node.dataset.burn||"").split(",").filter(Boolean);
+    const front=tintAnatomySvg(frontSrc,grow,burn);
+    const back=tintAnatomySvg(backSrc,grow,burn);
+    node.innerHTML=`<div class="anatomy-grid"><div class="anatomy-panel">${front}<div class="anatomy-lbl">FRONT</div></div><div class="anatomy-panel">${back}<div class="anatomy-lbl">BACK</div></div></div>`;
+  }
 }
 function mergeZones(plan){
   const g=new Set(),b=new Set();
@@ -1005,14 +1072,15 @@ function renderToday(){
   const micro=(S.profile.sex==="female"&&safety==="postpartum")?postpartumMicroRoutine(d.getDay()):null;
   const zones=mergeZones(plan);
   return`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div class="row" style="gap:10px"><h2 style="font-size:20px;font-weight:900">${DAYS[d.getDay()]}</h2><span style="color:${phaseColor(w)};font-weight:700;font-size:13px">${plan.focus}</span></div><span style="font-size:12px;color:var(--text3)">Week ${w} · ${phaseName(w)}</span></div>
-  ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Daily Impact Map</h2><span class="badge badge-ice">All Exercises Today</span></div><div class="fig-wrap"><div class="fig-title">Combined expected stimulus</div>${bodyMapSVG(zones.grow,zones.burn)}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth emphasis</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / calorie-burn emphasis</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div></div>`:""}
+  ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Daily Impact Map</h2><span class="badge badge-ice">All Exercises Today</span></div><div class="fig-wrap"><div class="fig-title">Combined expected stimulus</div>${anatomyContainer(zones.grow,zones.burn)}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth emphasis</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / calorie-burn emphasis</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div></div>`:""}
   ${meta?`<div class="card section" style="border-left:3px solid var(--mint)"><div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">WHY THIS SESSION</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Expected Progress:</b> ${meta.expect}</div></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">WEEKLY POSTURE / PREHAB MICRO-ROUTINE</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
-  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${bodyMapSVG(m.grow||[],m.burn||[])}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / burn</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
+  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${anatomyContainer(m.grow||[],m.burn||[])}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / burn</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
   ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
 }
 function bindToday(){
+  hydrateAnatomyTargets(document.getElementById("p-today")||document);
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=()=>document.getElementById("exb-"+b.dataset.i).classList.toggle("open"));
   document.querySelectorAll(".ex-how").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const how=document.getElementById("exhow-"+i);const pdf=document.getElementById("expdf-"+i);if(!body.classList.contains("open"))body.classList.add("open");how.style.display=how.style.display==="none"?"block":"none";const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);if(e&&e.books.length){const bk=e.books[0],src=S.pdfs[bk];if(src){pdf.innerHTML=`<p style="color:var(--text3);font-size:11px">Searching ${bk}…</p>`;try{const doc=await getPdf(bk,src);let best={pg:1,sc:-1};for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const txt=tc.items.map(x=>x.str).join(" ").toLowerCase();let sc=0;for(const k of e.kw)if(txt.includes(k))sc++;if(sc>best.sc)best={pg:p,sc};if(sc>=Math.min(e.kw.length,3))break}const pg=await doc.getPage(best.pg);const vp=pg.getViewport({scale:1.4});const cvs=document.createElement("canvas");cvs.width=vp.width;cvs.height=vp.height;cvs.style.cssText="width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px";await pg.render({canvasContext:cvs.getContext("2d"),viewport:vp}).promise;pdf.innerHTML=`<p style="color:var(--mint);font-size:11px">Page ${best.pg} of ${bk}</p>`;pdf.appendChild(cvs)}catch{pdf.innerHTML=`<p style="color:var(--red);font-size:11px">PDF load failed. Check Settings.</p>`}}else pdf.innerHTML=`<p style="color:var(--gold);font-size:11px">Add "${bk}" in Settings → PDF Sources.</p>`}});
   document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);const log=applyLog({id:crypto.randomUUID(),date:iso(),week:S.program.week,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:Number(document.getElementById("t-s"+i).value)||0,aR:Number(document.getElementById("t-r"+i).value)||0,aW:Number(document.getElementById("t-w"+i).value)||0});S.logs.push(log);S.logs=S.logs.slice(-1000);await persist();toast(`${e?e.name:ex.eid} logged`);document.getElementById("exc-"+i).classList.add("logged")});
