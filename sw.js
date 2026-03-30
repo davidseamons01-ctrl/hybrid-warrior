@@ -1,0 +1,55 @@
+const CACHE_NAME = "hybrid-warrior-v2";
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./workout_tracker.html",
+  "./manifest.webmanifest"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  const acceptHeader = event.request.headers.get("accept") || "";
+  const isHtmlRequest =
+    event.request.mode === "navigate" || acceptHeader.includes("text/html");
+
+  // Always prefer fresh HTML so auth/setup UI changes appear immediately.
+  if (isHtmlRequest) {
+    event.respondWith(
+      fetch(event.request)
+        .then((resp) => {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return resp;
+        })
+        .catch(() => caches.match(event.request).then((r) => r || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request)
+        .then((resp) => {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return resp;
+        })
+        .catch(() => caches.match("./index.html"));
+    })
+  );
+});
