@@ -72,6 +72,8 @@ label{display:block;font-size:10px;font-weight:600;color:var(--text2);margin-bot
 .ex-pdf-area{margin-top:10px}.ex-pdf-area canvas{width:100%;border-radius:8px;border:1px solid var(--border)}
 .ex-video{margin-top:10px}
 .ex-video iframe{width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:8px;background:#000}
+.ex-video .fallback{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:6px}
+.ex-video .fallback a{font-size:11px;color:var(--ice);text-decoration:underline}
 .fig-wrap{margin-top:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px}
 .fig-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
 .fig-legend{display:flex;gap:12px;font-size:10px;color:var(--text3);margin-top:6px}
@@ -293,6 +295,20 @@ function gaugeHTML(pct,val,sub,color){const c=282.74,off=c*(1-clamp(pct,0,1));re
 function estCalories(type,mins,weightLb){const kg=weightLb*0.4536;const met=type==="run"?9.5:type==="acc"?5:6.5;return Math.round(met*kg*(mins/60))}
 function weightTrend(){const wl=S.weightLog.slice(-14);if(wl.length<2)return null;const first=wl[0].wt,last=wl[wl.length-1].wt;return{change:last-first,perWeek:(last-first)/(wl.length/7||1),last}}
 function exMedia(eid){return EX_MEDIA[eid]||{video:"",grow:["fullBody"],burn:["fullBody"]}}
+function ytId(u){
+  if(!u)return"";
+  const m=u.match(/(?:youtube\.com\/embed\/|youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+  return m?m[1]:"";
+}
+function embedVideoUrl(u){
+  const id=ytId(u);
+  if(id)return`https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0&modestbranding=1`;
+  return u;
+}
+function openVideoUrl(u){
+  const id=ytId(u);
+  return id?`https://www.youtube.com/watch?v=${id}`:u;
+}
 function mergeZones(plan){
   const g=new Set(),b=new Set();
   (plan.exs||[]).forEach(ex=>{const m=exMedia(ex.eid);(m.grow||[]).forEach(z=>g.add(z));(m.burn||[]).forEach(z=>b.add(z))});
@@ -301,24 +317,46 @@ function mergeZones(plan){
 function bodyMapSVG(grow=[],burn=[]){
   const has=z=>grow.includes(z)||burn.includes(z);
   const color=z=>grow.includes(z)&&burn.includes(z)?"#ffd740":grow.includes(z)?"#00e676":burn.includes(z)?"#ff6b35":"#2a2a38";
-  const cx=(x,y,w,h,z)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(w,h)/3}" fill="${color(z)}" opacity="${has(z)?0.95:0.65}"/>`;
-  return `<svg viewBox="0 0 220 240" width="100%" height="180" role="img" aria-label="Body heatmap">
-    <circle cx="110" cy="22" r="14" fill="${color("head")}"/>
-    ${cx(86,38,48,54,"core")}
-    ${cx(70,42,16,48,"leftArm")} ${cx(134,42,16,48,"rightArm")}
-    ${cx(88,38,14,20,"chest")} ${cx(118,38,14,20,"chest")}
-    ${cx(84,58,12,20,"back")} ${cx(124,58,12,20,"back")}
-    ${cx(70,42,16,18,"frontShoulders")} ${cx(134,42,16,18,"frontShoulders")}
-    ${cx(70,62,16,14,"rearShoulders")} ${cx(134,62,16,14,"rearShoulders")}
-    ${cx(76,62,14,18,"biceps")} ${cx(130,62,14,18,"biceps")}
-    ${cx(74,78,14,16,"triceps")} ${cx(132,78,14,16,"triceps")}
-    ${cx(84,92,52,20,"glutes")}
-    ${cx(84,112,22,44,"quads")} ${cx(114,112,22,44,"quads")}
-    ${cx(84,156,22,28,"hamstrings")} ${cx(114,156,22,28,"hamstrings")}
-    ${cx(84,184,22,26,"calves")} ${cx(114,184,22,26,"calves")}
-    ${cx(88,92,12,18,"hips")} ${cx(120,92,12,18,"hips")}
-    ${cx(70,90,14,20,"forearms")} ${cx(136,90,14,20,"forearms")}
-    ${cx(86,36,48,76,"upperBody")} ${cx(84,112,52,98,"lowerBody")} ${cx(78,36,64,174,"fullBody")}
+  const p=(d,z)=>`<path d="${d}" fill="${color(z)}" opacity="${has(z)?0.98:0.28}" stroke="#1b1b25" stroke-width="0.8"/>`;
+  return `<svg viewBox="0 0 360 220" width="100%" height="190" role="img" aria-label="Anatomy heatmap">
+    <defs><linearGradient id="bgA" x1="0" x2="1"><stop offset="0" stop-color="#12121a"/><stop offset="1" stop-color="#0e0e15"/></linearGradient></defs>
+    <rect x="0" y="0" width="360" height="220" rx="12" fill="url(#bgA)"/>
+    <!-- front silhouette -->
+    <g transform="translate(55,14)">
+      <path d="M60 18c0-10 8-18 18-18s18 8 18 18-8 18-18 18-18-8-18-18Z" fill="#1f2030"/>
+      <path d="M54 36h30l10 16 5 45-9 56h-42L39 97l5-45 10-16Z" fill="#1f2030"/>
+      ${p("M58 44h22v16H58z","chest")}
+      ${p("M57 61h24v18H57z","core")}
+      ${p("M56 80h25v20H56z","core")}
+      ${p("M49 48h9v16h-9z","frontShoulders")}${p("M80 48h9v16h-9z","frontShoulders")}
+      ${p("M43 60h12v26H43z","biceps")}${p("M83 60h12v26H83z","biceps")}
+      ${p("M41 86h12v26H41z","triceps")}${p("M85 86h12v26H85z","triceps")}
+      ${p("M47 112h10v20H47z","forearms")}${p("M83 112h10v20H83z","forearms")}
+      ${p("M50 101h39v20H50z","hips")}
+      ${p("M52 120h16v34H52z","quads")}${p("M71 120h16v34H71z","quads")}
+      ${p("M53 155h14v24H53z","calves")}${p("M72 155h14v24H72z","calves")}
+      ${p("M47 100h42v80H47z","lowerBody")}
+      ${p("M40 44h56v90H40z","upperBody")}
+      ${p("M39 42h58v140H39z","fullBody")}
+    </g>
+    <!-- back silhouette -->
+    <g transform="translate(205,14)">
+      <path d="M60 18c0-10 8-18 18-18s18 8 18 18-8 18-18 18-18-8-18-18Z" fill="#1f2030"/>
+      <path d="M54 36h30l10 16 5 45-9 56h-42L39 97l5-45 10-16Z" fill="#1f2030"/>
+      ${p("M57 44h24v14H57z","rearShoulders")}
+      ${p("M56 60h25v28H56z","back")}
+      ${p("M56 89h25v16H56z","back")}
+      ${p("M41 86h12v26H41z","triceps")}${p("M85 86h12v26H85z","triceps")}
+      ${p("M47 112h10v20H47z","forearms")}${p("M83 112h10v20H83z","forearms")}
+      ${p("M50 101h39v20H50z","glutes")}
+      ${p("M52 120h16v34H52z","hamstrings")}${p("M71 120h16v34H71z","hamstrings")}
+      ${p("M53 155h14v24H53z","calves")}${p("M72 155h14v24H72z","calves")}
+      ${p("M47 100h42v80H47z","lowerBody")}
+      ${p("M40 44h56v90H40z","upperBody")}
+      ${p("M39 42h58v140H39z","fullBody")}
+    </g>
+    <text x="95" y="210" fill="#7f8193" font-size="10" text-anchor="middle">FRONT</text>
+    <text x="245" y="210" fill="#7f8193" font-size="10" text-anchor="middle">BACK</text>
   </svg>`;
 }
 
@@ -966,7 +1004,7 @@ function renderToday(){
   ${meta?`<div class="card section" style="border-left:3px solid var(--mint)"><div style="font-size:11px;font-weight:700;color:var(--mint);margin-bottom:4px">WHY THIS SESSION</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Expected Progress:</b> ${meta.expect}</div></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">WEEKLY POSTURE / PREHAB MICRO-ROUTINE</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
-  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${m.video}" title="${e?e.name:ex.eid} tutorial video" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${bodyMapSVG(m.grow||[],m.burn||[])}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / burn</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
+  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const m=exMedia(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Open</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div><div class="fig-wrap"><div class="fig-title">Expected changes from this exercise</div>${bodyMapSVG(m.grow||[],m.burn||[])}<div class="fig-legend"><span><span class="dot" style="background:#00e676"></span>Muscle growth</span><span><span class="dot" style="background:#ff6b35"></span>Fat-loss / burn</span><span><span class="dot" style="background:#ffd740"></span>Both</span></div></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
   ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
 }
 function bindToday(){
