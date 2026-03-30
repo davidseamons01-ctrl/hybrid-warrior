@@ -144,6 +144,14 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 .wt-bar{display:flex;align-items:flex-end;gap:2px;height:60px;margin-top:8px}
 .wt-col{flex:1;background:var(--border);border-radius:3px 3px 0 0;min-height:2px;transition:height .3s}
 
+.coach-card{background:linear-gradient(135deg,rgba(0,200,255,.08),rgba(255,107,53,.06));border:1px solid rgba(0,200,255,.25);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.coach-card h3{font-size:12px;font-weight:800;color:var(--ice);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.coach-card p{font-size:12px;color:var(--text2);line-height:1.45;margin-bottom:10px}
+.coach-actions{display:flex;flex-wrap:wrap;gap:8px}
+.session-ctx{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.5}
+.session-ctx b{color:var(--text);display:block;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gold)}
+.ex-rpe{font-size:10px;color:var(--gold);margin-top:3px;font-weight:600}
+
 /* ===== MOBILE: bottom tab bar + touch-friendly ===== */
 @media(max-width:768px){
   body{-webkit-text-size-adjust:100%;padding-bottom:env(safe-area-inset-bottom,0)}
@@ -288,13 +296,15 @@ function exById(id){return EX.find(e=>e.id===id)}
 
 const iso=()=>new Date().toISOString().slice(0,10);
 const DEF={
-  v:5,
+  v:6,
   profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,onboarded:false},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   program:{week:1,start:iso()},
   adapt:{bench:1,squat:1,dead:1,run:1},
   logs:[],weightLog:[],
+  coachSuggestions:[],
+  coachSnooze:{},
   planId:null,
   sync:{on:false,cfg:"",uid:""},
   pdfs:{"28DayPlan_FinalVersion.pdf":"","Copy of OffSeason_2ndEdition_Final.pdf":"","IN Season workouts.pdf":"","WrestlingEBook2_FINAL.compressed.pdf":""}
@@ -329,6 +339,64 @@ function toast(m){const el=document.getElementById("toast");if(toastTimer)clearT
 function gaugeHTML(pct,val,sub,color){const c=282.74,off=c*(1-clamp(pct,0,1));return`<div class="gauge"><svg width="100" height="100" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="45"/><circle class="gauge-fill" cx="50" cy="50" r="45" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg><div class="gauge-center"><div class="gauge-val">${val}</div><div class="gauge-sub">${sub}</div></div></div>`}
 function estCalories(type,mins,weightLb){const kg=weightLb*0.4536;const met=type==="run"?9.5:type==="acc"?5:6.5;return Math.round(met*kg*(mins/60))}
 function weightTrend(){const wl=S.weightLog.slice(-14);if(wl.length<2)return null;const first=wl[0].wt,last=wl[wl.length-1].wt;return{change:last-first,perWeek:(last-first)/(wl.length/7||1),last}}
+
+// ═══════════════════════════════════════════════════════════
+//  MESOCYCLE + COACH (inspired by structured template + adaptation engine)
+// ═══════════════════════════════════════════════════════════
+const MESO_BLOCKS=[
+  {lo:1,hi:4,title:"Mesocycle 1 · Base & volume",blurb:"Accumulate crisp reps on compounds; brace hard. Leave 1–2 reps in the tank on heavy work."},
+  {lo:5,hi:8,title:"Mesocycle 2 · Strength & tempo",blurb:"Slow eccentrics and short pauses on main lifts—rotate stress without junk accessory volume."},
+  {lo:9,hi:12,title:"Mesocycle 3 · Power & capacity",blurb:"Explosive concentrics where safe; carries and finishers build work capacity—they don’t replace heavy basics."},
+  {lo:13,hi:13,title:"Test week",blurb:"Optional quality reps or timed efforts—log honestly so the next block can auto-regulate."}
+];
+const WEEK_MICRO=["Micro-week A: baseline quality — stop 1–2 shy of failure on compounds.","Micro-week B: controlled lowering — add 2–3s eccentrics on one main lift.","Micro-week C: pause reps — 1–2s at your sticky point.","Micro-week D: capacity — optional +1 easy accessory set if recovery feels green."];
+function mesoForWeek(w){w=clamp(w,1,13);return MESO_BLOCKS.find(b=>w>=b.lo&&w<=b.hi)||MESO_BLOCKS[0]}
+function weekMicroLine(w){return WEEK_MICRO[(clamp(w,1,13)-1)%4]}
+function targetRpeBand(w,eid){
+  const main=["bench","squat","deadlift"].includes(eid);
+  if(!main)return null;
+  if(w<=4)return"Target RPE ~7–8 (2 RIR)";
+  if(w<=8)return"Target RPE ~6–8 (1–2 RIR)";
+  if(w<=12)return"Target RPE ~7–9 (0–2 RIR)";
+  return"Target RPE ~8–9 (test quality)";
+}
+function countMissedTrainingDays(lookback){
+  const tDays=new Set(S.schedule.days||[]);const start=new Date(S.program.start+"T12:00:00");let missed=0;
+  for(let i=0;i<lookback;i++){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-i);if(d<start)continue;if(!tDays.has(d.getDay()))continue;const ds=d.toISOString().slice(0,10);if(!S.logs.some(l=>l.date===ds))missed++}
+  return missed
+}
+function recentAvgRpe(days){
+  const cut=Date.now()-days*864e5;const rpes=S.logs.filter(l=>typeof l.rpe==="number"&&l.rpe>=1&&l.rpe<=10&&new Date(l.date+"T12:00:00").getTime()>=cut).map(l=>l.rpe);
+  return rpes.length>=4?rpes.reduce((a,b)=>a+b,0)/rpes.length:null
+}
+function recentPainCount(days){
+  const cut=Date.now()-days*864e5;return S.logs.filter(l=>l.pain&&new Date(l.date+"T12:00:00").getTime()>=cut).length
+}
+function openCoachKinds(){return new Set((S.coachSuggestions||[]).filter(s=>!s.dismissed).map(s=>s.kind))}
+function pushCoach(kind,reason){
+  if(!S.coachSuggestions)S.coachSuggestions=[];
+  if(!S.coachSnooze)S.coachSnooze={};
+  const sn=S.coachSnooze[kind];if(sn&&Date.now()-sn<7*864e5)return;
+  const open=openCoachKinds();if(open.size>=3)return;if(open.has(kind))return;
+  S.coachSuggestions.push({id:crypto.randomUUID(),kind,reason,dismissed:false,created:Date.now()});
+  S.coachSuggestions=S.coachSuggestions.slice(-20)
+}
+function evaluateCoachSuggestions(){
+  if(!S.coachSuggestions)S.coachSuggestions=[];
+  const missed=countMissedTrainingDays(14);
+  if(missed>=4)pushCoach("volume_cut","Several scheduled training days in the last 2 weeks had no log. A lighter week rebuilds consistency—try shorter sessions or one fewer exercise.");
+  const pains=recentPainCount(14);
+  if(pains>=3)pushCoach("prehab","Pain or discomfort was flagged on multiple logs. Consider reducing load 10–15%, swapping painful variations, and prioritizing face pulls / easy rows.");
+  const avg=recentAvgRpe(14);
+  if(avg!=null&&avg>=9)pushCoach("deload","Recent logs averaged very high RPE. A planned deload (fewer sets or ~10% lighter) usually improves the next cycle.");
+  if(avg!=null&&avg<=5.5)pushCoach("load_increase","Effort looked consistently easy (low RPE). If technique stays perfect, try a small weight bump or +1–2 reps on main lifts.");
+}
+function dismissCoach(id){const s=(S.coachSuggestions||[]).find(x=>x.id===id);if(s){s.dismissed=true;if(!S.coachSnooze)S.coachSnooze={};S.coachSnooze[s.kind]=Date.now()}}
+function applyCoachKind(kind){
+  if(kind==="deload"||kind==="volume_cut"){S.adapt.bench=clamp(S.adapt.bench*.94,.85,1.25);S.adapt.squat=clamp(S.adapt.squat*.94,.85,1.25);S.adapt.dead=clamp(S.adapt.dead*.94,.85,1.25);toast("Applied: ~6% lighter targets this week")}
+  else if(kind==="load_increase"){S.adapt.bench=clamp(S.adapt.bench*1.03,.88,1.28);S.adapt.squat=clamp(S.adapt.squat*1.03,.88,1.28);S.adapt.dead=clamp(S.adapt.dead*1.03,.88,1.28);toast("Applied: small progression bump")}
+  else if(kind==="prehab")toast("Note: prioritize pain-free ranges and prehab—adjust loads manually if needed")
+}
 
 // ═══════════════════════════════════════════════════════════
 //  64 PRESET PLANS  (goal×4  freq×2  dur×2  sex×2  exp×2)
@@ -532,7 +600,7 @@ function applyLog(log){
 function load(){try{const r=localStorage.getItem("hw5");return r?merge(structuredClone(DEF),JSON.parse(r)):structuredClone(DEF)}catch{return structuredClone(DEF)}}
 function merge(b,s){if(!s||typeof s!=="object")return b;for(const k of Object.keys(s)){if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k]))b[k]=merge(b[k]||{},s[k]);else b[k]=s[k]}return b}
 function save(){localStorage.setItem("hw5",JSON.stringify(S))}
-async function persist(){save();if(currentUser)await cloudPush()}
+async function persist(){evaluateCoachSuggestions();save();if(currentUser)await cloudPush()}
 
 let fbApp=null,fbDb=null,fbAuth=null,fbUnsub=null,lastPushAt=0;
 async function loadFBSDK(){if(typeof firebase!=="undefined"&&firebase.app)return;const ld=s=>new Promise((r,j)=>{const el=document.createElement("script");el.src=s;el.onload=r;el.onerror=j;document.head.appendChild(el)});await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js");await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js");await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js")}
@@ -688,16 +756,20 @@ function renderNav(){
 //  RENDER — DASHBOARD
 // ═══════════════════════════════════════════════════════════
 function renderDash(){
+  evaluateCoachSuggestions();
   const p=S.profile,g=S.goals;const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5);const fatLost=p.startWt-p.weight;
   const bP=g.bench?clamp(p.bench1RM/g.bench,0,1):0;const rP=g.fiveK?clamp(g.fiveK/fk,0,1):0;const fP=g.fatLoss?clamp(fatLost/g.fatLoss,0,1):0;
   const streak=getStreak();const bT=trendArrow("bench"),sT=trendArrow("squat"),dT=trendArrow("dead"),rT=trendArrow("run");
   const wt=weightTrend();const recent=S.logs.slice(-6).reverse();
 
+  const pending=(S.coachSuggestions||[]).filter(s=>!s.dismissed);
+  const coachHTML=pending.length?`<div class="section">${pending.map(s=>`<div class="coach-card" data-kind="${s.kind}"><h3>Smart coach</h3><p>${s.reason}</p><div class="coach-actions"><button type="button" class="btn btn-mint btn-sm coach-apply" data-id="${s.id}" data-kind="${s.kind}">Apply tweak</button><button type="button" class="btn btn-ghost btn-sm coach-dismiss" data-id="${s.id}">Dismiss</button></div></div>`).join("")}<p style="font-size:10px;color:var(--text3);margin-top:4px">Based on your logs, missed days, and optional RPE (rate of perceived exertion). “Apply tweak” nudges prescribed loads; reset multipliers anytime in Settings.</p></div>`:"`;
+
   // Weight chart
   const wl=S.weightLog.slice(-14);const maxW=Math.max(...wl.map(w=>w.wt),p.startWt);const minW=Math.min(...wl.map(w=>w.wt),p.goalWt);
   const wtBars=wl.map(w=>{const pct=maxW>minW?((w.wt-minW)/(maxW-minW)):0.5;return`<div class="wt-col" style="height:${Math.max(4,pct*100)}%;background:${w.wt<=p.goalWt?"var(--mint)":"var(--ice)"}" title="${w.date}: ${w.wt}lb"></div>`}).join("");
 
-  return`
+  return coachHTML+`
   <div class="section"><div class="grid-auto">
     ${g.bench?`<div class="card"><div class="card-h"><h2>Bench → ${g.bench}lb</h2><span class="badge badge-fire">${Math.round(bP*100)}%</span></div>
       <div class="row">${gaugeHTML(bP,p.bench1RM+"","est 1RM","var(--fire)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.bench} lb</div><div style="font-size:11px" class="${bT.c}">${bT.i} ${bT.t}</div></div></div></div>`:""}
@@ -730,9 +802,11 @@ function renderDash(){
   </div></div>
 
   ${recent.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent Activity</h2></div>
-    ${recent.map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${l.date} — ${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${l.aS}×${l.aR} @ ${l.aW}</div></div>`}).join("")}</div></div>`:""}`;
+    ${recent.map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";const meta=[typeof l.rpe==="number"?"RPE "+l.rpe:null,l.pain?"pain":null].filter(Boolean).join(" · ");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${l.date} — ${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${l.aS}×${l.aR} @ ${l.aW}${meta?" · "+meta:""}</div></div>`}).join("")}</div></div>`:""}`;
 }
 function bindDash(){
+  document.querySelectorAll(".coach-dismiss").forEach(b=>b.onclick=async()=>{dismissCoach(b.dataset.id);await persist();render()});
+  document.querySelectorAll(".coach-apply").forEach(b=>b.onclick=async()=>{applyCoachKind(b.dataset.kind);dismissCoach(b.dataset.id);await persist();render()});
   const el=document.getElementById("d-save");
   if(el)el.onclick=async()=>{
     const wt=Number(document.getElementById("d-wt").value);
@@ -746,16 +820,18 @@ function bindDash(){
 //  RENDER — TODAY
 // ═══════════════════════════════════════════════════════════
 function renderToday(){
-  autoWeek();const d=new Date(),w=S.program.week,plan=dayPlan(d.getDay(),w);
-  return`<div class="row" style="justify-content:space-between;margin-bottom:14px"><div class="row" style="gap:10px"><h2 style="font-size:20px;font-weight:900">${DAYS[d.getDay()]}</h2><span style="color:${phaseColor(w)};font-weight:700;font-size:13px">${plan.focus}</span></div><span style="font-size:12px;color:var(--text3)">Week ${w} · ${phaseName(w)}</span></div>
+  autoWeek();const d=new Date(),w=S.program.week,plan=dayPlan(d.getDay(),w);const meso=mesoForWeek(w);const micro=weekMicroLine(w);
+  const rpeSelect=[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join("");
+  return`<div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="row" style="gap:10px"><h2 style="font-size:20px;font-weight:900">${DAYS[d.getDay()]}</h2><span style="color:${phaseColor(w)};font-weight:700;font-size:13px">${plan.focus}</span></div><span style="font-size:12px;color:var(--text3)">Week ${w} · ${phaseName(w)}</span></div>
+  <div class="session-ctx section"><b>${meso.title}</b>${meso.blurb}<div style="margin-top:8px;color:var(--ice);font-size:11px;font-weight:600">${micro}</div><div style="margin-top:6px;font-size:10px;color:var(--text3)">Log optional RPE (1–10) on compounds so the coach can spot “always crushing” vs “always easy” weeks.</div></div>
   ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">WARM-UP</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
-  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Log</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
+  <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>{const e=exById(ex.eid);const rpeH=targetRpeBand(w,ex.eid);return`<div class="ex-card" id="exc-${i}"><div class="ex-top"><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name">${e?e.name:ex.eid}</div><div class="ex-rx">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div>${rpeH?`<div class="ex-rpe">${rpeH}</div>`:""}<div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Log</button><button class="btn btn-sm btn-ghost ex-how" data-i="${i}">How-To</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><button class="btn btn-fire btn-sm ex-save" data-i="${i}">Save</button></div><div class="row" style="margin-top:10px;gap:12px;align-items:center;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:8px"><label style="margin:0;white-space:nowrap">RPE</label><select class="input-sm" id="t-rpe${i}" style="width:72px"><option value="">—</option>${rpeSelect}</select></div><label style="margin:0;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2)"><input type="checkbox" id="t-pain${i}"> Pain / discomfort</label></div><div id="exhow-${i}" class="ex-howto" style="display:none">${e?`<ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol>`:""}</div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`}).join(""):`<div class="card" style="text-align:center;padding:30px"><h2 style="color:var(--text3)">Recovery Day</h2></div>`}</div>
   ${plan.finisher?`<div class="finisher"><h3>🔥 Red-Line Finisher</h3><p>${plan.finisher}</p></div>`:""}`;
 }
 function bindToday(){
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=()=>document.getElementById("exb-"+b.dataset.i).classList.toggle("open"));
   document.querySelectorAll(".ex-how").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const how=document.getElementById("exhow-"+i);const pdf=document.getElementById("expdf-"+i);if(!body.classList.contains("open"))body.classList.add("open");how.style.display=how.style.display==="none"?"block":"none";const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);if(e&&e.books.length){const bk=e.books[0],src=S.pdfs[bk];if(src){pdf.innerHTML=`<p style="color:var(--text3);font-size:11px">Searching ${bk}…</p>`;try{const doc=await getPdf(bk,src);let best={pg:1,sc:-1};for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const txt=tc.items.map(x=>x.str).join(" ").toLowerCase();let sc=0;for(const k of e.kw)if(txt.includes(k))sc++;if(sc>best.sc)best={pg:p,sc};if(sc>=Math.min(e.kw.length,3))break}const pg=await doc.getPage(best.pg);const vp=pg.getViewport({scale:1.4});const cvs=document.createElement("canvas");cvs.width=vp.width;cvs.height=vp.height;cvs.style.cssText="width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px";await pg.render({canvasContext:cvs.getContext("2d"),viewport:vp}).promise;pdf.innerHTML=`<p style="color:var(--mint);font-size:11px">Page ${best.pg} of ${bk}</p>`;pdf.appendChild(cvs)}catch{pdf.innerHTML=`<p style="color:var(--red);font-size:11px">PDF load failed. Check Settings.</p>`}}else pdf.innerHTML=`<p style="color:var(--gold);font-size:11px">Add "${bk}" in Settings → PDF Sources.</p>`}});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);const log=applyLog({id:crypto.randomUUID(),date:iso(),week:S.program.week,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:Number(document.getElementById("t-s"+i).value)||0,aR:Number(document.getElementById("t-r"+i).value)||0,aW:Number(document.getElementById("t-w"+i).value)||0});S.logs.push(log);S.logs=S.logs.slice(-1000);await persist();toast(`${e?e.name:ex.eid} logged`);document.getElementById("exc-"+i).classList.add("logged")});
+  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=dayPlan(new Date().getDay(),S.program.week);const ex=plan.exs[i];const e=exById(ex.eid);const rpeEl=document.getElementById("t-rpe"+i);const rpeV=rpeEl&&rpeEl.value?Number(rpeEl.value):null;const pain=document.getElementById("t-pain"+i)?.checked||false;const log=applyLog({id:crypto.randomUUID(),date:iso(),week:S.program.week,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:Number(document.getElementById("t-s"+i).value)||0,aR:Number(document.getElementById("t-r"+i).value)||0,aW:Number(document.getElementById("t-w"+i).value)||0,rpe:rpeV,pain});S.logs.push(log);S.logs=S.logs.slice(-1000);await persist();toast(`${e?e.name:ex.eid} logged`);document.getElementById("exc-"+i).classList.add("logged")});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -765,19 +841,19 @@ function renderLog(){
   const dObj=new Date(logDate+"T12:00:00");const dayIdx=dObj.getDay();const wk=getWkForDate(logDate);const plan=dayPlan(dayIdx,wk);
   const allDates=[...new Set(S.logs.map(l=>l.date))].sort().reverse();
   return`<div class="section"><div class="card"><div class="card-h"><h2>Report Workout</h2><span class="badge badge-fire">Drives Adaptation</span></div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Log actual performance. The program recalculates all future workouts from your reports.</p>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Log actual performance. Optional <b>RPE</b> (1–10) and <b>Pain</b> flags power the Smart coach on the Dashboard—same idea as a dedicated training app’s rules engine.</p>
     <div class="grid2" style="max-width:400px;margin-bottom:14px"><div><label>Date</label><input type="date" id="log-date" value="${logDate}"></div><div><label>Day / Week</label><input disabled value="${DAYS[dayIdx]} — Wk ${wk}"></div></div>
-    ${plan.exs.length?`<table><thead><tr><th>Exercise</th><th>Target</th><th>Sets</th><th>Reps</th><th>Load</th><th>Notes</th></tr></thead><tbody>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);return`<tr><td style="color:var(--text);font-weight:600">${e?e.name:ex.eid}</td><td style="white-space:nowrap">${ex.sets}×${ex.reps} @ ${ex.target||"BW"}</td><td><input type="number" class="input-sm" id="lg-s${i}" value="${ex.sets}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-r${i}" value="${ex.reps}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-w${i}" value="${ex.target||0}" min="0" style="width:70px"></td><td><input type="text" class="input-sm" id="lg-n${i}" placeholder="optional" style="width:100px"></td></tr>`}).join("")}</tbody></table>
+    ${plan.exs.length?`<table><thead><tr><th>Exercise</th><th>Target</th><th>Sets</th><th>Reps</th><th>Load</th><th>RPE</th><th>Pain</th><th>Notes</th></tr></thead><tbody>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);const rpeOpts=[1,2,3,4,5,6,7,8,9,10].map(n=>`<option value="${n}">${n}</option>`).join("");return`<tr><td style="color:var(--text);font-weight:600">${e?e.name:ex.eid}</td><td style="white-space:nowrap">${ex.sets}×${ex.reps} @ ${ex.target||"BW"}</td><td><input type="number" class="input-sm" id="lg-s${i}" value="${ex.sets}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-r${i}" value="${ex.reps}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-w${i}" value="${ex.target||0}" min="0" style="width:70px"></td><td><select class="input-sm" id="lg-rpe${i}" style="width:58px"><option value="">—</option>${rpeOpts}</select></td><td style="text-align:center"><input type="checkbox" id="lg-pain${i}" title="Pain / discomfort"></td><td><input type="text" class="input-sm" id="lg-n${i}" placeholder="optional" style="width:90px"></td></tr>`}).join("")}</tbody></table>
     <button class="btn btn-mint btn-block" id="log-save" style="margin-top:12px">Save Report & Adapt Program</button>`:`<div style="padding:16px;color:var(--text3);text-align:center">Recovery day.</div>`}
   </div></div>
   <div class="section"><div class="card"><div class="card-h"><h2>History</h2><span class="badge badge-ice">${S.logs.length} entries</span></div>
-    ${allDates.length?allDates.slice(0,20).map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><div class="row" style="gap:6px"><span class="log-score ${cls}">${avg.toFixed(2)}</span><button class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)">✕</button></div></div>${dl.map(l=>`<div class="log-detail">${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${l.note?" — "+l.note:""}</div>`).join("")}</div>`}).join(""):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`}
+    ${allDates.length?allDates.slice(0,20).map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><div class="row" style="gap:6px"><span class="log-score ${cls}">${avg.toFixed(2)}</span><button class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)">✕</button></div></div>${dl.map(l=>{const meta=[typeof l.rpe==="number"?"RPE "+l.rpe:null,l.pain?"pain":null,l.note?l.note:null].filter(Boolean).join(" · ");return`<div class="log-detail">${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${meta?" · "+meta:""}</div>`}).join("")}</div>`}).join(""):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`}
   </div></div>`;
 }
 function getWkForDate(d){const d0=new Date(S.program.start+"T00:00:00");return clamp(Math.floor((new Date(d+"T12:00:00")-d0)/864e5/7)+1,1,13)}
 function bindLog(){
   const di=document.getElementById("log-date");if(di)di.onchange=()=>{logDate=di.value;render()};
-  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const log=applyLog({id:crypto.randomUUID(),date:logDate,week:wk,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||""});S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);await persist();render();toast(`${c} exercises logged`)};
+  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;const rpeEl=document.getElementById("lg-rpe"+i);const rpeV=rpeEl&&rpeEl.value?Number(rpeEl.value):null;const pain=document.getElementById("lg-pain"+i)?.checked||false;if(aS>0&&aR>0){const log=applyLog({id:crypto.randomUUID(),date:logDate,week:wk,exercise:e?e.name:ex.eid,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,rpe:rpeV,pain,note:document.getElementById("lg-n"+i).value||""});S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);await persist();render();toast(`${c} exercises logged`)};
   document.querySelectorAll(".log-del").forEach(b=>b.onclick=async()=>{if(!confirm("Delete logs for "+b.dataset.d+"?"))return;S.logs=S.logs.filter(l=>l.date!==b.dataset.d);await persist();render()});
 }
 
@@ -791,7 +867,7 @@ function renderProgram(){
   <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;const wkDays=S.schedule.days||[1,2,3,4,5];
     const logCount=weekHasLogs(w)?S.logs.filter(l=>l.week===w).length:0;
     let bodyHTML="";
-    if(isOpen){bodyHTML=wkDays.concat([6]).map(d=>{const p=dayPlan(d,w);return`<div class="pw-day"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${DAYS[d]}</span> — ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--fire);margin:2px 0 0 16px;font-style:italic">🔥 ${p.finisher}</div></div>`}).join("")}
+    if(isOpen){const mw=mesoForWeek(w);bodyHTML=`<div class="session-ctx" style="margin-bottom:12px;padding:10px 12px"><b>Week ${w} · ${mw.title}</b>${mw.blurb}<div style="margin-top:6px;font-size:11px;color:var(--ice)">${weekMicroLine(w)}</div></div>`+wkDays.concat([6]).map(d=>{const p=dayPlan(d,w);return`<div class="pw-day"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${DAYS[d]}</span> — ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--fire);margin:2px 0 0 16px;font-style:italic">🔥 ${p.finisher}</div></div>`}).join("")}
     return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · DELOAD":""}</span>${w===cur?`<span class="badge badge-fire" style="font-size:9px">CURRENT</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${logCount?logCount+" logged":"upcoming"}</span></div>
     <div class="pw-body ${isOpen?"open":""}">${bodyHTML}</div></div>`}).join("")}</div>`;
 }
@@ -846,7 +922,7 @@ function bindSettings(){
   document.getElementById("s-plan-save").onclick=async()=>{S.planId=Number(document.getElementById("s-plan").value);await persist();render();toast("Switched to: "+PLANS[S.planId].name)};
   document.getElementById("s-reonboard").onclick=()=>{S.profile.onboarded=false;save();showOnboarding()};
   document.getElementById("s-pdf").onclick=async()=>{const keys=Object.keys(S.pdfs);for(let i=0;i<keys.length;i++){const f=document.getElementById("sf-"+i);if(f.files&&f.files[0])S.pdfs[keys[i]]=URL.createObjectURL(f.files[0]);else{const v=document.getElementById("sp-"+i).value.trim();if(v)S.pdfs[keys[i]]=v}}await persist();render();toast("PDFs saved")};
-  document.getElementById("s-clear").onclick=async()=>{if(!confirm("Clear all logs?"))return;S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Cleared")};
+  document.getElementById("s-clear").onclick=async()=>{if(!confirm("Clear all logs?"))return;S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1};S.coachSuggestions=[];S.coachSnooze={};await persist();render();toast("Cleared")};
   document.getElementById("s-export").onclick=()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="hybrid-warrior-backup.json";a.click()};
   document.getElementById("s-import-btn").onclick=()=>document.getElementById("s-import-file").click();
   document.getElementById("s-import-file").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{S=merge(structuredClone(DEF),JSON.parse(await f.text()));await persist();render();toast("Imported")}catch{toast("Invalid file")}};
