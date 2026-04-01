@@ -352,7 +352,7 @@ const EX=[
   {id:"farmer",name:"Farmer Carry",tags:["grip","core"],rest:"60s",howTo:["Heavy DBs, stand tall.","Short controlled steps.","Maintain grip full distance."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["farmer","carry","grip"]},
   {id:"plank",name:"Plank Hold",tags:["core","bodyweight"],rest:"30s",howTo:["Forearms down, elbows under shoulders.","Rigid line, squeeze glutes.","Don't sag or pike."],books:["28DayPlan_FinalVersion.pdf"],kw:["plank","core"]},
   {id:"air_squat",name:"Air Squat",tags:["legs","bodyweight"],rest:"—",howTo:["Feet shoulder-width.","Sit below parallel.","Drive up explosively."],books:["28DayPlan_FinalVersion.pdf"],kw:["air","squat"]},
-  {id:"shadow",name:"Shadow Wrestling / Sprawls",tags:["conditioning","wrestling"],rest:"—",howTo:["Athletic stance, feet moving.","Mix sprawls, level changes.","Max intensity — simulate match."],books:["WrestlingEBook2_FINAL.compressed.pdf"],kw:["shadow","wrestle","sprawl"]},
+  {id:"shadow",name:"Burpee complexes",tags:["conditioning","bodyweight"],rest:"—",howTo:["Hands to floor, jump or step back to plank.","Add a push-up if you want more upper-body work.","Stand and hop — optional wide-foot 'sprawl' step instead of a jump."],books:["28DayPlan_FinalVersion.pdf"],kw:["burpee","conditioning","sprawl"]},
   {id:"dip",name:"Dip",tags:["chest","triceps","upper"],rest:"90s",howTo:["Support on bars, arms locked.","Lower until upper arms parallel.","Press to lockout."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["dip","triceps"]},
   {id:"lat_raise",name:"Lateral Raise",tags:["shoulders","upper"],rest:"45s",howTo:["Light DBs at sides.","Raise to shoulder height.","Lower slowly."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["lateral","raise","shoulder"]},
   {id:"kb_around",name:"KB Around the World",tags:["core","pilates","home"],rest:"30s",howTo:["Hold kettlebell at chest height.","Circle slowly around head/body while bracing.","Keep ribs down and hips square."],books:["28DayPlan_FinalVersion.pdf"],kw:["kettlebell","around the world","core"]},
@@ -391,7 +391,7 @@ const EX_MEDIA={
   farmer:{video:"https://www.youtube.com/embed/rt17lmnaLSM",grow:["core","back","forearms"],burn:["fullBody"]},
   plank:{video:"https://www.youtube.com/embed/pSHjTRCQxIw",grow:["core"],burn:["core"]},
   air_squat:{video:"https://www.youtube.com/embed/aclHkVaku9U",grow:["quads","glutes"],burn:["lowerBody"]},
-  shadow:{video:"https://www.youtube.com/embed/mPaM4y4VVqg",grow:["core","legs","shoulders"],burn:["fullBody","cardio"]},
+  shadow:{video:"https://www.youtube.com/embed/dZgVxmf6jkA",grow:["legs","core","shoulders"],burn:["fullBody","cardio"]},
   dip:{video:"https://www.youtube.com/embed/2z8JmcrW-As",grow:["triceps","chest"],burn:["upperBody"]},
   lat_raise:{video:"https://www.youtube.com/embed/3VcKaXpzqRo",grow:["sideShoulders"],burn:["upperBody"]},
   kb_around:{video:"https://www.youtube.com/embed/vSoM2QK6LUs",grow:["core","shoulders"],burn:["core"]},
@@ -429,7 +429,7 @@ const EX_MUSCLE_IDS={
   farmer:{primary:["trapezius_upper_l","trapezius_upper_r","brachioradialis_l","brachioradialis_r"],secondary:["external_oblique_1_l","external_oblique_1_r"],tertiary:["latissimus_dorsi_l","latissimus_dorsi_r"],burn:["external_oblique_1_l","external_oblique_1_r"]},
   plank:{primary:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"],secondary:[],tertiary:[],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
   air_squat:{primary:["rectus_femoris_l","rectus_femoris_r"],secondary:["gluteus_maximus_l","gluteus_maximus_r"],tertiary:["gastrocnemius_l","gastrocnemius_r"],burn:["rectus_femoris_l","rectus_femoris_r"]},
-  shadow:{primary:["external_oblique_1_l","external_oblique_1_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["rectus_femoris_l","rectus_femoris_r"],burn:["external_oblique_1_l","external_oblique_1_r","rectus_femoris_l","rectus_femoris_r"]},
+  shadow:{primary:["rectus_femoris_l","rectus_femoris_r","pectoralis_major_l","pectoralis_major_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["rectus_abdominis_1"],burn:["rectus_femoris_l","rectus_femoris_r","rectus_abdominis_1"]},
   dip:{primary:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r"],secondary:["pectoralis_major_l","pectoralis_major_r"],tertiary:["anterior_deltoid_l","anterior_deltoid_r"],burn:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r"]},
   lat_raise:{primary:["lateral_deltoid_l","lateral_deltoid_r"],secondary:[],tertiary:[],burn:["lateral_deltoid_l","lateral_deltoid_r"]},
   kb_around:{primary:["external_oblique_1_l","external_oblique_1_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["rectus_abdominis_1"],burn:["external_oblique_1_l","external_oblique_1_r"]},
@@ -1110,9 +1110,9 @@ function mkDay(slot,w){
         {eid:"plank",sets:3,reps:60,target:0,unit:"sec",reason:"Core for running economy"}],
       finisher:"2-min plank + 2×30s mountain climbers"+xf},
     TR:{focus:"Tempo Run"+dn,warmup:"10 min jog → dynamic stretches → strides",
-      exs:[{eid:"tempo",sets:1,reps:isDeload?16:w<=4?20:w<=8?24:w<=12?28:16,target:Math.round(pmi),unit:fmtPace(Math.round(pmi)),reason:`Threshold from est 5K ${mmss(Math.round(fk))}`},
-        {eid:"shadow",sets:3,reps:60,target:0,unit:"sec",reason:"Red-line wrestling sim"}],
-      finisher:"4-min shadow wrestling"+xf},
+      exs:[        {eid:"tempo",sets:1,reps:isDeload?16:w<=4?20:w<=8?24:w<=12?28:16,target:Math.round(pmi),unit:fmtPace(Math.round(pmi)),reason:`Threshold from est 5K ${mmss(Math.round(fk))}`},
+        {eid:"burpee",sets:3,reps:12,target:0,unit:"BW",reason:"Full-body power after tempo (no sport-specific skills)"}],
+      finisher:"4-min AMRAP burpees — stop before form breaks"+xf},
     FB:{focus:"Full Body"+dn,warmup:"5 min cardio → dynamic stretches → bar×10",
       exs:[{eid:"squat",sets:3,reps:w<=4?8:6,target:r5(sq*.85),unit:"lb",reason:"Squat foundation"},
         {eid:"bench",sets:3,reps:w<=4?8:6,target:r5(b*.85),unit:"lb",reason:"Bench foundation"},
@@ -1145,13 +1145,13 @@ function mkDay(slot,w){
         {eid:"bss",sets:3,reps:10,target:r5(sq*.12),unit:"lb/hand",reason:"Single-leg hyp"},
         {eid:"lunge",sets:3,reps:12,target:r5(sq*.12),unit:"lb/hand",reason:"Walking lunge"},
         {eid:"air_squat",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep Beatdown"}],
-      finisher:"3-min shadow wrestling"+xf},
+      finisher:"3-min AMRAP burpees (or 5-min easy walk if legs are fried)"+xf},
     CT:{focus:"Conditioning Circuit"+dn,warmup:"5 min light jog → dynamic stretches",
       exs:[{eid:"burpee",sets:5,reps:isDeload?10:15,target:0,unit:"BW",reason:"Full-body conditioning"},
         {eid:"air_squat",sets:5,reps:20,target:0,unit:"BW",reason:"Leg endurance"},
         {eid:"pushup",sets:5,reps:isDeload?10:20,target:0,unit:"BW",reason:"Push endurance"},
         {eid:"plank",sets:3,reps:45,target:0,unit:"sec",reason:"Core"},
-        {eid:"shadow",sets:3,reps:60,target:0,unit:"sec",reason:"Athletic conditioning"}],
+        {eid:"pushup",sets:3,reps:25,target:0,unit:"BW",reason:"Push volume after metabolic work"}],
       finisher:"Tabata Burpees 8×20/10"+xf},
     PW:{focus:"Power Day"+dn,warmup:"5 min cardio → bar×10, 95×5, 135×3",
       exs:[{eid:"deadlift",sets:isDeload?3:5,reps:w<=8?3:2,target:r5(dl*.9),unit:"lb",reason:"Heavy pulls"},
@@ -1183,8 +1183,8 @@ function mkDay(slot,w){
   const safety=getSafetyMode();
   if(safety==="pregnancy"||safety==="postpartum"){
     const blocked=safety==="pregnancy"
-      ?["burpee","int800","tempo","shadow","deadlift"]
-      :["burpee","shadow","int800"];
+      ?["burpee","int800","tempo","deadlift"]
+      :["burpee","int800"];
     out.exs=out.exs.map(ex=>{
       if(!blocked.includes(ex.eid))return ex;
       if(ex.eid==="deadlift")return {...ex,eid:"rdl",target:r5((ex.target||0)*0.35),reason:"Pregnancy-safe hinge swap"};
