@@ -1303,6 +1303,19 @@ function applyLog(log){
   applyFeelToLogAdapt(log);
   return log;
 }
+function calcLogScore(log){
+  const type=inferType(log.exercise);
+  const tW=Number(log.tW)||0,aW=Number(log.aW)||0,tR=Number(log.tR)||0,aR=Number(log.aR)||0;
+  if(type==="run"){
+    if(tW>0&&aW>0)return +(tW/aW).toFixed(2);
+    return 1;
+  }
+  if(tW>0&&aW>0&&tR>0&&aR>0){
+    const tEst=epley(tW,tR),aEst=epley(aW,aR);
+    if(tEst>0&&aEst>0)return +clamp(aEst/tEst,.55,1.6).toFixed(2);
+  }
+  return 1;
+}
 function applyDayAdaptation(dateStr){
   const dObj=new Date(dateStr+"T12:00:00");
   const wk=getWkForDate(dateStr);
@@ -1324,18 +1337,14 @@ function applyDayAdaptation(dateStr){
       touched++;
       continue;
     }
-    const targetVol=Math.max(1,(Number(ex.target)||0)*(Number(ex.reps)||1)*(Number(ex.sets)||1));
-    const targetPerSet=Math.max(1,(Number(ex.target)||0)*(Number(ex.reps)||1));
-    let actualVol=0,hadFail=false,bestEst=0;
+    const plannedReps=Math.max(1,(Number(ex.reps)||1)*(Number(ex.sets)||1));
+    let actualReps=0,bestEst=0;
     for(const r of rows){
-      let vol=(Number(r.aW)||0)*(Number(r.aR)||1)*(Number(r.aS)||1);
-      if(r.outcome==="time")vol=Math.max(vol,targetPerSet*(Number(r.aS)||1));
-      if(r.outcome==="fail")hadFail=true;
-      actualVol+=Math.max(1,vol);
+      actualReps+=(Number(r.aR)||1)*(Number(r.aS)||1);
       bestEst=Math.max(bestEst,epley(Number(r.aW)||0,Number(r.aR)||0));
     }
-    let liftScore=targetVol>1?actualVol/targetVol:1;
-    if(hadFail)liftScore*=0.96;
+    let liftScore=rows.reduce((s,r)=>s+(Number(r.score)||calcLogScore(r)),0)/rows.length;
+    if(actualReps<plannedReps*0.95)liftScore*=0.97; // did not complete planned reps
     liftScore=clamp(liftScore,.6,1.4);
     const tw=clamp((liftScore-1)*.08,-.025,.025);
     if(type==="bench"){S.adapt.bench=clamp(S.adapt.bench+tw,.88,1.25);if(bestEst>S.profile.bench1RM*1.01)S.profile.bench1RM=Math.round(bestEst);touched++}
@@ -1950,7 +1959,7 @@ function bindToday(){
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=()=>document.getElementById("exb-"+b.dataset.i).classList.toggle("open"));
   document.querySelectorAll(".ex-how").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const how=document.getElementById("exhow-"+i);const pdf=document.getElementById("expdf-"+i);if(!body.classList.contains("open"))body.classList.add("open");how.style.display=how.style.display==="none"?"block":"none";const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);if(e&&e.books.length){const bk=e.books[0],src=S.pdfs[bk];if(src){pdf.innerHTML=`<p style="color:var(--text3);font-size:11px">Searching ${bk}…</p>`;try{const doc=await getPdf(bk,src);let best={pg:1,sc:-1};for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const txt=tc.items.map(x=>x.str).join(" ").toLowerCase();let sc=0;for(const k of e.kw)if(txt.includes(k))sc++;if(sc>best.sc)best={pg:p,sc};if(sc>=Math.min(e.kw.length,3))break}const pg=await doc.getPage(best.pg);const vp=pg.getViewport({scale:1.4});const cvs=document.createElement("canvas");cvs.width=vp.width;cvs.height=vp.height;cvs.style.cssText="width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px";await pg.render({canvasContext:cvs.getContext("2d"),viewport:vp}).promise;pdf.innerHTML=`<p style="color:var(--mint);font-size:11px">Page ${best.pg} of ${bk}</p>`;pdf.appendChild(cvs)}catch{pdf.innerHTML=`<p style="color:var(--red);font-size:11px">Could not load PDF preview.</p>`}}else pdf.innerHTML=`<p style="color:var(--gold);font-size:11px">PDF preview not configured. Use the How-To steps and video above.</p>`}});
   document.querySelectorAll(".q-save").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;document.getElementById("t-s"+i).value=1;document.getElementById("t-r"+i).value=document.getElementById("tq-r"+i).value;document.getElementById("t-w"+i).value=document.getElementById("tq-w"+i).value;const qo=document.getElementById("tq-o"+i),o=document.getElementById("t-o"+i);if(qo&&o)o.value=qo.value;document.querySelector(`.ex-save[data-i="${i}"]`).click()});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:iso(),week:S.program.week,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};if(inferType(name)==="run"&&Number(ex.target)>0&&aW>0)log.score=+(Number(ex.target)/aW).toFixed(2);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[iso()];await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};toast(`${name} saved`,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
+  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:iso(),week:S.program.week,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[iso()];await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};toast(`${name} saved`,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1972,7 +1981,7 @@ function renderLog(){
 function getWkForDate(d){const d0=new Date(S.program.start+"T00:00:00");return clamp(Math.floor((new Date(d+"T12:00:00")-d0)/864e5/7)+1,1,13)}
 function bindLog(){
   const di=document.getElementById("log-date");if(di)di.onchange=()=>{logDate=di.value;render()};
-  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const log=applyLog({id:crypto.randomUUID(),date:logDate,week:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||""});S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated`)};
+  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
   document.querySelectorAll(".log-edit").forEach(b=>b.onclick=()=>{logDate=b.dataset.d;render();toast("Loaded date for editing. Update values and save.")});
   document.querySelectorAll(".log-del").forEach(b=>b.onclick=async()=>{const ds=b.dataset.d;if(!confirm("Delete logs for "+ds+"?"))return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
   document.querySelectorAll(".log-move-line").forEach(b=>b.onclick=async()=>{const id=b.dataset.id;const log=S.logs.find(x=>x.id===id);if(!log)return;const nd=prompt("Move this entry to date (YYYY-MM-DD):",log.date);if(nd==null)return;const nd2=nd.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Invalid date.");return}const oldDate=log.date;log.date=nd2;log.week=getWkForDate(nd2);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[oldDate];delete S.sessionAdaptedByDate[nd2];await persist();render();toast("Entry moved to "+nd2)});
