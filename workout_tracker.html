@@ -1544,7 +1544,13 @@ function applyDayAdaptation(dateStr){
 // ═══════════════════════════════════════════════════════════
 //  PERSISTENCE & AUTH
 // ═══════════════════════════════════════════════════════════
-function load(){try{const r=localStorage.getItem("hw5");const s=r?merge(structuredClone(DEF),JSON.parse(r)):structuredClone(DEF);trimStaleSkipped(s);return s}catch{return structuredClone(DEF)}}
+function normalizeProgramStart(st){
+  if(!st.program)st.program={week:1,start:iso()};
+  const x=String(st.program.start||"").trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(x))st.program.start=iso();
+  else if(Number.isNaN(parseIsoNoon(x).getTime()))st.program.start=iso();
+}
+function load(){try{const r=localStorage.getItem("hw5");const s=r?merge(structuredClone(DEF),JSON.parse(r)):structuredClone(DEF);trimStaleSkipped(s);normalizeProgramStart(s);return s}catch{return structuredClone(DEF)}}
 function merge(b,s){if(!s||typeof s!=="object")return b;for(const k of Object.keys(s)){if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k]))b[k]=merge(b[k]||{},s[k]);else b[k]=s[k]}return b}
 function save(){localStorage.setItem("hw5",JSON.stringify(S))}
 async function persist(){save();if(currentUser)await cloudPush()}
@@ -1593,7 +1599,7 @@ async function initFB(cfg){
   // Keep auth session across reloads/devices until explicit sign-out.
   await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 }
-function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);save();render()}})}
+function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);normalizeProgramStart(S);save();render()}})}
 async function cloudPush(){if(offlineMode||!fbDb||!currentUser)return;try{lastPushAt=Date.now();await fbDb.collection("hw").doc(currentUser.uid).set({state:S,at:new Date().toISOString()},{merge:true})}catch(e){console.error(e);if(typeof navigator!=="undefined"&&navigator.onLine)toast("Cloud sync hit an error — will retry when possible.")}}
 async function cloudPullOnce(uid){
   if(offlineMode||!fbDb||!uid)return;
@@ -1601,7 +1607,7 @@ async function cloudPullOnce(uid){
     const doc=await fbDb.collection("hw").doc(uid).get();
     if(doc.exists){
       const d=doc.data();
-      if(d&&d.state){S=merge(S,d.state);save();}
+      if(d&&d.state){S=merge(S,d.state);normalizeProgramStart(S);save();}
     }
   }catch(e){console.error(e)}
 }
@@ -2197,12 +2203,21 @@ function bindLog(){
 // ═══════════════════════════════════════════════════════════
 //  RENDER — PROGRAM (all 13 weeks)
 // ═══════════════════════════════════════════════════════════
+function planAnchorSummaryHtml(){
+  autoWeek();
+  const a=firstTrainingIsoOnOrAfter(S.program.start);
+  if(!a)return`<div class="card" style="margin-bottom:10px;padding:12px 14px;border-left:3px solid var(--gold)"><div style="font-size:12px;color:var(--text2)">Add a valid <b style="color:var(--text)">program start date</b> under Settings → Account &amp; plan so Week 1 lines up with your real calendar.</div></div>`;
+  const d=parseIsoNoon(a);
+  const human=d.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+  return`<div class="card" style="margin-bottom:10px;padding:12px 14px;border-left:3px solid var(--ice)"><div style="font-size:12px;color:var(--text2);line-height:1.5"><b style="color:var(--text)">How this block is ordered:</b> Session 1 is your first scheduled train day on or after <b style="color:var(--text)">${S.program.start}</b> — that lands on <b style="color:var(--text)">${human}</b>. Each week lists those workouts by <b style="color:var(--text)">actual dates</b> (Wed → Fri → Mon…), not a Monday-first calendar. If you still see only “Monday / Wednesday…” with no dates, pull to refresh or reopen the app once to load the latest version.</div></div>`;
+}
 function renderProgram(){
   autoWeek();const cur=S.program.week;if(expandedWeek===null)expandedWeek=cur;
   const compact=sessionStorage.getItem("hw-plan-compact")==="1";
   const hm=weeklyExpectedChanges();
   const ws=womenProgramSummary();
   return`<div id="p-plan" class="${compact?"plan-compact":""}"><div class="section"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h2 style="font-size:18px;font-weight:600;letter-spacing:-0.02em">Thirteen-week block</h2><div class="row" style="gap:8px;align-items:center"><span style="font-size:12px;color:var(--text3)">Loads follow your logs</span><button type="button" class="btn btn-sm btn-ghost" id="plan-compact-toggle">${compact?"Show all exercises":"Simpler view"}</button></div></div>
+    ${planAnchorSummaryHtml()}
     ${ws?`<div class="card" style="margin-bottom:10px;border-left:3px solid var(--mint)"><div class="card-h"><h2>Women's Program Summary</h2><span class="badge badge-mint">${ws.label}</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:8px">Baseline: <b style="color:var(--text)">${ws.tier}</b> · Life stage: <b style="color:var(--text)">${ws.life}</b> · Equipment: <b style="color:var(--text)">${ws.eq}</b> · Session style: <b style="color:var(--text)">${ws.style}</b></div><div style="display:grid;gap:4px">${ws.tracks.map(t=>`<div style="font-size:11px;color:var(--text2)">• ${t}</div>`).join("")}</div>${ws.fa.length?`<div style="margin-top:8px;font-size:10px;color:var(--text3)">Goals: ${ws.fa.join(" · ")}</div>`:""}</div>`:""}
     <div class="card" style="margin-bottom:10px"><div class="card-h"><h2>Expected Changes Heatmap</h2></div><div class="row" style="gap:14px"><div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">${hm.glutes}%</b></div><div style="font-size:11px;color:var(--text2)">Core <b style="color:var(--mint)">${hm.core}%</b></div><div style="font-size:11px;color:var(--text2)">Back <b style="color:var(--mint)">${hm.back}%</b></div><div style="font-size:11px;color:var(--text2)">Posture <b style="color:var(--mint)">${hm.posture}%</b></div></div></div>
     <div class="timeline">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" title="Training week ${w}">${w}</div>`}).join("")}</div>
@@ -2252,7 +2267,7 @@ function renderSettings(){
         <li><b style="color:var(--text)">Stay signed in</b> — your program syncs to your account; use the same login on every device.</li>
         <li><b style="color:var(--text)">Log after you train</b> — entries tune adaptation so prescribed loads stay realistic.</li>
         <li><b style="color:var(--text)">Train</b> — Session is your in-gym checklist; Log is for entering what you did (any date).</li>
-        <li><b style="color:var(--text)">Plan</b> — 13 training weeks (sessions in order from your start date, not Mon–Sun grids).</li>
+        <li><b style="color:var(--text)">Plan</b> — 13 training weeks (sessions in order from your start date, not Mon–Sun grids). If the Plan looks like plain weekdays with no dates, update the app (reopen or clear site data) once.</li>
         <li><b style="color:var(--text)">You</b> — Overview for streaks and goals; Settings for profile, backup, and if the block feels too hard.</li>
       </ul>
     </div>
@@ -2274,8 +2289,10 @@ function renderSettings(){
         <button class="btn btn-ghost btn-sm" id="s-reset" style="margin-top:6px">Reset to 1.000</button>
         </div>
       </div>
-    <div class="card settings-section" data-k="account email firebase sign plan switch onboard offline sync"><div class="card-h"><h2>Account & plan</h2></div>
+    <div class="card settings-section" data-k="account email firebase sign plan switch onboard offline sync program start date calendar block"><div class="card-h"><h2>Account & plan</h2></div>
       ${currentUser?`<div style="font-size:13px;font-weight:700;margin-bottom:4px">${currentUser.email}</div><div style="font-size:10px;color:var(--mint);margin-bottom:10px">Syncing to cloud</div><button class="btn btn-ghost btn-block" id="s-signout">Sign Out</button>`:`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">${offlineMode?"Offline mode":"Not connected"}</div>`}
+      <div style="margin-top:12px"><label>Program start date</label><input type="date" id="s-pstart" value="${(S.program&&S.program.start)||iso()}"></div>
+      <p style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.45">Session 1 = first allowed train day on or after this date (then your template continues in weekday order). Save with “Save &amp; recalculate” below or use Switch plan.</p>
       <div style="margin-top:12px"><label>Current Plan (#${(S.planId||0)+1}/64)</label>
         <select id="s-plan">${PLANS.map(p=>`<option value="${p.id}" ${p.id===S.planId?"selected":""}>${p.name}</option>`).join("")}</select></div>
       <button class="btn btn-ice btn-block" id="s-plan-save" style="margin-top:6px">Switch Plan</button>
@@ -2319,15 +2336,15 @@ function bindSettings(){
   if(hpa&&hst)hpa.onclick=async()=>{try{const t=await navigator.clipboard.readText();const n=parseInt(String(t).replace(/[^0-9]/g,""),10);if(n>=500)hst.value=String(n);else toast("Clipboard did not look like a step count.")}catch{toast("Allow clipboard access or type steps manually.")}};
   const plBtn=document.getElementById("pl-calc"),plOut=document.getElementById("pl-out");
   if(plBtn&&plOut)plBtn.onclick=()=>{const total=Number(document.getElementById("pl-total").value)||0,bar=Number(document.getElementById("pl-bar").value)||45;if(total<=0){plOut.textContent="Enter a target weight.";return}const r=calcPlatesPerSide(total,bar);plOut.textContent=formatPlateResult(r,bar)};
-  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;S.profile.sex=document.getElementById("s-sex").value;const appEl=document.getElementById("s-appearance");const qm=Number(document.getElementById("s-quick")?.value)||0;S.profile.prefs={...(S.profile.prefs||{}),lifeStage:document.getElementById("s-life").value,womenMode:document.getElementById("s-wm").value,equipment:document.getElementById("s-eq").value,style:document.getElementById("s-style").value,appearance:(appEl&&appEl.value)||"dark",quickSessionMin:qm};const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;await persist();applyAppearanceMeta();render();toast("Saved")};
+  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=Number(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=Number(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=Number(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=Number(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=Number(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;S.profile.sex=document.getElementById("s-sex").value;const appEl=document.getElementById("s-appearance");const qm=Number(document.getElementById("s-quick")?.value)||0;S.profile.prefs={...(S.profile.prefs||{}),lifeStage:document.getElementById("s-life").value,womenMode:document.getElementById("s-wm").value,equipment:document.getElementById("s-eq").value,style:document.getElementById("s-style").value,appearance:(appEl&&appEl.value)||"dark",quickSessionMin:qm};const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}await persist();applyAppearanceMeta();render();toast("Saved")};
   document.getElementById("s-reset").onclick=async()=>{const prev={...S.adapt};S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Adaptation reset",{undo:()=>{S.adapt=prev;persist();render()}})};
   const so=document.getElementById("s-signout");if(so)so.onclick=()=>{if(confirm("Sign out? You can sign back in later; local data on this device stays until you clear it."))doSignOut()};
-       document.getElementById("s-plan-save").onclick=async()=>{const next=Number(document.getElementById("s-plan").value);const nm=PLANS[next].name;if(!confirm(`Switch to plan "${nm}"? Week alignment stays the same; review Plan when ready.`))return;S.planId=next;await persist();render();toast("Switched to: "+nm)};
+       document.getElementById("s-plan-save").onclick=async()=>{const next=Number(document.getElementById("s-plan").value);const nm=PLANS[next].name;if(!confirm(`Switch to plan "${nm}"? Week alignment stays the same; review Plan when ready.`))return;S.planId=next;const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}await persist();render();toast("Switched to: "+nm)};
   document.getElementById("s-reonboard").onclick=()=>{if(!confirm("Re-run the full onboarding wizard? Your logs stay saved, but you'll step through goals and schedule again."))return;S.profile.onboarded=false;save();showOnboarding()};
   document.getElementById("s-clear").onclick=async()=>{if(!confirm("Clear all workout logs and weight history? This cannot be auto-restored except via undo in the next few seconds or an exported backup."))return;const logs=S.logs.slice(),wl=S.weightLog.slice(),ad={...S.adapt};S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Logs cleared.",{undo:()=>{S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
   document.getElementById("s-export").onclick=()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="hybrid-warrior-backup.json";a.click()};
   document.getElementById("s-import-btn").onclick=()=>document.getElementById("s-import-file").click();
-  document.getElementById("s-import-file").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const prev=structuredClone(S);S=merge(structuredClone(DEF),JSON.parse(await f.text()));trimStaleSkipped(S);await persist();render();toast("Imported state.",{undo:()=>{S=prev;persist();render()},duration:7200})}catch{toast("Invalid file")}};
+  document.getElementById("s-import-file").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const prev=structuredClone(S);S=merge(structuredClone(DEF),JSON.parse(await f.text()));trimStaleSkipped(S);normalizeProgramStart(S);await persist();render();toast("Imported state.",{undo:()=>{S=prev;persist();render()},duration:7200})}catch{toast("Invalid file")}};
 }
 
 // ═══════════════════════════════════════════════════════════
