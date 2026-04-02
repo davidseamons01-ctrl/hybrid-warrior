@@ -541,21 +541,29 @@ function autoWeek(){
   if(g===null){S.program.week=1;return}
   S.program.week=blockWeekFromGlobalIdx(g);
 }
-function trainingDatesInBlockWeek(blockWeek){
+function trainingDatesForIndexRange(startG,endG){
   const anchor=firstTrainingIsoOnOrAfter(S.program.start);
-  if(!anchor)return[];
-  const N=planSlotsN();
-  const startG=(blockWeek-1)*N;
-  const endG=blockWeek*N-1;
+  if(!anchor||startG>endG)return[];
   const out=[];
   let g=0,cur=anchor;
-  while(g<startG&&cur){cur=nextTrainingIso(cur);g++}
-  while(g<=endG&&cur){
-    out.push(cur);
-    cur=nextTrainingIso(cur);
-    g++;
-  }
+  while(cur&&g<startG){cur=nextTrainingIso(cur);g++}
+  while(cur&&g<=endG){out.push(cur);cur=nextTrainingIso(cur);g++}
   return out;
+}
+function trainingDatesInBlockWeek(blockWeek){
+  const N=planSlotsN();
+  autoWeek();
+  if(blockWeek===S.program.week){
+    const ref=referenceIsoForProgramWeek();
+    const g=globalSessionIndexForDate(ref);
+    if(g!==null){
+      const startG=Math.floor(g/N)*N;
+      return trainingDatesForIndexRange(startG,startG+N-1);
+    }
+  }
+  const startG=(blockWeek-1)*N;
+  const endG=blockWeek*N-1;
+  return trainingDatesForIndexRange(startG,endG);
 }
 function rollingPlanForDate(dateIso){
   const sorted=sortedScheduleDays();
