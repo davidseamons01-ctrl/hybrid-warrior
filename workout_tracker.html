@@ -245,8 +245,15 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 .focus-session-dots{display:flex;gap:5px;align-items:center}
 .focus-session-dots span{width:7px;height:7px;border-radius:50%;background:var(--border);transition:transform .2s,background .2s}
 .focus-session-dots span.on{background:var(--fire);transform:scale(1.2)}
-.focus-session-viewport{overflow:hidden;width:100%;margin-top:4px;-webkit-overflow-scrolling:touch}
+.focus-session-viewport{overflow:hidden;width:100%;margin-top:4px;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior-x:contain}
 .focus-session-track{display:flex;transition:transform .4s cubic-bezier(.25,.82,.25,1);will-change:transform}
+#confetti-layer{pointer-events:none;position:fixed;inset:0;z-index:300;overflow:hidden;display:none}
+#confetti-layer.show{display:block}
+.confetti-piece{position:absolute;top:-14px;width:9px;height:16px;border-radius:2px;opacity:.95;animation:hwConfettiFall 3.1s ease-out forwards}
+@keyframes hwConfettiFall{0%{transform:translateY(0) rotate(0deg)}100%{transform:translateY(110vh) rotate(680deg);opacity:.85}}
+.ex-swap-overlay{position:fixed;inset:0;z-index:285;background:rgba(0,0,0,.48);display:none;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+.ex-swap-overlay.open{display:flex}
+.ex-swap-sheet{background:var(--card);border-radius:var(--radius) var(--radius) 0 0;border:1px solid var(--border-lit);max-width:520px;width:100%;max-height:min(72vh,520px);overflow:auto;padding:16px 16px 20px;box-shadow:var(--elev)}
 .focus-session-slide{flex-shrink:0;box-sizing:border-box;padding:0 6px 0 0}
 .focus-session-slide:last-child{padding-right:0}
 .focus-nav-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
@@ -363,6 +370,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px soli
 <div class="page" id="app" style="display:none" tabindex="-1"></div>
 <div class="toast" id="toast"></div>
 <div class="rest-bar" id="restBar" aria-live="polite"><div class="rest-bar-inner"><div class="rest-bar-label" id="restBarLabel">Rest</div><div class="rest-bar-time" id="restBarTime">0:00</div><div class="rest-bar-actions"><button type="button" class="btn btn-sm btn-ghost" id="restAdd30">+30s</button><button type="button" class="btn btn-sm btn-secondary-solid" id="restSkip30">−30s</button><button type="button" class="btn btn-sm btn-cta" id="restDone">Done</button></div></div></div>
+<div id="confetti-layer" aria-hidden="true"></div>
+<div id="ex-swap-overlay" class="ex-swap-overlay" aria-hidden="true"><div class="ex-swap-sheet" role="dialog" aria-modal="true" aria-labelledby="ex-swap-title"><div id="ex-swap-title" style="font-size:15px;font-weight:600;margin-bottom:4px">Swap for a similar move</div><p style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.45">Suggestions share muscle emphasis with your programmed lift. Loads prefer your last log for that movement when available.</p><div id="ex-swap-list"></div><button type="button" class="btn btn-ghost btn-block" id="ex-swap-close" style="margin-top:14px">Cancel</button></div></div>
 <script type="application/json" id="embedded-firebase-config"></script>
 
 <script>
@@ -546,9 +555,11 @@ const DEF={
   pdfs:{"28DayPlan_FinalVersion.pdf":"","Copy of OffSeason_2ndEdition_Final.pdf":"","IN Season workouts.pdf":"","WrestlingEBook2_FINAL.compressed.pdf":""},
   lastLiftByEid:{},
   skippedEidsByDate:{},
+  exerciseSwapsByDate:{},
   sessionFeelByDate:{},
   sessionAdaptedByDate:{},
-  trustBannerLastShown:0
+  trustBannerLastShown:0,
+  extraActivities:[]
 };
 
 let S=load();(()=>{const nid=()=>(typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():"log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10));let ch=false;for(const l of S.logs){if(!l.id){l.id=nid();ch=true}}if(ch)save()})();
@@ -752,6 +763,14 @@ function trimStaleSkipped(st){
   if(sa&&Array.isArray(sa.catchUpQueue)){
     sa.catchUpQueue=sa.catchUpQueue.filter(x=>{const m=x&&x.missedIso;if(!m)return false;return new Date(m+"T12:00:00").getTime()>=cutoff-60*864e5});
   }
+  const sw=st.exerciseSwapsByDate||{};
+  const nsw={};
+  for(const k of Object.keys(sw)){if(new Date(k+"T12:00:00").getTime()>=cutoff)nsw[k]=sw[k]}
+  st.exerciseSwapsByDate=nsw;
+  if(Array.isArray(st.extraActivities)){
+    const t0=Date.now()-180*864e5;
+    st.extraActivities=st.extraActivities.filter(a=>{if(!a||!a.date)return false;const t=new Date(String(a.date)+"T12:00:00").getTime();return!Number.isNaN(t)&&t>=t0});
+  }
 }
 function weekIntentLine(w){
   const phase=phaseName(w).toLowerCase();
@@ -821,11 +840,42 @@ function todayPlanFiltered(){
     base=rollingPlanForDate(todayIso);
   }
   const skip=new Set((S.skippedEidsByDate&&S.skippedEidsByDate[todayIso])||[]);
-  let exs=(base.exs||[]).filter(ex=>!skip.has(ex.eid));
+  const swapMap=(S.exerciseSwapsByDate&&S.exerciseSwapsByDate[todayIso])||{};
+  let exs=(base.exs||[]).map(ex=>{
+    const originalEid=ex.originalEid||ex.eid;
+    const alt=swapMap[originalEid];
+    if(!alt||alt===ex.eid)return{...ex,originalEid};
+    const ne=exById(alt);
+    let target=ex.target;
+    if(S.lastLiftByEid&&S.lastLiftByEid[alt]!=null)target=S.lastLiftByEid[alt];
+    const tag=ne?`Similar: ${ne.name}`:"Swapped";
+    return{...ex,eid:alt,originalEid,target,reason:ex.reason?`${ex.reason} · ${tag}`:tag};
+  });
+  exs=exs.filter(ex=>!skip.has(ex.eid));
   const qm=Number((S.profile.prefs||{}).quickSessionMin)||0;
   const quickNote=qm>0&&base.exs.length>2;
   if(qm>0&&exs.length>2)exs=exs.slice(0,2);
   return{...base,exs,quickNote};
+}
+function celebrateFinish(){
+  const now=Date.now();
+  if(now-(window.__hwConfettiT||0)<2200)return;
+  window.__hwConfettiT=now;
+  const root=document.getElementById("confetti-layer");
+  if(!root)return;
+  root.innerHTML="";
+  root.classList.add("show");
+  root.setAttribute("aria-hidden","false");
+  const n=70;
+  for(let i=0;i<n;i++){
+    const p=document.createElement("span");
+    p.className="confetti-piece";
+    p.style.left=Math.random()*100+"vw";
+    p.style.animationDelay=Math.random()*0.28+"s";
+    p.style.background=`hsl(${Math.random()*360},82%,58%)`;
+    root.appendChild(p);
+  }
+  setTimeout(()=>{root.classList.remove("show");root.innerHTML="";root.setAttribute("aria-hidden","true")},4200);
 }
 function scrollToHashAfterRender(hash){if(!hash)return;requestAnimationFrame(()=>{const el=document.querySelector(hash);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})})}
 function nextScheduledDayTeaser(){const n=nextTrainingIso(iso());return n?`Next session: ${DAYS[parseIsoNoon(n).getDay()]} (${n}).`:""}
@@ -916,6 +966,27 @@ function exMuscles(eid){
     tertiary:[...new Set(m.tertiary||[])],
     burn:[...new Set(m.burn||[])]
   };
+}
+function muscleOverlapKeys(eid){
+  const m=exMuscles(eid);
+  return new Set([...(m.primary||[]),...(m.secondary||[])]);
+}
+function similarExerciseAlternatives(templateEid){
+  const base=exById(templateEid);if(!base)return[];
+  const myTags=new Set(base.tags||[]);
+  const pSet=muscleOverlapKeys(templateEid);
+  const home=(S.profile.prefs||{}).equipment==="home";
+  const gymOnly=new Set(["bench","squat","deadlift","row","cgbench"]);
+  function score(x){
+    if(x.id===templateEid)return-1;
+    if(home&&gymOnly.has(x.id))return-1;
+    const xt=new Set(x.tags||[]);
+    let t=0;for(const k of xt)if(myTags.has(k))t++;
+    let mu=0;for(const k of muscleOverlapKeys(x.id))if(pSet.has(k))mu++;
+    if(t<1&&mu<1)return-1;
+    return t*4+mu*2;
+  }
+  return EX.map(x=>({x,s:score(x)})).filter(o=>o.s>=0).sort((a,b)=>b.s-a.s).map(o=>o.x).slice(0,12);
 }
 function ytId(u){
   if(!u)return"";
@@ -2000,6 +2071,9 @@ function renderDash(){
   const trustUntil=Number(sessionStorage.getItem("hw-trust-until"))||0;
   const showTrust=!((S.profile.prefs||{}).trustDataHide)&&Date.now()>trustUntil;
   const dashPin=useWomenSoftUi();
+  const escDash=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const extras=(S.extraActivities||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,14);
+  const extraRows=extras.map(a=>{const parts=[a.date];if(a.minutes)parts.push(`${a.minutes} min`);if(a.distanceMi)parts.push(`${a.distanceMi} mi`);if(a.note)parts.push(escDash(a.note));return`<div style="font-size:12px;color:var(--text2);padding:8px 0;border-bottom:1px solid var(--border)"><b style="color:var(--text)">${escDash(a.kind||"Activity")}</b> · ${parts.join(" · ")}</div>`;}).join("");
 
   return`
   ${lastLogSummary?`<div class="session-banner" id="dash-sum"><b style="color:var(--text)">Logged.</b> ${lastLogSummary.name} · Current streak: <b>${lastLogSummary.streak}</b> day${lastLogSummary.streak!==1?"s":""}.${lastLogSummary.vol?` Volume (est.): <b>${lastLogSummary.vol}</b>.`:""} ${lastLogSummary.next} <button type="button" class="details-toggle" id="sum-dismiss" style="margin-left:6px">Dismiss</button></div>`:""}
@@ -2032,9 +2106,34 @@ function renderDash(){
       <button type="button" class="btn btn-ghost btn-sm" id="dash-q-ease">Ease load</button>
     </div>
   </div>
+  <div class="card section" style="padding:14px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Your metrics</div>
+    <div class="grid3" style="gap:10px">
+      <div><div style="font-size:10px;color:var(--text3)">Weight</div><div style="font-size:17px;font-weight:600">${p.weight>0?p.weight+" lb":"—"}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">Goal</div><div style="font-size:17px;font-weight:600">${p.goalWt>0?p.goalWt+" lb":"—"}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">Body fat</div><div style="font-size:17px;font-weight:600">${p.bodyFat>0?p.bodyFat.toFixed(1)+"%":"—"}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">Waist</div><div style="font-size:17px;font-weight:600">${p.waist>0?p.waist+" in":"—"}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">Hips</div><div style="font-size:17px;font-weight:600">${p.hips>0?p.hips+" in":"—"}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">Shoulders</div><div style="font-size:17px;font-weight:600">${p.shoulders>0?p.shoulders+" in":"—"}</div></div>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.45">Update anytime in Settings → Training &amp; profile. This app runs in the browser — it cannot read Apple Health or Fitness directly; use manual entries, Overview below, or the Shortcuts workflow in Activity &amp; wearables.</p>
+  </div>
   <div class="micro-goal card" style="padding:14px;display:flex;align-items:center;gap:14px">
     <div class="micro-ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="rbg" cx="26" cy="26" r="18"/><circle class="rfill" cx="26" cy="26" r="18" stroke-dasharray="${ringLen}" stroke-dashoffset="${off}"/></svg><span>${mg.logged}/${mg.target}</span></div>
     <div><div style="font-size:14px;font-weight:600">This training week</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Aim for ${mg.target} session${mg.target!==1?"s":""} in this rolling week (not Mon–Sun). Logging keeps prescriptions realistic.</div></div>
+  </div>
+  <div class="card section">
+    <div class="card-h"><h2>Walks, hikes &amp; extras</h2></div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Log walks, hikes, or other cardio that is not in your program so it appears on your Overview timeline. Optional — does not replace strength logs.</p>
+    <div class="grid2">
+      <div><label>Date</label><input type="date" id="ex-act-date" value="${iso()}"></div>
+      <div><label>Type</label><select id="ex-act-kind"><option value="walk">Walk</option><option value="hike">Hike</option><option value="ride">Bike ride</option><option value="other">Other</option></select></div>
+      <div><label>Minutes</label><input type="number" id="ex-act-min" min="0" placeholder="e.g. 45"></div>
+      <div><label>Distance (mi)</label><input type="number" id="ex-act-mi" min="0" step="0.1" placeholder="optional"></div>
+    </div>
+    <div style="margin-top:8px"><label>Note</label><input id="ex-act-note" placeholder="Trail, effort, device…" style="width:100%"></div>
+    <button type="button" class="btn btn-mint btn-block" id="ex-act-save" style="margin-top:10px">Save activity</button>
+    ${extras.length?`<div style="margin-top:14px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px">Recent</div><div>${extraRows}</div>`:""}
   </div>
   ${weekLogEmpty?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:14px;font-weight:600;margin-bottom:4px">No entries yet this week</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px">A short log after training adjusts loads for the rest of the block.</p><button type="button" class="btn btn-fire" id="dash-go-log">Log today's session</button></div>`:""}
   ${dashPin?`</div>`:""}
@@ -2137,6 +2236,21 @@ function bindDash(){
     if(cal<220&&steps<4000)S.adapt.run=clamp(S.adapt.run-0.01,.85,1.2);
     await persist();render();toast("Health metrics saved",{undo:()=>{S.healthLog=snap;S.adapt.run=ar;persist();render()}});
   };
+  const eas=document.getElementById("ex-act-save");
+  if(eas)eas.onclick=async()=>{
+    const date=(document.getElementById("ex-act-date")?.value||"").trim();
+    const kind=document.getElementById("ex-act-kind")?.value||"other";
+    const minutes=Number(document.getElementById("ex-act-min")?.value)||0;
+    const distanceMi=Number(document.getElementById("ex-act-mi")?.value)||0;
+    const note=(document.getElementById("ex-act-note")?.value||"").trim().slice(0,200);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){toast("Pick a valid date.");return}
+    if(minutes<=0&&distanceMi<=0&&!note){toast("Add minutes, distance, or a short note.");return}
+    if(!Array.isArray(S.extraActivities))S.extraActivities=[];
+    const id=(typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("ea_"+Date.now()+"_"+Math.random().toString(36).slice(2,9));
+    S.extraActivities.push({id,date,kind,minutes:minutes||undefined,distanceMi:distanceMi||undefined,note:note||undefined});
+    S.extraActivities=S.extraActivities.slice(-200);
+    await persist();render();toast("Activity saved");
+  };
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2162,7 +2276,7 @@ function bindYou(){
 // ═══════════════════════════════════════════════════════════
 function renderExerciseCardHtml(ex,i){
   const e=exById(ex.eid);const howBlock=e&&e.howTo&&e.howTo.length?`<div class="ex-howto"><div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">How to</div><ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol></div>`:"";const m=exMedia(ex.eid);const mm=exMuscles(ex.eid);const emb=embedVideoUrl(m.video);const open=openVideoUrl(m.video);const done=isExLoggedToday(ex.eid);const lw=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?S.lastLiftByEid[ex.eid]:(ex.target||0);
-  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${e?e.name:ex.eid}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button type="button" class="btn btn-sm btn-ghost ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><button type="button" class="btn btn-sm btn-ghost ex-rest" data-i="${i}" title="Rest timer (${e&&e.rest?e.rest:"~90s"})">Rest</button><button type="button" class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Details</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>This lift felt:</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard</button></div><div class="quick-log-row"><span style="font-size:11px;color:var(--text3);align-self:center">Quick log (remembers load)</span><div><label>Reps</label><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"></div><div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-secondary-solid btn-sm q-save" data-i="${i}">Log 1 set</button></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
+  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${e?e.name:ex.eid}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button type="button" class="btn btn-sm btn-ghost ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><button type="button" class="btn btn-sm btn-ghost ex-swap" data-orig="${ex.originalEid||ex.eid}" title="Replace with a similar movement">Swap</button><button type="button" class="btn btn-sm btn-ghost ex-rest" data-i="${i}" title="Rest timer (${e&&e.rest?e.rest:"~90s"})">Rest</button><button type="button" class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Details</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${m.video?`<iframe src="${emb}" title="${e?e.name:ex.eid} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>This lift felt:</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard</button></div><div class="quick-log-row"><span style="font-size:11px;color:var(--text3);align-self:center">Quick log (remembers load)</span><div><label>Reps</label><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"></div><div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-secondary-solid btn-sm q-save" data-i="${i}">Log 1 set</button></div><div class="ex-log-grid"><div><label>Sets</label><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"></div><div><label>Reps</label><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"></div><div><label>Load</label><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"></div><div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
 }
 function renderToday(){
   const dayIso=activeTrainIso();
@@ -2217,7 +2331,7 @@ function renderToday(){
     ${idx>0?`<button type="button" class="btn btn-secondary-solid btn-sm" id="focus-prev">← Previous</button>`:""}
     ${idx<n-1?`<button type="button" class="btn btn-ghost btn-sm" id="focus-next-skip">Next exercise →</button>`:""}
   </div>
-  <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.45">Tap <b style="color:var(--text)">Save all</b> when you finish this lift — the view slides to the next one.</p>
+  <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.45">Swipe left or right on the workout card (away from buttons) to change lifts. Tap <b style="color:var(--text)">Save all</b> when you finish this lift — the view slides to the next one.</p>
   </div>`;
   }
   return`<div id="p-today">
@@ -2231,6 +2345,7 @@ function renderToday(){
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">Not a scheduled training day — no pressure. If you want extra work: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today">Add to today</button></div>`:""}
   <div class="train-aids section">
+    <button type="button" class="btn btn-secondary-solid ${((S.profile.prefs||{}).equipment||"gym")==="home"?"btn-fire":""}" id="train-eq-toggle">${((S.profile.prefs||{}).equipment||"gym")==="home"?"Equipment: Home":"Equipment: Gym"}</button>
     <button type="button" class="btn btn-secondary-solid ${qm>0?"btn-fire":""}" id="train-quick">${qm>0?"15-min mode on":"Minimum session (~15 min)"}</button>
     <button type="button" class="btn btn-ghost" id="train-open-plates">Plate helper</button>
     <button type="button" class="btn btn-ghost" id="train-open-health">Health metrics</button>
@@ -2300,6 +2415,7 @@ function bindToday(){
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
   document.querySelectorAll("#p-today .feel-chip").forEach(chip=>{chip.onclick=()=>{const i=chip.dataset.i;document.querySelectorAll(`#p-today .feel-chip[data-i="${i}"]`).forEach(c=>c.classList.toggle("on",c===chip))}});
   const tq=document.getElementById("train-quick");if(tq)tq.onclick=async()=>{const cur=Number((S.profile.prefs||{}).quickSessionMin)||0;S.profile.prefs={...(S.profile.prefs||{}),quickSessionMin:cur>0?0:15};await persist();render();toast(cur>0?"Showing full session":"15-min mode — first two lifts")};
+  const teq=document.getElementById("train-eq-toggle");if(teq)teq.onclick=async()=>{const h=((S.profile.prefs||{}).equipment||"gym")==="home";S.profile.prefs={...(S.profile.prefs||{}),equipment:h?"gym":"home"};await persist();render();toast(S.profile.prefs.equipment==="home"?"Home equipment — DB / bodyweight swaps.":"Gym equipment — barbell-friendly session.")};
   const tpt=document.getElementById("train-plates-toggle"),tpb=document.getElementById("train-plates-body");
   if(tpt&&tpb)tpt.onclick=()=>{tpb.classList.toggle("open");tpt.textContent=tpb.classList.contains("open")?"Bar load helper (hide)":"Bar load helper (in-workout)"};
   const tpo=document.getElementById("train-open-plates");
@@ -2319,7 +2435,7 @@ function bindToday(){
   const sfc=document.getElementById("sfeel-clear");
   if(sfc)sfc.onclick=async()=>{const day=activeTrainIso();const prev=(S.sessionFeelByDate||{})[day];if(!prev)return;revertSessionFeelNudge(prev);delete S.sessionFeelByDate[day];await persist();render();toast("Session feel cleared.")};
   const sfz=document.getElementById("session-finalize");
-  if(sfz)sfz.onclick=async()=>{const day=activeTrainIso();if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return}const n=applyDayAdaptation(day);S.sessionAdaptedByDate[day]=true;await persist();render();toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.")};
+  if(sfz)sfz.onclick=async()=>{const day=activeTrainIso();if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return}const n=applyDayAdaptation(day);S.sessionAdaptedByDate[day]=true;celebrateFinish();await persist();render();toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.")};
   document.querySelectorAll(".ex-skip").forEach(b=>b.onclick=async()=>{
     const eid=b.dataset.eid,day=activeTrainIso();if(!S.skippedEidsByDate)S.skippedEidsByDate={};const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate));const skip=new Set(S.skippedEidsByDate[day]||[]);skip.add(eid);S.skippedEidsByDate[day]=[...skip];await persist();if(trainFocusIdx!==null){const p=todayPlanFiltered();if(!p.exs.length)trainFocusIdx=null;else trainFocusIdx=Math.min(trainFocusIdx,p.exs.length-1)}toast("Skipped for today",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()
   });
@@ -2334,7 +2450,7 @@ function bindToday(){
   });
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const opening=!body.classList.contains("open");body.classList.toggle("open");if(opening)await loadExercisePdfPreview(i)});
   document.querySelectorAll(".q-save").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;document.getElementById("t-s"+i).value=1;document.getElementById("t-r"+i).value=document.getElementById("tq-r"+i).value;document.getElementById("t-w"+i).value=document.getElementById("tq-w"+i).value;const qo=document.getElementById("tq-o"+i),o=document.getElementById("t-o"+i);if(qo&&o)o.value=qo.value;document.querySelector(`.ex-save[data-i="${i}"]`).click()});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`}}}toast(toastMsg,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
+  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}toast(toastMsg,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
   const mm=document.getElementById("miss-move"),ms=document.getElementById("miss-skip"),mp=document.getElementById("miss-pick"),ml=document.getElementById("miss-later"),cu=document.getElementById("catchup-add-today"),tas=document.getElementById("train-adjust-schedule");
   if(mm)mm.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const pl=rollingPlanForDate(m.date);const due=nextTrainingIso(m.date);if(!due){toast("Could not find a next training day.");return}const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:due});a.missChoices[m.date]={choice:"move"};await persist();render();toast(`Queued for ${DAYS[parseIsoNoon(due).getDay()]} (${due}).`)};
   if(ms)ms.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();render();toast("Session skipped for this block week.")};
@@ -2342,6 +2458,63 @@ function bindToday(){
   if(ml)ml.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missSnoozed[m.date]=true;await persist();render();toast("Okay — we won't nag. Use Adjust schedule to revisit.")};
   if(cu)cu.onclick=async()=>{ensureScheduleAdjust().extraTrainingIso=iso();await persist();render();toast("Catch-up added to today.")};
   if(tas)tas.onclick=async()=>{const a=ensureScheduleAdjust();a.missSnoozed={};await persist();render();toast("Schedule choices unlocked for missed days.")};
+  const closeExSwap=()=>{const ov=document.getElementById("ex-swap-overlay");if(ov){ov.classList.remove("open");ov.setAttribute("aria-hidden","true")}};
+  const openExSwap=origEid=>{
+    const ov=document.getElementById("ex-swap-overlay"),list=document.getElementById("ex-swap-list");
+    if(!ov||!list||!origEid)return;
+    const plan=todayPlanFiltered();
+    const row=plan.exs.find(x=>(x.originalEid||x.eid)===origEid);
+    const curEid=row?row.eid:null;
+    const day=activeTrainIso();
+    const curMap=(S.exerciseSwapsByDate&&S.exerciseSwapsByDate[day])||{};
+    const hasSwap=!!curMap[origEid];
+    const alts=similarExerciseAlternatives(origEid);
+    let html="";
+    if(hasSwap)html+=`<button type="button" class="btn btn-secondary-solid btn-block ex-swap-pick" data-orig="${origEid}" data-reset="1">Use programmed exercise</button>`;
+    for(const x of alts){
+      if(x.id===curEid)continue;
+      if(x.id===origEid&&!hasSwap)continue;
+      html+=`<button type="button" class="btn btn-ghost btn-block ex-swap-pick" data-orig="${origEid}" data-eid="${x.id}">${x.name}</button>`;
+    }
+    if(!html)html=`<p style="font-size:12px;color:var(--text2)">No close matches in this catalog. Try the equipment toggle or Settings.</p>`;
+    list.innerHTML=html;
+    ov.classList.add("open");
+    ov.setAttribute("aria-hidden","false");
+    list.querySelectorAll(".ex-swap-pick").forEach(btn=>{btn.onclick=async()=>{
+      const o=btn.dataset.orig,reset=btn.dataset.reset==="1",e=btn.dataset.eid;
+      if(!S.exerciseSwapsByDate)S.exerciseSwapsByDate={};
+      const snap=JSON.parse(JSON.stringify(S.exerciseSwapsByDate));
+      const bucket={...(S.exerciseSwapsByDate[day]||{})};
+      if(reset)delete bucket[o];else bucket[o]=e;
+      if(Object.keys(bucket).length)S.exerciseSwapsByDate[day]=bucket;else delete S.exerciseSwapsByDate[day];
+      closeExSwap();
+      await persist();
+      if(trainFocusIdx!==null){const p=todayPlanFiltered();trainFocusIdx=Math.min(trainFocusIdx,Math.max(0,p.exs.length-1))}
+      render();
+      toast(reset?"Restored programmed lift":"Exercise swapped",{undo:()=>{S.exerciseSwapsByDate=snap;persist();render()}});
+    }});
+  };
+  const exOv=document.getElementById("ex-swap-overlay");
+  if(exOv)exOv.onclick=e=>{if(e.target===exOv)closeExSwap()};
+  const exSc=document.getElementById("ex-swap-close");if(exSc)exSc.onclick=closeExSwap;
+  document.querySelectorAll(".ex-swap").forEach(b=>{b.onclick=()=>openExSwap(b.dataset.orig)});
+  const fvp=document.querySelector(".focus-session-viewport");
+  if(fvp&&trainFocusIdx!==null){
+    let sx=null;
+    const blockSel="button,a,input,select,textarea,label,iframe,.ex-log-grid,.quick-log-row,.feel-chips";
+    fvp.addEventListener("pointerdown",e=>{if(!e.isPrimary)return;const t=e.target;if(t.closest&&t.closest(blockSel))return;sx=e.clientX},{passive:true});
+    fvp.addEventListener("pointerup",e=>{
+      if(!e.isPrimary||sx===null)return;
+      const d=e.clientX-sx;
+      sx=null;
+      if(Math.abs(d)<50)return;
+      const p=todayPlanFiltered();
+      if(!p.exs.length)return;
+      if(d<0&&trainFocusIdx<p.exs.length-1){trainFocusIdx++;render()}
+      else if(d>0&&trainFocusIdx>0){trainFocusIdx--;render()}
+    },{passive:true});
+    fvp.addEventListener("pointercancel",()=>{sx=null},{passive:true});
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2485,7 +2658,8 @@ function renderSettings(){
     <div id="pl-out" style="font-size:13px;color:var(--text);margin-top:12px;line-height:1.45;font-weight:500"></div>
   </div></details>
   <details class="settings-fold settings-section" id="settings-health" data-k="health wearables apple google fit steps calories activity privacy clipboard manual sync"><summary>Activity &amp; wearables</summary><div class="settings-fold-body">
-    <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px">Browser apps cannot read Apple Health or Google Fit directly. Nothing leaves your device unless you enable Firebase sync or copy an export — optional entries below are yours to keep or delete.</p>
+    <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px">Browser apps (including this PWA) cannot read or write Apple Health, the Fitness app, or Google Fit directly — those APIs are reserved for native iOS/Android apps. Nothing here leaves your device unless you enable Firebase sync or export a backup. Weight, body fat, and measurements live under Training &amp; profile; walks and hikes can be logged on Overview → <b style="color:var(--text)">Walks, hikes &amp; extras</b>.</p>
+    <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px"><b style="color:var(--text)">iPhone shortcut idea:</b> build a one-tap Shortcut that reads today's step count (or a workout) from Health and copies it to the clipboard, then open this app and use Paste below — same flow you can use for weight from a smart scale app that copies to clipboard.</p>
     <label>Log steps for today (manual / paste from tracker)</label>
     <div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap"><input type="number" id="health-steps-quick" placeholder="e.g. 8420" style="max-width:140px"><button type="button" class="btn btn-sm btn-mint" id="health-steps-save">Save to health log</button><button type="button" class="btn btn-sm btn-ghost" id="health-paste-steps">Paste from clipboard</button></div>
     <p style="font-size:10px;color:var(--text3);margin-top:8px">Tip: on phone, copy steps from Health or Fit, then tap Paste.</p>
