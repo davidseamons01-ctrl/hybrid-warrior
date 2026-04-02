@@ -139,6 +139,9 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 .streak-bar{display:flex;gap:4px;margin-top:6px}
 .streak-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;border:2px solid var(--border);color:var(--text3)}
 .streak-dot.done{border-color:var(--mint);color:color-mix(in srgb,var(--mint) 90%,var(--text));background:color-mix(in srgb,var(--mint) 12%,transparent)}.streak-dot.today{border-color:var(--ice);color:var(--text)}
+.train-tl{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:4px 0 0;font-size:12px}
+.train-tl-dot{color:var(--text3);line-height:1;cursor:default;letter-spacing:2px}
+.train-tl-today{color:var(--ice);font-weight:700}
 
 .timeline{display:flex;gap:3px;margin-bottom:16px}
 .tl-wk{flex:1;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:.2s}
@@ -451,10 +454,11 @@ const EX_MUSCLE_IDS={
 function isoFromDate(d){const x=d instanceof Date?d:new Date(d);return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`}
 const iso=()=>isoFromDate(new Date());
 const DEF={
-  v:6,
+  v:7,
   profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"dark",quickSessionMin:0}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
+  scheduleAdjust:{catchUpQueue:[],missChoices:{},missSnoozed:{},extraTrainingIso:null,catchUpClearedDate:null},
   program:{week:1,start:iso()},
   adapt:{bench:1,squat:1,dead:1,run:1},
   logs:[],weightLog:[],healthLog:[],
@@ -489,10 +493,179 @@ function phaseColor(w){return w<=4?"var(--ice)":w<=8?"var(--gold)":w<=12?"var(--
 function wkFactor(w){return[.62,.65,.68,.60,.72,.76,.79,.65,.80,.84,.88,.92,.85][clamp(w,1,13)-1]}
 function phaseReps(w){return w<=4?[10,8,8,6]:w<=8?[6,5,4,3]:w<=12?[4,3,2,2]:[3,2,1,1]}
 function phaseSets(w){return w<=4?4:w<=8?5:w<=12?5:3}
-function autoWeek(){const d0=new Date(S.program.start+"T00:00:00");S.program.week=clamp(Math.floor((new Date()-d0)/864e5/7)+1,1,13)}
-function weekBounds(wk){const d0=new Date(S.program.start+"T12:00:00");const start=new Date(d0);start.setDate(d0.getDate()+(wk-1)*7);return start}
-function logsOnScheduleDaysThisWeek(){const wk=S.program.week,start=weekBounds(wk),days=S.schedule.days||[1,2,3,4,5];let logged=0,target=0;for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);const dow=d.getDay();if(!days.includes(dow))continue;target++;const ds=isoFromDate(d);if(S.logs.some(l=>l.date===ds))logged++}return{logged,target}}
-function trimStaleSkipped(st){st=st||S;const o=st.skippedEidsByDate||{};const cutoff=Date.now()-45*864e5;const n={};for(const k of Object.keys(o)){if(new Date(k+"T12:00:00").getTime()>=cutoff)n[k]=o[k]}st.skippedEidsByDate=n;const sf=st.sessionFeelByDate||{};const ns={};for(const k of Object.keys(sf)){if(new Date(k+"T12:00:00").getTime()>=cutoff)ns[k]=sf[k]}st.sessionFeelByDate=ns}
+function parseIsoNoon(isoStr){const p=(isoStr||"").split("-").map(Number);return new Date(p[0],(p[1]||1)-1,p[2]||1,12,0,0,0)}
+function addCalendarDaysIso(isoStr,delta){const d=parseIsoNoon(isoStr);d.setDate(d.getDate()+delta);return isoFromDate(d)}
+function sortedScheduleDays(){const raw=S.schedule.days||[1,2,3,4,5];return[...new Set(raw)].sort((a,b)=>a-b)}
+function planSlotsN(){const plan=PLANS[S.planId!=null?S.planId:0];return Math.max(1,plan&&plan.slots?plan.slots.length:1)}
+function firstTrainingIsoOnOrAfter(startIso){
+  const sorted=sortedScheduleDays();if(!sorted.length)return null;
+  let t=parseIsoNoon(startIso);
+  for(let i=0;i<400;i++){
+    if(sorted.includes(t.getDay()))return isoFromDate(t);
+    t.setDate(t.getDate()+1);
+  }
+  return null;
+}
+function nextTrainingIso(isoStr){
+  const sorted=sortedScheduleDays();if(!sorted.length)return null;
+  let t=parseIsoNoon(isoStr);t.setDate(t.getDate()+1);
+  for(let i=0;i<400;i++){
+    if(sorted.includes(t.getDay()))return isoFromDate(t);
+    t.setDate(t.getDate()+1);
+  }
+  return null;
+}
+function globalSessionIndexForDate(dateIso){
+  const anchor=firstTrainingIsoOnOrAfter(S.program.start);
+  if(!anchor||!dateIso||dateIso<anchor)return null;
+  const sorted=sortedScheduleDays();
+  if(!sorted.includes(parseIsoNoon(dateIso).getDay()))return null;
+  let idx=0,cur=anchor;
+  while(cur<dateIso){
+    cur=nextTrainingIso(cur);
+    if(!cur)return null;
+    idx++;
+  }
+  return cur===dateIso?idx:null;
+}
+function blockWeekFromGlobalIdx(g){const N=planSlotsN();return clamp(Math.floor(g/N)+1,1,13)}
+function referenceIsoForProgramWeek(){
+  const today=iso(),sorted=sortedScheduleDays(),dow=new Date().getDay();
+  if(sorted.includes(dow))return today;
+  const n=nextTrainingIso(today);
+  return n||today;
+}
+function autoWeek(){
+  const ref=referenceIsoForProgramWeek();
+  const g=globalSessionIndexForDate(ref);
+  if(g===null){S.program.week=1;return}
+  S.program.week=blockWeekFromGlobalIdx(g);
+}
+function trainingDatesInBlockWeek(blockWeek){
+  const anchor=firstTrainingIsoOnOrAfter(S.program.start);
+  if(!anchor)return[];
+  const N=planSlotsN();
+  const startG=(blockWeek-1)*N;
+  const endG=blockWeek*N-1;
+  const out=[];
+  let g=0,cur=anchor;
+  while(g<startG&&cur){cur=nextTrainingIso(cur);g++}
+  while(g<=endG&&cur){
+    out.push(cur);
+    cur=nextTrainingIso(cur);
+    g++;
+  }
+  return out;
+}
+function rollingPlanForDate(dateIso){
+  const sorted=sortedScheduleDays();
+  const dow=parseIsoNoon(dateIso).getDay();
+  if(!sorted.includes(dow))return{focus:"Active Recovery",exs:[],finisher:"Light walk + foam rolling.",slot:null,blockWeek:null,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN()};
+  const g=globalSessionIndexForDate(dateIso);
+  if(g===null)return{focus:"Program starts soon",exs:[],finisher:"Check your start date in Settings.",slot:null,blockWeek:1,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN()};
+  const plan=PLANS[S.planId!=null?S.planId:0];
+  const N=planSlotsN();
+  const blockWeek=blockWeekFromGlobalIdx(g);
+  const slotIdx=g%N;
+  const slot=(plan.slots&&plan.slots[slotIdx])||"FB";
+  const p=mkDay(slot,blockWeek);
+  p.slot=slot;
+  p.blockWeek=blockWeek;
+  p.globalIdx=g;
+  p.sessionInWeek=slotIdx+1;
+  p.sessionsPerWeek=N;
+  return p;
+}
+function getWkForDate(d){
+  const N=planSlotsN();
+  for(let i=0;i<21;i++){
+    const isoStr=addCalendarDaysIso(d,-i);
+    const g=globalSessionIndexForDate(isoStr);
+    if(g!==null)return blockWeekFromGlobalIdx(g);
+  }
+  return 1;
+}
+function logsOnScheduleDaysThisWeek(){
+  const wk=S.program.week;
+  const dates=trainingDatesInBlockWeek(wk);
+  let logged=0;
+  for(const ds of dates)if(S.logs.some(l=>l.date===ds))logged++;
+  return{logged,target:dates.length};
+}
+function ensureScheduleAdjust(){
+  if(!S.scheduleAdjust)S.scheduleAdjust={catchUpQueue:[],missChoices:{},missSnoozed:{},extraTrainingIso:null,catchUpClearedDate:null};
+  if(!Array.isArray(S.scheduleAdjust.catchUpQueue))S.scheduleAdjust.catchUpQueue=[];
+  if(!S.scheduleAdjust.missChoices||typeof S.scheduleAdjust.missChoices!=="object")S.scheduleAdjust.missChoices={};
+  if(!S.scheduleAdjust.missSnoozed||typeof S.scheduleAdjust.missSnoozed!=="object")S.scheduleAdjust.missSnoozed={};
+  return S.scheduleAdjust;
+}
+function resolveCatchUpQueueAfterLog(logDate){
+  const adj=ensureScheduleAdjust();
+  const q=adj.catchUpQueue[0];
+  if(!q)return;
+  if(q.missedIso===logDate){
+    adj.catchUpQueue=adj.catchUpQueue.filter(x=>x.missedIso!==logDate);
+    delete adj.missChoices[q.missedIso];
+    if(!adj.catchUpQueue.length){adj.extraTrainingIso=null;adj.catchUpClearedDate=null}
+    return;
+  }
+  if(q.dueIso===logDate||adj.extraTrainingIso===logDate){
+    if(adj.catchUpClearedDate===logDate)return;
+    adj.catchUpClearedDate=logDate;
+    adj.catchUpQueue.shift();
+    if(adj.extraTrainingIso===logDate)adj.extraTrainingIso=null;
+    if(!adj.catchUpQueue.length){adj.extraTrainingIso=null;adj.catchUpClearedDate=null}
+  }
+}
+function oldestUnresolvedMiss(){
+  const todayIso=iso();
+  const anchor=firstTrainingIsoOnOrAfter(S.program.start);
+  if(!anchor||todayIso<=anchor)return null;
+  const adj=ensureScheduleAdjust();
+  let cur=anchor;
+  while(cur&&cur<todayIso){
+    if(sortedScheduleDays().includes(parseIsoNoon(cur).getDay())){
+      const hasLog=S.logs.some(l=>l.date===cur);
+      const ch=adj.missChoices[cur];
+      const sn=adj.missSnoozed[cur];
+      if(!hasLog&&!ch&&!sn){
+        const dow=parseIsoNoon(cur).getDay();
+        return{date:cur,dayName:DAYS[dow],dow};
+      }
+    }
+    cur=nextTrainingIso(cur);
+  }
+  return null;
+}
+function nextTrainingDotsHtml(maxDots){
+  const n=maxDots||6;
+  const today=iso();
+  let d=sortedScheduleDays().includes(new Date().getDay())?today:(nextTrainingIso(today)||today);
+  const parts=[];
+  for(let i=0;i<n&&d;i++){
+    const isToday=d===today;
+    const label=`${d} · ${DAYS[parseIsoNoon(d).getDay()]}`;
+    parts.push(`<span class="train-tl-dot ${isToday?"train-tl-today":""}" title="${label}">${isToday?"●":"○"}</span>`);
+    d=nextTrainingIso(d);
+  }
+  return parts.length?`<div class="train-tl" role="presentation" aria-hidden="true"><span style="font-size:10px;color:var(--text3);margin-right:8px">Next</span>${parts.join("")}</div>`:"";
+}
+function trimStaleSkipped(st){
+  st=st||S;
+  const o=st.skippedEidsByDate||{};
+  const cutoff=Date.now()-45*864e5;
+  const n={};
+  for(const k of Object.keys(o)){if(new Date(k+"T12:00:00").getTime()>=cutoff)n[k]=o[k]}
+  st.skippedEidsByDate=n;
+  const sf=st.sessionFeelByDate||{};
+  const ns={};
+  for(const k of Object.keys(sf)){if(new Date(k+"T12:00:00").getTime()>=cutoff)ns[k]=sf[k]}
+  st.sessionFeelByDate=ns;
+  const sa=st.scheduleAdjust;
+  if(sa&&Array.isArray(sa.catchUpQueue)){
+    sa.catchUpQueue=sa.catchUpQueue.filter(x=>{const m=x&&x.missedIso;if(!m)return false;return new Date(m+"T12:00:00").getTime()>=cutoff-60*864e5});
+  }
+}
 function weekIntentLine(w){
   const phase=phaseName(w).toLowerCase();
   const plan=PLANS[S.planId!=null?S.planId:0];
@@ -507,28 +680,14 @@ function weekIntentLine(w){
   if(run)parts.push("one quality run stimulus");
   const fa=(S.goals.focusAreas||[]).filter(Boolean);
   const faBit=fa.length?` · ${fa.slice(0,2).join(" & ")}`:"";
-  return`This week (${phase}): ${parts.join(" + ")||"full-body progress"}${faBit}.`;
+  return`This training week (${phase}): ${parts.join(" + ")||"full-body progress"}${faBit}.`;
 }
 function milestoneCheckpointCopy(w){
   if(w===4||w===8)return{title:"Deload checkpoint",body:"Week "+w+" eases volume on purpose so you absorb the last block and come back stronger. This is planned progression — not lost time."};
   if(w===13)return{title:"Test week",body:"Treat heavy work as crisp technique practice. Log honestly; scores inform the next block without judging you."};
   return null;
 }
-function firstMissedScheduledSession(){
-  const days=S.schedule.days||[1,2,3,4,5];
-  const today=new Date();today.setHours(12,0,0,0);
-  for(let back=1;back<=9;back++){
-    const dt=new Date(today);dt.setDate(dt.getDate()-back);
-    const ds=isoFromDate(dt);
-    const dow=dt.getDay();
-    if(!days.includes(dow))continue;
-    const wk=clamp(Math.floor((new Date(ds+"T12:00:00")-new Date(S.program.start+"T12:00:00"))/864e5/7)+1,1,13);
-    if(wk!==S.program.week)continue;
-    if(S.logs.some(l=>l.date===ds))continue;
-    return{date:ds,dayName:DAYS[dow],dow};
-  }
-  return null;
-}
+function firstMissedScheduledSession(){return oldestUnresolvedMiss()}
 function feelLiftDelta(feel){if(feel==="easy")return .007;if(feel==="hard")return -.011;return 0}
 function applyFeelToLogAdapt(log){
   const type=inferType(log.exercise);
@@ -549,9 +708,32 @@ function revertSessionFeelNudge(feel){
 }
 function todayPlanFiltered(){
   autoWeek();
-  const d=new Date(),w=S.program.week;
-  const base=dayPlan(d.getDay(),w);
-  const skip=new Set((S.skippedEidsByDate&&S.skippedEidsByDate[iso()])||[]);
+  const todayIso=iso();
+  const adj=ensureScheduleAdjust();
+  const q=adj.catchUpQueue[0];
+  let base;
+  if(q&&q.dueIso===todayIso){
+    base=mkDay(q.slot,q.blockWeek);
+    base.slot=q.slot;
+    base.blockWeek=q.blockWeek;
+    base.globalIdx=q.globalIdx;
+    const N=planSlotsN();
+    base.sessionInWeek=(q.globalIdx%N)+1;
+    base.sessionsPerWeek=N;
+    base._catchUpDue=true;
+  }else if(adj.extraTrainingIso===todayIso&&q){
+    base=mkDay(q.slot,q.blockWeek);
+    base.slot=q.slot;
+    base.blockWeek=q.blockWeek;
+    base.globalIdx=q.globalIdx;
+    const N=planSlotsN();
+    base.sessionInWeek=(q.globalIdx%N)+1;
+    base.sessionsPerWeek=N;
+    base._catchUpExtra=true;
+  }else{
+    base=rollingPlanForDate(todayIso);
+  }
+  const skip=new Set((S.skippedEidsByDate&&S.skippedEidsByDate[todayIso])||[]);
   let exs=(base.exs||[]).filter(ex=>!skip.has(ex.eid));
   const qm=Number((S.profile.prefs||{}).quickSessionMin)||0;
   const quickNote=qm>0&&base.exs.length>2;
@@ -559,8 +741,17 @@ function todayPlanFiltered(){
   return{...base,exs,quickNote};
 }
 function scrollToHashAfterRender(hash){if(!hash)return;requestAnimationFrame(()=>{const el=document.querySelector(hash);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})})}
-function nextScheduledDayTeaser(){const days=S.schedule.days||[1,2,3,4,5];const t=new Date();for(let k=1;k<=8;k++){const d=new Date(t);d.setDate(t.getDate()+k);if(days.includes(d.getDay()))return`Next session: ${DAYS[d.getDay()]}.`}return""}
-function sessionBreadcrumb(w,plan){const phase=phaseName(w);const head=(plan.focus||"Today's session").split("·")[0].trim().slice(0,52);return`Week ${w} · ${phase} · ${head}${plan.finisher?" + finisher":""}`}
+function nextScheduledDayTeaser(){const n=nextTrainingIso(iso());return n?`Next session: ${DAYS[parseIsoNoon(n).getDay()]} (${n}).`:""}
+function sessionBreadcrumb(w,plan){
+  const phase=phaseName(w);
+  const head=(plan.focus||"Today's session").split("·")[0].trim().slice(0,52);
+  const pos=plan.sessionInWeek&&plan.sessionsPerWeek?` · Session ${plan.sessionInWeek} of ${plan.sessionsPerWeek}`:"";
+  return`Week ${w} · ${phase}${pos} · ${head}${plan.finisher?" + finisher":""}`;
+}
+function blockPositionLine(plan){
+  if(!plan||!plan.sessionInWeek||!plan.sessionsPerWeek)return"";
+  return`Block position: ${plan.sessionInWeek} of ${plan.sessionsPerWeek} this training week`;
+}
 function parseRestSec(restStr){
   const s=String(restStr||"").toLowerCase();
   let m=s.match(/(\d+)\s*-\s*(\d+)\s*min/);if(m)return Math.round((+m[1]+ +m[2])/2*60);
@@ -603,7 +794,7 @@ function normalizeTabs(){if(tab==="dash"){tab=TAB_YOU;youSub="home"}else if(tab=
 function isExLoggedToday(eid){const e=exById(eid),name=e?e.name:eid;return S.logs.some(l=>l.date===iso()&&l.exercise===name)}
 function inferType(n){n=(n||"").toLowerCase();if(n.includes("bench")||n.includes("incline")||n.includes("close")||n.includes("dip"))return"bench";if((n.includes("squat")&&!n.includes("air"))||n.includes("bulgarian"))return"squat";if(n.includes("deadlift")||n.includes("rdl"))return"dead";if(n.includes("run")||n.includes("800")||n.includes("tempo"))return"run";return"acc"}
 function getStreak(){const dates=new Set(S.logs.map(l=>l.date));let s=0;const d=new Date();for(let i=0;i<30;i++){const dd=new Date(d);dd.setDate(dd.getDate()-i);if(dates.has(isoFromDate(dd)))s++;else if(i>0)break;}return s}
-function weekHasLogs(w){return S.logs.some(l=>l.week===w)}
+function weekHasLogs(w){const dates=trainingDatesInBlockWeek(w);return dates.some(ds=>S.logs.some(l=>l.date===ds))}
 function trendArrow(type){const r=S.logs.filter(l=>inferType(l.exercise)===type).slice(-6);if(r.length<2)return{i:"→",c:"trend-flat",t:"Gathering data"};const f=r.slice(0,3).reduce((s,l)=>s+(l.score||1),0)/Math.min(3,r.length);const l=r.slice(-3).reduce((s,x)=>s+(x.score||1),0)/Math.min(3,r.length);if(l>f*1.03)return{i:"↑",c:"trend-up",t:"Improving"};if(l<f*.97)return{i:"↓",c:"trend-down",t:"Consider deload"};return{i:"→",c:"trend-flat",t:"Steady"}}
 function toast(m,opt){
   opt=opt||{};
@@ -1202,17 +1393,6 @@ function mkDay(slot,w){
   return out;
 }
 
-function dayPlan(dayIdx,w){
-  if(dayIdx===0) return{focus:"Full Recovery",exs:[],finisher:"Rest and prep meals."};
-  const plan=PLANS[S.planId!=null?S.planId:0];
-  const tDays=S.schedule.days||[1,2,3,4,5];
-  const slotIdx=tDays.indexOf(dayIdx);
-  if(slotIdx<0||slotIdx>=plan.slots.length) return{focus:"Active Recovery",exs:[],finisher:"Light walk + foam rolling."};
-  const p=mkDay(plan.slots[slotIdx],w);
-  p.slot=plan.slots[slotIdx];
-  return p;
-}
-
 function getSafetyMode(){
   if(S.profile.sex!=="female")return "none";
   const life=((S.profile.prefs||{}).lifeStage||"general");
@@ -1317,9 +1497,8 @@ function calcLogScore(log){
   return 1;
 }
 function applyDayAdaptation(dateStr){
-  const dObj=new Date(dateStr+"T12:00:00");
   const wk=getWkForDate(dateStr);
-  const plan=dayPlan(dObj.getDay(),wk);
+  const plan=rollingPlanForDate(dateStr);
   let touched=0;
   for(const ex of (plan.exs||[])){
     const e=exById(ex.eid),name=e?e.name:ex.eid;
@@ -1618,8 +1797,8 @@ function renderOB(){
     document.getElementById("ob-back").onclick=()=>{obStep=2;renderOB()};
     document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;S.profile.prefs={...(S.profile.prefs||{}),equipment:document.getElementById("ob-eq").value,style:document.getElementById("ob-style").value,lifeStage:document.getElementById("ob-life").value,womenMode:(document.getElementById("ob-wm")||{value:(S.profile.prefs||{}).womenMode||"auto"}).value};obStep=4;renderOB()};
   } else if(obStep===4){
-    const pid=selectPlan();const plan=PLANS[pid];const tDays=S.schedule.days||[1,2,3,4,5];
-    const dayPreview=plan.slots.map((sl,i)=>{const d=tDays[i];return d!=null?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:600;font-size:12px">${DAYS[d]}</span><span style="font-size:12px;color:var(--text2)">${mkDay(sl,1).focus.replace(" (DELOAD)","")}</span></div>`:""}).join("");
+    const pid=selectPlan();const plan=PLANS[pid];const tDays=[...new Set(S.schedule.days||[1,2,3,4,5])].sort((a,b)=>a-b);
+    const dayPreview=plan.slots.map((sl,i)=>{const d=tDays[i];return d!=null?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:600;font-size:12px">${DAYS[d]} (slot ${i+1})</span><span style="font-size:12px;color:var(--text2)">${mkDay(sl,1).focus.replace(" (DELOAD)","")}</span></div>`:""}).join("");
     card.innerHTML=`<div class="ob-progress">${dots}</div>
       <div class="ob-title">Your Program</div><div class="ob-sub">Based on your profile, we matched you to one of 64 preset programs.</div>
       <div class="card" style="border-color:var(--border-lit);margin-bottom:14px"><div style="font-size:16px;font-weight:600;margin-bottom:4px;color:var(--text);letter-spacing:-0.02em">${plan.name}</div>
@@ -1669,17 +1848,12 @@ function renderNav(){
 //  RENDER — DASHBOARD
 // ═══════════════════════════════════════════════════════════
 function trainingDayHint(){
-  const days=S.schedule.days||[1,2,3,4,5];
-  const d0=new Date(S.program.start+"T00:00:00");
-  for(let k=0;k<10;k++){
-    const dt=new Date();dt.setHours(12,0,0,0);dt.setDate(dt.getDate()+k);
-    const ds=isoFromDate(dt);
-    const dow=dt.getDay();
-    if(!days.includes(dow))continue;
-    const wk=clamp(Math.floor((new Date(ds+"T12:00:00")-d0)/864e5/7)+1,1,13);
-    const pl=dayPlan(dow,wk);
+  for(let k=0;k<14;k++){
+    const ds=addCalendarDaysIso(iso(),k);
+    const pl=rollingPlanForDate(ds);
+    const dow=parseIsoNoon(ds).getDay();
     const when=k===0?"Today":k===1?"Tomorrow":DAYS[dow];
-    if(!pl.exs.length)return`${when}: recovery or light day — optional easy movement.`;
+    if(!pl.exs.length)continue;
     const focus=(pl.focus||"Training").split("·")[0].trim().slice(0,48);
     return`${when}: ${focus} · ${pl.exs.length} exercise${pl.exs.length!==1?"s":""}`;
   }
@@ -1687,7 +1861,7 @@ function trainingDayHint(){
 }
 function renderDash(){
   autoWeek();
-  const d=new Date(),w=S.program.week,plan=dayPlan(d.getDay(),w);
+  const d=new Date(),w=S.program.week,plan=rollingPlanForDate(iso());
   const p=S.profile,g=S.goals;const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5);const fatLost=p.startWt-p.weight;
   const bP=g.bench?clamp(p.bench1RM/g.bench,0,1):0;const rP=g.fiveK?clamp(g.fiveK/fk,0,1):0;const fP=g.fatLoss?clamp(fatLost/g.fatLoss,0,1):0;
   const streak=getStreak();const bT=trendArrow("bench"),sT=trendArrow("squat"),dT=trendArrow("dead"),rT=trendArrow("run");
@@ -1698,6 +1872,7 @@ function renderDash(){
   const wl=S.weightLog.slice(-14);const maxW=Math.max(...wl.map(x=>x.wt),p.startWt||0,1);const minW=Math.min(...wl.map(x=>x.wt),p.goalWt||0);
   const wtBars=wl.map(x=>{const pct=maxW>minW?((x.wt-minW)/(maxW-minW)):0.5;return`<div class="wt-col" style="height:${Math.max(4,pct*100)}%;background:${x.wt<=p.goalWt?"var(--mint)":"var(--ice)"}" title="${x.date}: ${x.wt}lb"></div>`}).join("");
   const bc=sessionBreadcrumb(w,plan);
+  const bpos=blockPositionLine(plan);
   const firstEx=plan.exs[0];const e0=firstEx?exById(firstEx.eid):null;
   const heroTitle=plan.exs.length?`${DAYS[d.getDay()]} session`:`${DAYS[d.getDay()]} — easy day`;
   const heroMeta=`~${S.schedule.sessionMin||45} min · ${plan.exs.length?plan.exs.length+" exercises":"recovery"}`;
@@ -1724,6 +1899,7 @@ function renderDash(){
   <div class="hero-card">
     <div class="hero-title">${heroTitle}</div>
     <div class="breadcrumb">${bc}</div>
+    ${bpos?`<div style="font-size:11px;color:var(--text3);margin-top:4px">${bpos}</div>`:""}
     <div class="hero-meta">${heroMeta}</div>
     <div style="font-size:11px;color:var(--text3);margin-top:6px">First move · <span class="ex-name-lg" style="display:inline">${heroExName}</span></div>
     <div class="hero-target">${heroTarget}</div>
@@ -1734,7 +1910,7 @@ function renderDash(){
     <div style="font-size:13px;font-weight:600;color:var(--text)">${dateLine}</div>
     <div style="font-size:12px;color:var(--ice);margin-top:8px;line-height:1.45">${intentLine}</div>
     <div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">${nextLine}</div>
-    <div style="font-size:11px;color:var(--text3);margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>Program block</span><span>Week ${w} of 13</span></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>Program block (training weeks)</span><span>Week ${w} of 13</span></div>
     <div class="prog-bar" aria-hidden="true"><i style="width:${progPct}%"></i></div>
     <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px">
       <button type="button" class="btn btn-cta btn-sm" id="dash-q-session">Today's session</button>
@@ -1747,7 +1923,7 @@ function renderDash(){
   </div>
   <div class="micro-goal card" style="padding:14px;display:flex;align-items:center;gap:14px">
     <div class="micro-ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="rbg" cx="26" cy="26" r="18"/><circle class="rfill" cx="26" cy="26" r="18" stroke-dasharray="${ringLen}" stroke-dashoffset="${off}"/></svg><span>${mg.logged}/${mg.target}</span></div>
-    <div><div style="font-size:14px;font-weight:600">This week on your calendar</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Aim for each scheduled day (${mg.target} in this block). Logging keeps your prescriptions realistic.</div></div>
+    <div><div style="font-size:14px;font-weight:600">This training week</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Aim for ${mg.target} session${mg.target!==1?"s":""} in this rolling week (not Mon–Sun). Logging keeps prescriptions realistic.</div></div>
   </div>
   ${weekLogEmpty?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:14px;font-weight:600;margin-bottom:4px">No entries yet this week</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px">A short log after training adjusts loads for the rest of the block.</p><button type="button" class="btn btn-fire" id="dash-go-log">Log today's session</button></div>`:""}
 
@@ -1873,25 +2049,40 @@ function bindYou(){
 // ═══════════════════════════════════════════════════════════
 function renderToday(){
   const plan=todayPlanFiltered();
-  const d=new Date(),w=S.program.week;
+  const d=new Date(),w=plan.blockWeek!=null?plan.blockWeek:S.program.week;
   const meta=slotMeta(plan.slot||"");
   const safety=getSafetyMode();
   const micro=(S.profile.sex==="female"&&safety==="postpartum")?postpartumMicroRoutine(d.getDay()):null;
   const zones=mergeZones(plan);
   const bc=sessionBreadcrumb(w,plan);
+  const bpos=blockPositionLine(plan);
   const qm=Number((S.profile.prefs||{}).quickSessionMin)||0;
   const skipped=((S.skippedEidsByDate||{})[iso()]||[]);
   const skippedLbl=skipped.map(id=>(exById(id)||{}).name||id).join(", ");
   const sf=S.sessionFeelByDate&&S.sessionFeelByDate[iso()];
   const finalized=!!((S.sessionAdaptedByDate||{})[iso()]);
+  const miss=oldestUnresolvedMiss();
+  const adj=ensureScheduleAdjust();
+  const todayIso=iso();
+  const isTrainDay=globalSessionIndexForDate(todayIso)!==null;
+  const q0=adj.catchUpQueue[0];
+  const showOffDayCatch=!isTrainDay&&!!q0&&(!q0.dueIso||q0.dueIso>todayIso)&&adj.extraTrainingIso!==todayIso;
+  const catchLabel=q0?((()=>{const cp=mkDay(q0.slot,q0.blockWeek);return(cp.focus||"Session").split("·")[0].trim().slice(0,42)})()):"";
+  const catchBanner=plan._catchUpDue||plan._catchUpExtra;
   return`<div id="p-today">
   <div class="hero-title" style="font-size:20px;margin-bottom:4px">${DAYS[d.getDay()]}</div>
   <div class="breadcrumb">${bc}</div>
+  ${bpos?`<div style="font-size:11px;color:var(--text3);margin-bottom:6px">${bpos}</div>`:""}
+  ${nextTrainingDotsHtml(6)}
+  ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
+  ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
+  ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">Not a scheduled training day — no pressure. If you want extra work: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today">Add to today</button></div>`:""}
   <div class="train-aids section">
     <button type="button" class="btn btn-secondary-solid ${qm>0?"btn-fire":""}" id="train-quick">${qm>0?"15-min mode on":"Minimum session (~15 min)"}</button>
     <button type="button" class="btn btn-ghost" id="train-open-plates">Plate helper</button>
     <button type="button" class="btn btn-ghost" id="train-open-health">Health metrics</button>
     <button type="button" class="btn btn-ghost" id="train-open-ease">Ease load…</button>
+    <button type="button" class="btn btn-ghost btn-sm" id="train-adjust-schedule" title="Re-open choices for missed sessions">Adjust schedule</button>
   </div>
   <div class="card section" id="train-plates-card">
     <button type="button" class="details-toggle" id="train-plates-toggle" style="width:100%;text-align:left">Bar load helper (in-workout)</button>
@@ -1959,18 +2150,26 @@ function bindToday(){
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=()=>document.getElementById("exb-"+b.dataset.i).classList.toggle("open"));
   document.querySelectorAll(".ex-how").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const how=document.getElementById("exhow-"+i);const pdf=document.getElementById("expdf-"+i);if(!body.classList.contains("open"))body.classList.add("open");how.style.display=how.style.display==="none"?"block":"none";const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);if(e&&e.books.length){const bk=e.books[0],src=S.pdfs[bk];if(src){pdf.innerHTML=`<p style="color:var(--text3);font-size:11px">Searching ${bk}…</p>`;try{const doc=await getPdf(bk,src);let best={pg:1,sc:-1};for(let p=1;p<=doc.numPages;p++){const pg=await doc.getPage(p);const tc=await pg.getTextContent();const txt=tc.items.map(x=>x.str).join(" ").toLowerCase();let sc=0;for(const k of e.kw)if(txt.includes(k))sc++;if(sc>best.sc)best={pg:p,sc};if(sc>=Math.min(e.kw.length,3))break}const pg=await doc.getPage(best.pg);const vp=pg.getViewport({scale:1.4});const cvs=document.createElement("canvas");cvs.width=vp.width;cvs.height=vp.height;cvs.style.cssText="width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px";await pg.render({canvasContext:cvs.getContext("2d"),viewport:vp}).promise;pdf.innerHTML=`<p style="color:var(--mint);font-size:11px">Page ${best.pg} of ${bk}</p>`;pdf.appendChild(cvs)}catch{pdf.innerHTML=`<p style="color:var(--red);font-size:11px">Could not load PDF preview.</p>`}}else pdf.innerHTML=`<p style="color:var(--gold);font-size:11px">PDF preview not configured. Use the How-To steps and video above.</p>`}});
   document.querySelectorAll(".q-save").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;document.getElementById("t-s"+i).value=1;document.getElementById("t-r"+i).value=document.getElementById("tq-r"+i).value;document.getElementById("t-w"+i).value=document.getElementById("tq-w"+i).value;const qo=document.getElementById("tq-o"+i),o=document.getElementById("t-o"+i);if(qo&&o)o.value=qo.value;document.querySelector(`.ex-save[data-i="${i}"]`).click()});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:iso(),week:S.program.week,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[iso()];await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};toast(`${name} saved`,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
+  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=iso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};toast(`${name} saved`,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
+  const mm=document.getElementById("miss-move"),ms=document.getElementById("miss-skip"),mp=document.getElementById("miss-pick"),ml=document.getElementById("miss-later"),cu=document.getElementById("catchup-add-today"),tas=document.getElementById("train-adjust-schedule");
+  if(mm)mm.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const pl=rollingPlanForDate(m.date);const due=nextTrainingIso(m.date);if(!due){toast("Could not find a next training day.");return}const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:due});a.missChoices[m.date]={choice:"move"};await persist();render();toast(`Queued for ${DAYS[parseIsoNoon(due).getDay()]} (${due}).`)};
+  if(ms)ms.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();render();toast("Session skipped for this block week.")};
+  if(mp)mp.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const def=nextTrainingIso(iso())||iso();const raw=prompt("Catch-up on which date? (YYYY-MM-DD)",def);if(raw==null)return;const nd=raw.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(parseIsoNoon(nd).getTime())){toast("Invalid date.");return}const pl=rollingPlanForDate(m.date);const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:nd});a.missChoices[m.date]={choice:"pick",pickIso:nd};await persist();render();toast("Catch-up scheduled for "+nd+".")};
+  if(ml)ml.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missSnoozed[m.date]=true;await persist();render();toast("Okay — we won't nag. Use Adjust schedule to revisit.")};
+  if(cu)cu.onclick=async()=>{ensureScheduleAdjust().extraTrainingIso=iso();await persist();render();toast("Catch-up added to today.")};
+  if(tas)tas.onclick=async()=>{const a=ensureScheduleAdjust();a.missSnoozed={};await persist();render();toast("Schedule choices unlocked for missed days.")};
 }
 
 // ═══════════════════════════════════════════════════════════
 //  RENDER — LOG
 // ═══════════════════════════════════════════════════════════
 function renderLog(){
-  const dObj=new Date(logDate+"T12:00:00");const dayIdx=dObj.getDay();const wk=getWkForDate(logDate);const plan=dayPlan(dayIdx,wk);
+  const dObj=new Date(logDate+"T12:00:00");const dayIdx=dObj.getDay();const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);
+  const sessLbl=plan.sessionInWeek&&plan.sessionsPerWeek?` · Sess ${plan.sessionInWeek}/${plan.sessionsPerWeek}`:"";
   const allDates=[...new Set(S.logs.map(l=>l.date))].sort().reverse();
   return`<div class="section"><div class="card"><div class="card-h"><h2>Session report</h2><span class="badge badge-ice">Updates loads</span></div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Log actual performance. The program recalculates all future workouts from your reports.</p>
-    <div class="grid2" style="max-width:400px;margin-bottom:14px"><div><label>Date</label><input type="date" id="log-date" value="${logDate}"></div><div><label>Day / Week</label><input disabled value="${DAYS[dayIdx]} — Wk ${wk}"></div></div>
+    <div class="grid2" style="max-width:400px;margin-bottom:14px"><div><label>Date</label><input type="date" id="log-date" value="${logDate}"></div><div><label>Day / training week</label><input disabled value="${DAYS[dayIdx]} — Wk ${wk}${sessLbl}"></div></div>
     ${plan.exs.length?`<div class="table-wrap"><table><thead><tr><th>Exercise</th><th>Target</th><th>Sets</th><th>Reps</th><th>Load</th><th>Notes</th></tr></thead><tbody>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);return`<tr><td style="color:var(--text);font-weight:600">${e?e.name:ex.eid}</td><td style="white-space:nowrap">${ex.sets}×${ex.reps} @ ${ex.target||"BW"}</td><td><input type="number" class="input-sm" id="lg-s${i}" value="${ex.sets}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-r${i}" value="${ex.reps}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-w${i}" value="${ex.target||0}" min="0" style="width:70px"></td><td><input type="text" class="input-sm" id="lg-n${i}" placeholder="optional" style="width:100px"></td></tr>`}).join("")}</tbody></table></div>
     <button class="btn btn-mint btn-block" id="log-save" style="margin-top:12px">Save report</button>`:`<div style="padding:16px;color:var(--text3);text-align:center">Recovery day.</div>`}
   </div></div>
@@ -1978,10 +2177,9 @@ function renderLog(){
     ${allDates.length?allDates.slice(0,20).map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><div class="row" style="gap:6px"><span class="log-score ${cls}">${avg.toFixed(2)}</span><button class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)">Edit</button><button class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)">✕</button></div></div>${dl.map(l=>`<div class="log-detail" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px"><span>${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${l.note?" — "+l.note:""}${l.outcome==="fail"?" · failed rep target":l.outcome==="time"?" · time-capped":""}</span><span class="row" style="gap:4px;flex-shrink:0"><button type="button" class="btn btn-sm btn-ghost log-move-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--ice)">Move</button><button type="button" class="btn btn-sm btn-ghost log-del-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--red)">Remove</button></span></div>`).join("")}</div>`}).join(""):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`}
   </div></div>`;
 }
-function getWkForDate(d){const d0=new Date(S.program.start+"T00:00:00");return clamp(Math.floor((new Date(d+"T12:00:00")-d0)/864e5/7)+1,1,13)}
 function bindLog(){
   const di=document.getElementById("log-date");if(di)di.onchange=()=>{logDate=di.value;render()};
-  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const dObj=new Date(logDate+"T12:00:00");const wk=getWkForDate(logDate);const plan=dayPlan(dObj.getDay(),wk);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
+  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:plan.blockWeek!=null?plan.blockWeek:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(c>0)resolveCatchUpQueueAfterLog(logDate);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
   document.querySelectorAll(".log-edit").forEach(b=>b.onclick=()=>{logDate=b.dataset.d;render();toast("Loaded date for editing. Update values and save.")});
   document.querySelectorAll(".log-del").forEach(b=>b.onclick=async()=>{const ds=b.dataset.d;if(!confirm("Delete logs for "+ds+"?"))return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
   document.querySelectorAll(".log-move-line").forEach(b=>b.onclick=async()=>{const id=b.dataset.id;const log=S.logs.find(x=>x.id===id);if(!log)return;const nd=prompt("Move this entry to date (YYYY-MM-DD):",log.date);if(nd==null)return;const nd2=nd.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Invalid date.");return}const oldDate=log.date;log.date=nd2;log.week=getWkForDate(nd2);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[oldDate];delete S.sessionAdaptedByDate[nd2];await persist();render();toast("Entry moved to "+nd2)});
@@ -1999,12 +2197,19 @@ function renderProgram(){
   return`<div id="p-plan" class="${compact?"plan-compact":""}"><div class="section"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h2 style="font-size:18px;font-weight:600;letter-spacing:-0.02em">Thirteen-week block</h2><div class="row" style="gap:8px;align-items:center"><span style="font-size:12px;color:var(--text3)">Loads follow your logs</span><button type="button" class="btn btn-sm btn-ghost" id="plan-compact-toggle">${compact?"Show all exercises":"Simpler view"}</button></div></div>
     ${ws?`<div class="card" style="margin-bottom:10px;border-left:3px solid var(--mint)"><div class="card-h"><h2>Women's Program Summary</h2><span class="badge badge-mint">${ws.label}</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:8px">Baseline: <b style="color:var(--text)">${ws.tier}</b> · Life stage: <b style="color:var(--text)">${ws.life}</b> · Equipment: <b style="color:var(--text)">${ws.eq}</b> · Session style: <b style="color:var(--text)">${ws.style}</b></div><div style="display:grid;gap:4px">${ws.tracks.map(t=>`<div style="font-size:11px;color:var(--text2)">• ${t}</div>`).join("")}</div>${ws.fa.length?`<div style="margin-top:8px;font-size:10px;color:var(--text3)">Goals: ${ws.fa.join(" · ")}</div>`:""}</div>`:""}
     <div class="card" style="margin-bottom:10px"><div class="card-h"><h2>Expected Changes Heatmap</h2></div><div class="row" style="gap:14px"><div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">${hm.glutes}%</b></div><div style="font-size:11px;color:var(--text2)">Core <b style="color:var(--mint)">${hm.core}%</b></div><div style="font-size:11px;color:var(--text2)">Back <b style="color:var(--mint)">${hm.back}%</b></div><div style="font-size:11px;color:var(--text2)">Posture <b style="color:var(--mint)">${hm.posture}%</b></div></div></div>
-    <div class="timeline">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" title="Wk ${w}">${w}</div>`}).join("")}</div></div>
-  <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;const wkDays=S.schedule.days||[1,2,3,4,5];
-    const logCount=weekHasLogs(w)?S.logs.filter(l=>l.week===w).length:0;
+    <div class="timeline">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" title="Training week ${w}">${w}</div>`}).join("")}</div>
+    <p style="font-size:11px;color:var(--text3);margin:8px 0 0;line-height:1.45">Weeks are <b style="color:var(--text2)">training weeks</b> (${planSlotsN()} session${planSlotsN()!==1?"s":""} each, in order from your start date — not Mon–Sun buckets).</p>
+    ${nextTrainingDotsHtml(8)}</div>
+  <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;
+    const tDates=trainingDatesInBlockWeek(w);
+    const logCount=tDates.length?S.logs.filter(l=>tDates.includes(l.date)).length:0;
     let bodyHTML="";
-    if(isOpen){bodyHTML=wkDays.concat([6]).map(d=>{const p=dayPlan(d,w);const isToday=d===new Date().getDay()&&w===cur;return`<div class="pw-day ${isToday?"pw-day-today":""}"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${DAYS[d]}</span>${isToday?` <span class="badge badge-ice" style="font-size:8px;letter-spacing:0.05em">Today</span>`:""} · ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--text3);margin:2px 0 0 16px">Finisher · ${p.finisher}</div></div>`}).join("")}
-    return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · Deload":""}</span>${w===cur?`<span class="badge badge-ice" style="font-size:9px">This week</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${logCount?logCount+" entries":"scheduled"}</span></div>
+    if(isOpen){
+      if(tDates.length){
+        bodyHTML=tDates.map((ds,si)=>{const p=rollingPlanForDate(ds);const dow=parseIsoNoon(ds).getDay();const isToday=ds===iso()&&w===cur;const shortD=parseIsoNoon(ds).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});return`<div class="pw-day ${isToday?"pw-day-today":""}"><div class="pw-day-label"><span style="color:${phaseColor(w)}">${shortD} · ${DAYS[dow]}</span> <span style="font-size:10px;color:var(--text3)">(${si+1}/${tDates.length})</span>${isToday?` <span class="badge badge-ice" style="font-size:8px;letter-spacing:0.05em">Today</span>`:""} · ${p.focus}</div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${ex.sets}×${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</span></div>`}).join(""):`<div class="pw-ex-row" style="color:var(--text3)">Recovery</div>`}<div style="font-size:10px;color:var(--text3);margin:2px 0 0 16px">Finisher · ${p.finisher}</div></div>`}).join("");
+      }else bodyHTML=`<div class="pw-ex-row" style="color:var(--text3)">No sessions mapped (check program start & schedule).</div>`;
+    }
+    return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · Deload":""}</span>${w===cur?`<span class="badge badge-ice" style="font-size:9px">This training week</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${logCount?logCount+" entries":"scheduled"}</span></div>
     <div class="pw-body ${isOpen?"open":""}">${bodyHTML}</div></div>`}).join("")}</div></div>`;
 }
 function bindProgram(){
@@ -2039,7 +2244,7 @@ function renderSettings(){
         <li><b style="color:var(--text)">Stay signed in</b> — your program syncs to your account; use the same login on every device.</li>
         <li><b style="color:var(--text)">Log after you train</b> — entries tune adaptation so prescribed loads stay realistic.</li>
         <li><b style="color:var(--text)">Train</b> — Session is your in-gym checklist; Log is for entering what you did (any date).</li>
-        <li><b style="color:var(--text)">Plan</b> — Full 13-week calendar; use it to see what is coming and stay oriented.</li>
+        <li><b style="color:var(--text)">Plan</b> — 13 training weeks (sessions in order from your start date, not Mon–Sun grids).</li>
         <li><b style="color:var(--text)">You</b> — Overview for streaks and goals; Settings for profile, backup, and if the block feels too hard.</li>
       </ul>
     </div>
