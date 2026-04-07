@@ -1444,7 +1444,6 @@ function renderDash(){
     <div class="quick-actions" role="group" aria-label="Quick actions">
       <button type="button" class="btn btn-secondary-solid btn-sm qa-pill" id="dash-q-log">Quick log</button>
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-plan">13-week plan</button>
-      <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-ref">Exercise library</button>
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-plates">Plate helper</button>
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-health">Health</button>
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-ease">Ease load</button>
@@ -1570,7 +1569,6 @@ function bindDash(){
   const gl=document.getElementById("dash-go-log");if(gl)gl.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
   const ql=document.getElementById("dash-q-log");if(ql)ql.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
   const qp=document.getElementById("dash-q-plan");if(qp)qp.onclick=()=>{tab=TAB_PLAN;location.hash=TAB_PLAN;render()};
-  const qref=document.getElementById("dash-q-ref");if(qref)qref.onclick=()=>{tab=TAB_YOU;youSub="ref";location.hash=TAB_YOU;render()};
   const qr=document.getElementById("dash-q-plates");if(qr)qr.onclick=()=>{tab=TAB_TRAIN;trainSub="workout";sessionStorage.setItem("hw-open-plates","1");render()};
   const qh=document.getElementById("dash-q-health");if(qh)qh.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-health");render()};
   const qe=document.getElementById("dash-q-ease");if(qe)qe.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";location.hash=TAB_TRAIN;sessionStorage.setItem("hw-scroll","#train-ease-panel");sessionStorage.setItem("ease-open","1");render()};
@@ -1692,8 +1690,9 @@ function renderTrain(){
   return`<div class="subtab-row"><button type="button" class="subtab ${trainSub==="workout"?"on":""} train-sub" data-s="workout">Session</button><button type="button" class="subtab ${trainSub==="log"?"on":""} train-sub" data-s="log">Log</button></div><div id="train-inner">${trainSub==="workout"?renderToday():renderLog()}</div>`;
 }
 function renderYou(){
-  const inner=youSub==="home"?renderDash():youSub==="ref"?renderRef():renderSettings();
-  return`<div class="subtab-row you-subtabs" role="tablist" aria-label="You sections"><button type="button" class="subtab ${youSub==="home"?"on":""} you-sub" role="tab" aria-selected="${youSub==="home"}" data-s="home">Overview</button><button type="button" class="subtab ${youSub==="ref"?"on":""} you-sub" role="tab" aria-selected="${youSub==="ref"}" data-s="ref">Library</button><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" role="tab" aria-selected="${youSub==="settings"}" data-s="settings">Settings</button></div><div id="you-inner">${inner}</div>`;
+  if(youSub==="ref")youSub="home";
+  const inner=youSub==="settings"?renderSettings():renderDash();
+  return`<div class="subtab-row you-subtabs" role="tablist" aria-label="You sections"><button type="button" class="subtab ${youSub==="home"?"on":""} you-sub" role="tab" aria-selected="${youSub==="home"}" data-s="home">Overview</button><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" role="tab" aria-selected="${youSub==="settings"}" data-s="settings">Settings</button></div><div id="you-inner">${inner}</div>`;
 }
 function bindTrain(){
   document.querySelectorAll(".train-sub").forEach(b=>b.onclick=()=>{if(b.dataset.s==="log")trainFocusIdx=null;trainSub=b.dataset.s;render()});
@@ -1703,7 +1702,6 @@ function bindYou(){
   releaseWorkoutWakeLock();
   document.querySelectorAll(".you-sub").forEach(b=>b.onclick=()=>{youSub=b.dataset.s;render()});
   if(youSub==="home")bindDash();
-  else if(youSub==="ref"){enhanceNumericInputs(document.getElementById("you-inner")||document);bindRef()}
   else{enhanceNumericInputs(document.getElementById("you-inner")||document);bindSettings()}
 }
 
@@ -2109,19 +2107,6 @@ function bindProgram(){
 }
 
 // ═══════════════════════════════════════════════════════════
-//  RENDER — REFERENCE
-// ═══════════════════════════════════════════════════════════
-function renderRef(){return`<div class="ref-pane section"><p class="ref-intro">Search the catalog, read how-tos, and jump to PDF pages you uploaded in Settings.</p><div class="ref-grid"><div class="card"><div class="card-h"><h2>Exercises</h2></div><label class="ref-search-label"><span style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">Search</span><input type="search" id="r-search" class="input-sm ref-search-input" placeholder="Name, tag, or keyword…" autocomplete="off" aria-label="Search exercises"></label><div class="ref-list" id="r-list"></div></div><div class="card ref-detail-card"><div class="card-h"><h2 id="r-title">Select an exercise</h2></div><p id="r-tags" class="ref-tags"></p><div id="r-howto" class="ref-howto"></div><div class="grid2 ref-pdf-row"><div><label>Book</label><select id="r-book">${Object.keys(S.pdfs).map(k=>`<option value="${k}">${k}</option>`).join("")}</select></div><div><label>Keyword</label><input id="r-kw" class="input-sm" placeholder="auto"></div></div><div class="row ref-pdf-actions"><button type="button" class="btn btn-ice" id="r-find">Find in PDF</button><button type="button" class="btn btn-ghost" id="r-render">Render page</button></div><p id="r-result" class="ref-result"></p><canvas id="r-canvas" class="ref-canvas"></canvas></div></div></div>`}
-let refSel=null,refFound=null;
-function bindRef(){
-  const s=document.getElementById("r-search"),l=document.getElementById("r-list");
-  function paint(q){const f=EX.filter(e=>!q||[e.name,...e.tags,...e.kw].join(" ").toLowerCase().includes(q));l.innerHTML=f.map(e=>`<div class="ref-item ${refSel&&refSel.id===e.id?"sel":""}" data-id="${e.id}"><b>${e.name}</b><span>${e.tags.join(", ")}</span></div>`).join("");l.querySelectorAll(".ref-item").forEach(el=>el.onclick=()=>{refSel=EX.find(x=>x.id===el.dataset.id);document.getElementById("r-title").textContent=refSel.name;document.getElementById("r-tags").textContent=refSel.tags.join(" · ")+(refSel.rest?" · Rest: "+refSel.rest:"");document.getElementById("r-howto").innerHTML=`<ol style="margin-left:16px;color:var(--text2);font-size:13px">${refSel.howTo.map(s=>`<li style="margin-bottom:4px">${s}</li>`).join("")}</ol>`;document.getElementById("r-kw").value=refSel.kw.join(" ");if(refSel.books[0])document.getElementById("r-book").value=refSel.books[0];paint(s.value.toLowerCase().trim())})}
-  paint("");s.oninput=()=>paint(s.value.toLowerCase().trim());
-  document.getElementById("r-find").onclick=async()=>{if(!refSel){document.getElementById("r-result").textContent="Select exercise first.";return}const bk=document.getElementById("r-book").value,src=S.pdfs[bk];if(!src){document.getElementById("r-result").textContent="No PDF source. Add in Settings.";return}document.getElementById("r-result").textContent="Searching…";try{const doc=await getPdf(bk,src);const kw=document.getElementById("r-kw").value.toLowerCase().split(/\s+/).filter(Boolean);let best={pg:1,sc:-1};for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i);const tc=await pg.getTextContent();const txt=tc.items.map(x=>x.str).join(" ").toLowerCase();let sc=0;for(const k of kw)if(txt.includes(k))sc++;if(sc>best.sc)best={pg:i,sc};if(sc>=Math.min(kw.length,3))break}refFound={pg:best.pg,book:bk};document.getElementById("r-result").textContent=`Page ${best.pg} (score ${best.sc}/${kw.length}). Click Render.`}catch{document.getElementById("r-result").textContent="PDF load failed."}};
-  document.getElementById("r-render").onclick=async()=>{if(!refFound)return;try{const doc=await getPdf(refFound.book,S.pdfs[refFound.book]);const pg=await doc.getPage(refFound.pg);const vp=pg.getViewport({scale:1.4});const cvs=document.getElementById("r-canvas");cvs.width=vp.width;cvs.height=vp.height;cvs.style.display="block";await pg.render({canvasContext:cvs.getContext("2d"),viewport:vp}).promise}catch(e){console.error(e)}};
-}
-
-// ═══════════════════════════════════════════════════════════
 //  RENDER — SETTINGS
 // ═══════════════════════════════════════════════════════════
 function renderSettings(){
@@ -2138,7 +2123,7 @@ function renderSettings(){
         <li><b style="color:var(--text)">Log after you train</b> — entries tune adaptation so prescribed loads stay realistic.</li>
         <li><b style="color:var(--text)">Train</b> — Session is your in-gym checklist; Log is for entering what you did (any date). If the block feels heavy, use <b style="color:var(--text)">Program feels too heavy?</b> on Train after your lifts (not buried in Settings).</li>
         <li><b style="color:var(--text)">Plan</b> — 13 training weeks (sessions in order from your start date, not Mon–Sun grids). If the Plan looks like plain weekdays with no dates, update the app (reopen or clear site data) once.</li>
-        <li><b style="color:var(--text)">You</b> — Overview for streaks and goals; <b style="color:var(--text)">Library</b> for exercise how-tos and PDF lookup; Settings for profile, backup, and tools.</li>
+        <li><b style="color:var(--text)">You</b> — Overview for streaks and goals; Settings for profile, backup, and tools. How-tos and videos are on each exercise under Train.</li>
       </ul>
     </div>
   </details>
