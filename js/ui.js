@@ -331,6 +331,55 @@ function r5(n){return Math.round(n/5)*5}
 function epley(w,r){return r<=0||w<=0?0:w*(1+r/30)}
 function mmss(s){if(!isFinite(s)||s<=0)return"--:--";const m=Math.floor(s/60),ss=Math.round(s%60);return m+":"+String(ss).padStart(2,"0")}
 function parseMM(v){const p=(v||"").split(":").map(Number);return p.length===2&&p.every(isFinite)?p[0]*60+p[1]:0}
+/** Strip to digits; keep partial (≤3) as raw; from 4+ digits treat last two as seconds (0–59). */
+function maskMmssDigitsWhileTyping(raw){
+  const d=String(raw||"").replace(/\D/g,"").slice(0,6);
+  if(!d)return"";
+  if(d.length<=3)return d;
+  let sec=parseInt(d.slice(-2),10);
+  if(!isFinite(sec))sec=0;
+  sec=Math.min(59,Math.max(0,sec));
+  const minRaw=d.slice(0,-2).replace(/^0+(?=\d)/,"")||"0";
+  return `${minRaw}:${String(sec).padStart(2,"0")}`;
+}
+/** Normalize on blur: colon → parseMM; plain digits → minutes, M+SS (3 digits), or MM+SS+. */
+function normalizeMmssFieldBlur(raw){
+  const v=String(raw||"").trim();
+  if(!v)return"";
+  if(/:/.test(v)){
+    const t=parseMM(v);
+    return t>0?mmss(t):"";
+  }
+  const d=v.replace(/\D/g,"");
+  if(!d)return"";
+  if(d.length<=2){
+    const n=parseInt(d,10);
+    return isFinite(n)&&n>0?mmss(n*60):"";
+  }
+  if(d.length===3){
+    const m=parseInt(d[0],10)||0,s=parseInt(d.slice(1),10)||0;
+    if(s>=0&&s<=59&&m>=0)return mmss(m*60+s);
+  }
+  let sec=parseInt(d.slice(-2),10)||0;
+  sec=Math.min(59,Math.max(0,sec));
+  const min=parseInt(d.slice(0,-2),10)||0;
+  const t=min*60+sec;
+  return t>0?mmss(t):"";
+}
+function bindMmssPaceInput(el){
+  if(!el||el.dataset.mmssBound==="1")return;
+  el.dataset.mmssBound="1";
+  el.addEventListener("input",()=>{
+    const next=maskMmssDigitsWhileTyping(el.value);
+    if(next!==el.value)el.value=next;
+    const pos=next.length;
+    if(el.setSelectionRange)el.setSelectionRange(pos,pos);
+  });
+  el.addEventListener("blur",()=>{
+    const next=normalizeMmssFieldBlur(el.value);
+    if(next!==el.value)el.value=next;
+  });
+}
 function hapticPulse(ms){try{if(typeof navigator!=="undefined"&&navigator.vibrate)navigator.vibrate(ms||12)}catch{}}
 function hapticKey(){hapticPulse(50)}
 function updateGlobalFabVisibility(){
@@ -2146,7 +2195,29 @@ function renderSettings(){
 }
 function bindSettings(){
   const fil=document.getElementById("s-filter");
-  if(fil)fil.oninput=()=>{const q=fil.value.toLowerCase().trim();document.querySelectorAll(".settings-section").forEach(sec=>{const blob=((sec.dataset.k||"")+" "+(sec.textContent||"")).toLowerCase();sec.classList.toggle("hidden",q.length>0&&!blob.includes(q))})};
+  function applySettingsFilter(){
+    const root=document.getElementById("you-inner");
+    if(!root||!fil)return;
+    const q=fil.value.toLowerCase().trim();
+    const all=[...root.querySelectorAll(".settings-section")];
+    if(!q.length){all.forEach(sec=>sec.classList.remove("hidden"));return;}
+    const blob=sec=>((sec.dataset.k||"")+" "+(sec.textContent||"")).toLowerCase();
+    const matched=new Set(all.filter(sec=>blob(sec).includes(q)));
+    all.forEach(sec=>{
+      let ok=matched.has(sec);
+      if(!ok){
+        let p=sec.parentElement;
+        while(p){
+          if(p.classList&&p.classList.contains("settings-section")&&matched.has(p)){ok=true;break}
+          p=p.parentElement;
+        }
+      }
+      if(!ok)ok=[...sec.querySelectorAll(".settings-section")].some(sub=>matched.has(sub));
+      sec.classList.toggle("hidden",!ok);
+    });
+  }
+  if(fil){fil.oninput=applySettingsFilter;if(fil.value.trim())applySettingsFilter()}
+  bindMmssPaceInput(document.getElementById("s-run"));
   const hsq=document.getElementById("health-steps-save"),hst=document.getElementById("health-steps-quick"),hpa=document.getElementById("health-paste-steps");
   if(hsq&&hst)hsq.onclick=async()=>{const steps=Number(hst.value)||0;if(steps<500){toast("Enter a realistic step count (500+).");return}const snap=S.healthLog.slice(),ar=S.adapt.run;S.healthLog.push({date:iso(),cal:0,exMin:0,steps});S.healthLog=S.healthLog.slice(-120);if(steps>10500)S.adapt.run=clamp(S.adapt.run+0.01,.85,1.2);if(steps<3500)S.adapt.run=clamp(S.adapt.run-0.01,.85,1.2);hst.value="";await persist();render();toast("Steps saved",{undo:()=>{S.healthLog=snap;S.adapt.run=ar;persist();render()}})};
   if(hpa&&hst)hpa.onclick=async()=>{try{const t=await navigator.clipboard.readText();const n=parseInt(String(t).replace(/[^0-9]/g,""),10);if(n>=500)hst.value=String(n);else toast("Clipboard did not look like a step count.")}catch{toast("Allow clipboard access or type steps manually.")}};
