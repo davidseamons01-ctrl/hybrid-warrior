@@ -74,7 +74,8 @@ const DEF={
   sessionFeelByDate:{},
   sessionAdaptedByDate:{},
   trustBannerLastShown:0,
-  extraActivities:[]
+  extraActivities:[],
+  warmupDoneByDate:{}
 };
 
 // Runtime state/auth/persistence extracted from inline script
@@ -536,11 +537,13 @@ function nextTrainingDotsHtml(maxDots){
   const parts=[];
   for(let i=0;i<n&&d;i++){
     const isToday=d===today;
-    const label=`${d} · ${DAYS[parseIsoNoon(d).getDay()]}`;
-    parts.push(`<span class="train-tl-dot ${isToday?"train-tl-today":""}" title="${label}">${isToday?"●":"○"}</span>`);
+    const dow=parseIsoNoon(d).getDay();
+    const label=`${d} · ${DAYS[dow]}`;
+    const letter=shortDowLetter(dow);
+    parts.push(`<span class="train-tl-dot ${isToday?"train-tl-today":""}" title="${label}">${letter}</span>`);
     d=nextTrainingIso(d);
   }
-  return parts.length?`<div class="train-tl" role="presentation" aria-hidden="true"><span style="font-size:10px;color:var(--text3);margin-right:8px">Next</span>${parts.join("")}</div>`:"";
+  return parts.length?`<div class="train-tl" role="presentation"><span style="font-size:10px;color:var(--text3);margin-right:8px">Next sessions</span>${parts.join("")}</div>`:"";
 }
 function trimStaleSkipped(st){
   st=st||S;
@@ -561,6 +564,10 @@ function trimStaleSkipped(st){
   const nsw={};
   for(const k of Object.keys(sw)){if(new Date(k+"T12:00:00").getTime()>=cutoff)nsw[k]=sw[k]}
   st.exerciseSwapsByDate=nsw;
+  const wu=st.warmupDoneByDate||{};
+  const nwu={};
+  for(const k of Object.keys(wu)){if(new Date(k+"T12:00:00").getTime()>=cutoff)nwu[k]=wu[k]}
+  st.warmupDoneByDate=nwu;
   if(Array.isArray(st.extraActivities)){
     const t0=Date.now()-180*864e5;
     st.extraActivities=st.extraActivities.filter(a=>{if(!a||!a.date)return false;const t=new Date(String(a.date)+"T12:00:00").getTime();return!Number.isNaN(t)&&t>=t0});
@@ -711,7 +718,10 @@ function blockPositionLine(plan){
   return`Block position: ${plan.sessionInWeek} of ${plan.sessionsPerWeek} this training week`;
 }
 function parseRestSec(restStr){
-  const s=String(restStr||"").toLowerCase();
+  const raw=String(restStr||"").trim();
+  const s=raw.toLowerCase();
+  const plain=s.replace(/\s/g,"");
+  if(/^\d+$/.test(plain)){const v=+plain;if(v>0&&v<=1200)return v}
   let m=s.match(/(\d+)\s*-\s*(\d+)\s*min/);if(m)return Math.round((+m[1]+ +m[2])/2*60);
   m=s.match(/(\d+(?:\.\d+)?)\s*min/);if(m)return Math.max(30,Math.round(+m[1]*60));
   m=s.match(/(\d+)\s*s(?:ec)?(?:onds?)?/);if(m)return Math.max(15,+m[1]);
@@ -719,6 +729,31 @@ function parseRestSec(restStr){
   if(s.includes("walk")||s.includes("—"))return 75;
   return 90;
 }
+function formatRestHuman(sec){
+  const n=Math.max(0,Math.round(Number(sec)||0));
+  const mm=Math.floor(n/60),ss=n%60;
+  if(mm<=0)return`${ss||0} sec`;
+  if(ss===0)return`${mm} min`;
+  return`${mm}:${String(ss).padStart(2,"0")} min`;
+}
+function warmupStepsFromPlan(warmupStr){
+  const s=String(warmupStr||"").trim();
+  if(!s)return[];
+  return s.split(/\s*→\s*|(?:\r?\n)+|•\s+/).map(x=>x.trim()).filter(Boolean);
+}
+function lastLogSummaryForEid(eid){
+  const e=exById(eid);const name=e?e.name:eid;
+  const row=[...S.logs].reverse().find(l=>l.exercise===name);
+  if(!row)return"";
+  const u=row.unit||"lb";
+  return`Last: ${row.aS}×${row.aR} @ ${row.aW} ${u}`;
+}
+function exerciseVideoThumbUrl(videoUrl){
+  const u=String(videoUrl||"");
+  const m=u.match(/embed\/([\w-]+)/)||u.match(/youtu\.be\/([\w-]+)/)||u.match(/[?&]v=([\w-]+)/)||u.match(/shorts\/([\w-]+)/);
+  return m?`https://img.youtube.com/vi/${m[1]}/mqdefault.jpg`:"";
+}
+function shortDowLetter(dow){const L=["Su","M","T","W","Th","F","Sa"];return L[dow]||"—"}
 function formatRestMs(ms){if(ms<=0)return"0:00";const t=Math.ceil(ms/1000),mm=Math.floor(t/60),ss=t%60;return mm+":"+String(ss).padStart(2,"0")}
 let restTimerId=null,restEndMs=0;
 let workoutWakeLock=null;
@@ -909,7 +944,7 @@ function tintAnatomySvg(svgText,intensity){
     else if(b){el.setAttribute("fill","#ff6b35");el.setAttribute("fill-opacity","0.65")}
     else {
       const base=el.getAttribute("fill");
-      if(base&&base!=="none"){el.setAttribute("fill","#50546a");el.setAttribute("fill-opacity","0.35")}
+      if(base&&base!=="none"){el.setAttribute("fill","#4a4e64");el.setAttribute("fill-opacity","0.2")}
     }
     if(hit||b){
       el.style.cursor="pointer";
@@ -1606,12 +1641,21 @@ function renderExerciseCardHtml(ex,i){
   const done=isExLoggedToday(ex.eid);
   const lw=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?S.lastLiftByEid[ex.eid]:(ex.target||0);
   const exNm=e?e.name:ex.eid;
+  const cue=(e&&e.howTo&&e.howTo[0])?String(e.howTo[0]).slice(0,140):"";
+  const thumbUrl=exerciseVideoThumbUrl(m.video);
+  const thumbHtml=thumbUrl?`<img class="ex-thumb" src="${thumbUrl}" alt="" width="72" height="54" loading="lazy">`:"";
+  const cueRow=cue?`<div class="ex-cue-row">${thumbHtml}<p class="ex-cue">${cue}</p></div>`:(thumbHtml?`<div class="ex-cue-row">${thumbHtml}</div>`:"");
+  const restSec=e&&e.rest?parseRestSec(e.rest):90;
+  const restHuman=e&&e.rest?formatRestHuman(restSec):formatRestHuman(90);
+  const restTitle=e&&e.rest?String(e.rest).replace(/"/g,"'"):"~90s";
+  const lastLine=lastLogSummaryForEid(ex.eid);
+  const lastLineHtml=lastLine?`<div class="ex-last-log">${lastLine}</div>`:"";
   const mainVideoHtml=m.video?`<iframe src="${emb}" title="${exNm} tutorial video" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">If video does not load in app mode:</span><a href="${open}" target="_blank" rel="noopener noreferrer">Open video</a></div>`:`<p style="font-size:11px;color:var(--text3)">Video coming soon.</p>`;
   const qUrl=exerciseQuickDemoUrl(ex.eid);
   const qEmb=qUrl?embedVideoUrl(qUrl):"";
   const qOpen=qUrl?openVideoUrl(qUrl):"";
   const quickVideoHtml=qUrl?`<div class="ex-quick-video-wrap"><button type="button" class="btn btn-sm btn-ghost ex-quick-video-toggle" data-i="${i}" aria-expanded="false">Show quick video</button><div class="ex-quick-video-panel" id="exq-${i}" hidden><p style="font-size:10px;color:var(--text3);margin-bottom:6px">Short demo (~2 min)</p><iframe src="${qEmb}" title="Quick demo: ${exNm}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">Quick clip:</span><a href="${qOpen}" target="_blank" rel="noopener noreferrer">Open in YouTube</a></div></div></div>`:"";
-  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${exNm}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${e&&e.rest?`<div class="ex-rest">Rest: ${e.rest}</div>`:""}</div><div class="ex-actions"><button type="button" class="btn btn-sm btn-ghost ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><button type="button" class="btn btn-sm btn-ghost ex-swap" data-orig="${ex.originalEid||ex.eid}" title="Replace with a similar movement">Swap</button><button type="button" class="btn btn-sm btn-ghost ex-rest" data-i="${i}" title="Rest timer (${e&&e.rest?e.rest:"~90s"})">Rest</button><button type="button" class="btn btn-sm btn-ghost ex-toggle" data-i="${i}">Exercise details & video</button></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${mainVideoHtml}${quickVideoHtml}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>This lift felt:</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard</button></div><div class="quick-log-row"><span style="font-size:11px;color:var(--text3);align-self:center">Current set</span><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="1">+</button></div></div><div><label>Load</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="-5">−</button><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="5">+</button></div></div><div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-cta btn-block q-save" data-i="${i}">Complete set & start rest</button></div><div class="ex-log-grid"><div><label>Sets</label><div class="stepper"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="1">+</button></div></div><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="1">+</button></div></div><div><label>Load</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="-5">−</button><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="5">+</button></div></div><div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-sm btn-secondary-solid ex-copyprev" data-i="${i}">Copy previous set</button><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
+  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${exNm}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${cueRow}</div><div class="ex-actions ex-actions-stack"><div class="ex-actions-primary"><button type="button" class="btn btn-sm btn-secondary-solid ex-rest" data-i="${i}" title="Rest timer (${restTitle})">Rest · ${restHuman}</button><button type="button" class="btn btn-sm btn-cta ex-toggle" data-i="${i}">Details &amp; video</button></div><div class="ex-actions-secondary"><button type="button" class="ex-link-btn ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><span class="ex-actions-sep" aria-hidden="true">·</span><button type="button" class="ex-link-btn ex-swap" data-orig="${ex.originalEid||ex.eid}" title="Replace with a similar movement">Swap</button></div></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${mainVideoHtml}${quickVideoHtml}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>This lift felt:</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard</button></div><div class="quick-log-row"><span style="font-size:11px;color:var(--text3);align-self:center">Current set</span><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="1">+</button></div></div><div><label>Load</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="-5">−</button><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="5">+</button></div></div><div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-cta btn-block q-save" data-i="${i}">Complete set & start rest</button></div>${lastLineHtml}<div class="ex-log-grid"><div><label>Sets</label><div class="stepper"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="1">+</button></div></div><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="1">+</button></div></div><div><label>Load</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="-5">−</button><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="5">+</button></div></div><div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-sm btn-secondary-solid ex-copyprev" data-i="${i}">Copy previous set</button><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
 }
 function renderToday(){
   const dayIso=activeTrainIso();
@@ -1636,6 +1680,11 @@ function renderToday(){
   const showOffDayCatch=!isTrainDay&&!!q0&&(!q0.dueIso||q0.dueIso>todayIso)&&adj.extraTrainingIso!==todayIso;
   const catchLabel=q0?((()=>{const cp=mkDay(q0.slot,q0.blockWeek);return(cp.focus||"Session").split("·")[0].trim().slice(0,42)})()):"";
   const catchBanner=plan._catchUpDue||plan._catchUpExtra;
+  const wuSteps=warmupStepsFromPlan(plan.warmup);
+  const wuState=(S.warmupDoneByDate&&S.warmupDoneByDate[dayIso])||{};
+  const escLite=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const wuBlock=!plan.warmup?"":wuSteps.length?`<div class="card section wu-card" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:8px">Warm-up checklist</div><ul class="wu-list">${wuSteps.map((line,wi)=>{const checked=!!wuState[String(wi)];return`<li class="wu-item"><label class="wu-label"><input type="checkbox" class="wu-step-cb" data-wu-idx="${wi}" ${checked?"checked":""}><span class="wu-text">${escLite(line)}</span></label></li>`}).join("")}</ul></div>`:`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">Warm-up</div><div style="font-size:12px;color:var(--text2)">${escLite(plan.warmup)}</div></div>`;
+  const sfSavedLbl=sf==="easy"?"Light (~RPE 6)":sf==="hard"?"Hard (~RPE 9+)":sf==="ok"?"Solid (~RPE 7–8)":"";
   if(trainFocusIdx!==null){
     if(!plan.exs.length)trainFocusIdx=null;
     else trainFocusIdx=clamp(trainFocusIdx,0,plan.exs.length-1);
@@ -1644,7 +1693,7 @@ function renderToday(){
     const n=plan.exs.length,idx=trainFocusIdx,tx=-(idx*100)/n;
     const focusDots=plan.exs.map((_,i)=>`<span class="${i===idx?"on":""}"></span>`).join("");
     const slides=plan.exs.map((ex,i)=>`<div class="focus-session-slide" style="width:${100/n}%;flex-shrink:0">${renderExerciseCardHtml(ex,i)}</div>`).join("");
-    return`<div id="p-today" class="train-focus-mode">
+    return`<div id="p-today" class="train-focus-mode train-session-active">
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   <div class="focus-session-bar">
@@ -1663,13 +1712,14 @@ function renderToday(){
     </div>
   </div>
   <div class="focus-nav-row">
-    ${idx>0?`<button type="button" class="btn btn-secondary-solid btn-sm" id="focus-prev">← Previous</button>`:""}
-    ${idx<n-1?`<button type="button" class="btn btn-ghost btn-sm" id="focus-next-skip">Next exercise →</button>`:""}
+    ${idx>0?`<button type="button" class="btn btn-secondary-solid btn-sm" id="focus-prev" aria-label="Previous exercise">‹ Previous</button>`:""}
+    ${idx<n-1?`<button type="button" class="btn btn-ghost btn-sm" id="focus-next-skip" aria-label="Next exercise">Next ›</button>`:""}
   </div>
-  <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.45">Swipe left or right on the workout card (away from buttons) to change lifts. Tap <b style="color:var(--text)">Save all</b> when you finish this lift — the view slides to the next one.</p>
+  <p class="focus-hint">Use <b style="color:var(--text)">‹ ›</b> to change lifts. Tap <b style="color:var(--text)">Save all</b> to log this exercise.</p>
+  <div class="train-session-footer"><button type="button" class="btn btn-mint btn-block session-finalize-sync">${finalized?"Session complete":"Complete session"}</button></div>
   </div>`;
   }
-  return`<div id="p-today">
+  return`<div id="p-today" class="${plan.exs.length?"train-session-active":""}">
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
   <div class="hero-title" style="font-size:20px;margin-bottom:4px">${DAYS[d.getDay()]}</div>
   <div class="breadcrumb">${bc}</div>
@@ -1678,15 +1728,18 @@ function renderToday(){
   ${plan.exs.length&&trainFocusIdx===null?`<div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
-  ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">Not a scheduled training day — no pressure. If you want extra work: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today">Add to today</button></div>`:""}
-  <div class="train-aids section">
-    <button type="button" class="btn btn-secondary-solid ${((S.profile.prefs||{}).equipment||"gym")==="home"?"btn-fire":""}" id="train-eq-toggle">${((S.profile.prefs||{}).equipment||"gym")==="home"?"Equipment: Home":"Equipment: Gym"}</button>
-    <button type="button" class="btn btn-secondary-solid ${qm>0?"btn-fire":""}" id="train-quick">${qm>0?"15-min mode on":"Minimum session (~15 min)"}</button>
-    <button type="button" class="btn btn-ghost" id="train-open-plates">Plate helper</button>
-    <button type="button" class="btn btn-ghost" id="train-open-health">Health metrics</button>
-    <button type="button" class="btn btn-ghost" id="train-open-ease">Ease load…</button>
-    <button type="button" class="btn btn-ghost btn-sm" id="train-adjust-schedule" title="Re-open choices for missed sessions">Adjust schedule</button>
-  </div>
+  ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today">Add to today</button></div>`:""}
+  <details class="train-tools section">
+    <summary class="train-tools-summary">Workout tools</summary>
+    <div class="train-tools-body">
+      <button type="button" class="btn btn-secondary-solid ${((S.profile.prefs||{}).equipment||"gym")==="home"?"btn-fire":""}" id="train-eq-toggle">${((S.profile.prefs||{}).equipment||"gym")==="home"?"Equipment: Home":"Equipment: Gym"}</button>
+      <button type="button" class="btn btn-secondary-solid ${qm>0?"btn-fire":""}" id="train-quick">${qm>0?"15-min mode on":"Minimum session (~15 min)"}</button>
+      <button type="button" class="btn btn-ghost" id="train-open-plates">Plate helper</button>
+      <button type="button" class="btn btn-ghost" id="train-open-health">Health metrics</button>
+      <button type="button" class="btn btn-ghost" id="train-open-ease">Ease load…</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="train-adjust-schedule" title="Re-open choices for missed sessions">Adjust schedule</button>
+    </div>
+  </details>
   <div class="card section" id="train-plates-card">
     <button type="button" class="details-toggle" id="train-plates-toggle" style="width:100%;text-align:left">Bar load helper (in-workout)</button>
     <div class="details-panel" id="train-plates-body">
@@ -1702,12 +1755,13 @@ function renderToday(){
   ${plan.exs.length?`<div class="card section"><div class="card-h"><h2>Today's impact map</h2></div><div class="fig-wrap"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div></div>`:""}
   ${meta?`<div class="card section"><button type="button" class="details-toggle" id="why-toggle" style="width:100%;text-align:left">Why this session? (coaching notes)</button><div class="details-panel" id="why-body"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">Posture / prehab add-on</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
-  ${plan.warmup?`<div class="card section" style="border-left:3px solid var(--ice)"><div style="font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px">Warm-up</div><div style="font-size:12px;color:var(--text2)">${plan.warmup}</div></div>`:""}
+  ${wuBlock}
   ${plan.quickNote?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Minimum session:</b> first two lifts keep your streak honest. Finisher below is optional — add it if you have bandwidth.</div></div>`:""}
   <div class="stack">${plan.exs.length?plan.exs.map((ex,i)=>renderExerciseCardHtml(ex,i)).join(""):`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>`}</div>
   ${skipped.length?`<div class="card section" style="font-size:12px;color:var(--text2)">Skipped today: <b style="color:var(--text)">${skippedLbl||"—"}</b> · <button type="button" class="details-toggle" id="skip-restore">Restore skipped lifts</button></div>`:""}
-  ${plan.exs.length?`<div class="card section"><div style="font-size:13px;font-weight:600;margin-bottom:4px">After the session</div><p style="font-size:11px;color:var(--text3);margin-bottom:10px">Autoregulation now applies when you finalize this session, so in-workout targets stay stable while you log set by set.</p>${sf?`<div style="font-size:12px;color:var(--mint);margin-bottom:6px">Saved as: <b>${sf==="easy"?"Easier than expected":sf==="hard"?"Harder than expected":"About right"}</b></div>`:""}<div class="row" style="flex-wrap:wrap;gap:8px"><button type="button" class="btn btn-sm ${sf==="easy"?"btn-fire":"btn-secondary-solid"}" data-sfeel="easy">Easier than expected</button><button type="button" class="btn btn-sm ${sf==="ok"?"btn-fire":"btn-secondary-solid"}" data-sfeel="ok">About right</button><button type="button" class="btn btn-sm ${sf==="hard"?"btn-fire":"btn-secondary-solid"}" data-sfeel="hard">Harder than expected</button>${sf?`<button type="button" class="btn btn-sm btn-ghost" id="sfeel-clear">Clear</button>`:""}</div><div class="row" style="margin-top:10px;gap:8px;align-items:center"><button type="button" class="btn btn-sm btn-mint" id="session-finalize">${finalized?"Session finalized":"Finalize today's adaptation"}</button>${finalized?`<span style="font-size:11px;color:var(--mint)">Applied for ${dayIso}</span>`:`<span style="font-size:11px;color:var(--text3)">Apply adaptation once, after you're done lifting.</span>`}</div></div>`:""}
+  ${plan.exs.length?`<div class="card section" id="session-after-card"><div style="font-size:13px;font-weight:600;margin-bottom:4px">Rate intensity</div><p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45">Rough session RPE — pairs with <b style="color:var(--text)">Complete session</b> below so tomorrow's targets stay honest.</p>${sf?`<div style="font-size:12px;color:var(--mint);margin-bottom:6px">Saved: <b>${sfSavedLbl}</b></div>`:""}<div class="row" style="flex-wrap:wrap;gap:8px"><button type="button" class="btn btn-sm ${sf==="easy"?"btn-fire":"btn-secondary-solid"}" data-sfeel="easy">Light · ~RPE 6</button><button type="button" class="btn btn-sm ${sf==="ok"?"btn-fire":"btn-secondary-solid"}" data-sfeel="ok">Solid · ~RPE 7–8</button><button type="button" class="btn btn-sm ${sf==="hard"?"btn-fire":"btn-secondary-solid"}" data-sfeel="hard">Hard · ~RPE 9+</button>${sf?`<button type="button" class="btn btn-sm btn-ghost" id="sfeel-clear">Clear</button>`:""}</div>${finalized?`<p style="font-size:11px;color:var(--mint);margin-top:10px;margin-bottom:0">Adaptation applied for ${dayIso}.</p>`:`<p style="font-size:11px;color:var(--text3);margin-top:10px;margin-bottom:0">When you're done lifting, tap Complete session in the bar below.</p>`}</div>`:""}
   ${plan.finisher?`<div class="finisher finisher-block"><h3>Finisher${plan.quickNote?" (optional)":""}</h3><p>${plan.finisher}</p></div>`:""}
+  ${plan.exs.length?`<div class="train-session-footer"><button type="button" class="btn btn-mint btn-block session-finalize-sync">${finalized?"Session complete":"Complete session"}</button></div>`:""}
   </div>`;
 }
 async function loadExercisePdfPreview(i){
@@ -1781,8 +1835,8 @@ function bindToday(){
   });
   const sfc=document.getElementById("sfeel-clear");
   if(sfc)sfc.onclick=async()=>{const day=activeTrainIso();const prev=(S.sessionFeelByDate||{})[day];if(!prev)return;revertSessionFeelNudge(prev);delete S.sessionFeelByDate[day];await persist();render();toast("Session feel cleared.")};
-  const sfz=document.getElementById("session-finalize");
-  if(sfz)sfz.onclick=async()=>{const day=activeTrainIso();if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return}const n=applyDayAdaptation(day);S.sessionAdaptedByDate[day]=true;celebrateFinish();await persist();render();toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.")};
+  document.querySelectorAll(".session-finalize-sync").forEach(sfz=>{sfz.onclick=async()=>{const day=activeTrainIso();if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return}const n=applyDayAdaptation(day);S.sessionAdaptedByDate[day]=true;celebrateFinish();await persist();render();toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.")}});
+  document.querySelectorAll(".wu-step-cb").forEach(cb=>{cb.onchange=async()=>{const day=activeTrainIso();if(!S.warmupDoneByDate)S.warmupDoneByDate={};if(!S.warmupDoneByDate[day])S.warmupDoneByDate[day]={};S.warmupDoneByDate[day][String(cb.dataset.wuIdx)]=cb.checked;await persist()}});
   document.querySelectorAll(".ex-skip").forEach(b=>b.onclick=async()=>{
     const eid=b.dataset.eid,day=activeTrainIso();if(!S.skippedEidsByDate)S.skippedEidsByDate={};const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate));const skip=new Set(S.skippedEidsByDate[day]||[]);skip.add(eid);S.skippedEidsByDate[day]=[...skip];await persist();if(trainFocusIdx!==null){const p=todayPlanFiltered();if(!p.exs.length)trainFocusIdx=null;else trainFocusIdx=Math.min(trainFocusIdx,p.exs.length-1)}toast("Skipped for today",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()
   });
@@ -1890,11 +1944,11 @@ function renderLog(){
   return`<div class="section"><div class="card"><div class="card-h"><h2>Session report</h2><span class="badge badge-ice">Updates loads</span></div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Log actual performance. The program recalculates all future workouts from your reports.</p>
     <div class="grid2" style="max-width:400px;margin-bottom:14px"><div><label>Date</label><input type="date" id="log-date" value="${logDate}"></div><div><label>Day / training week</label><input disabled value="${DAYS[dayIdx]} — Wk ${wk}${sessLbl}"></div></div>
-    ${plan.exs.length?`<div class="table-wrap"><table><thead><tr><th>Exercise</th><th>Target</th><th>Sets</th><th>Reps</th><th>Load</th><th>Notes</th></tr></thead><tbody>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);return`<tr><td style="color:var(--text);font-weight:600">${e?e.name:ex.eid}</td><td style="white-space:nowrap">${ex.sets}×${ex.reps} @ ${ex.target||"BW"}</td><td><input type="number" class="input-sm" id="lg-s${i}" value="${ex.sets}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-r${i}" value="${ex.reps}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-w${i}" value="${ex.target||0}" min="0" style="width:70px"></td><td><input type="text" class="input-sm" id="lg-n${i}" placeholder="optional" style="width:100px"></td></tr>`}).join("")}</tbody></table></div>
+    ${plan.exs.length?`<div class="table-wrap"><table class="log-report-table"><thead><tr><th>Exercise</th><th>Target</th><th>Sets</th><th>Reps</th><th>Load</th><th>Notes</th></tr></thead><tbody>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);return`<tr><td style="color:var(--text);font-weight:600">${e?e.name:ex.eid}</td><td style="white-space:nowrap">${ex.sets}×${ex.reps} @ ${ex.target||"BW"}</td><td><input type="number" class="input-sm" id="lg-s${i}" value="${ex.sets}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-r${i}" value="${ex.reps}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-w${i}" value="${ex.target||0}" min="0" style="width:70px"></td><td><input type="text" class="input-sm" id="lg-n${i}" placeholder="optional" style="width:100px"></td></tr>`}).join("")}</tbody></table></div>
     <button class="btn btn-mint btn-block" id="log-save" style="margin-top:12px">Save report</button>`:`<div style="padding:16px;color:var(--text3);text-align:center">Recovery day.</div>`}
   </div></div>
   <div class="section"><details class="settings-fold log-history-fold" open><summary class="log-history-summary"><span style="font-weight:600;font-size:14px">History</span><span class="badge badge-ice">${S.logs.length} entries</span></summary>
-    <div class="settings-fold-body">${allDates.length?allDates.slice(0,20).map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><div class="row" style="gap:6px"><span class="log-score ${cls}">${avg.toFixed(2)}</span><button class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)">Edit</button><button class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)">✕</button></div></div>${dl.map(l=>`<div class="log-detail" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px"><span>${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${l.note?" — "+l.note:""}${l.outcome==="fail"?" · failed rep target":l.outcome==="time"?" · time-capped":""}</span><span class="row" style="gap:4px;flex-shrink:0"><button type="button" class="btn btn-sm btn-ghost log-move-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--ice)">Move</button><button type="button" class="btn btn-sm btn-ghost log-del-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--red)">Remove</button></span></div>`).join("")}</div>`}).join(""):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`}
+    <div class="settings-fold-body">${allDates.length?allDates.slice(0,20).map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><div class="row" style="gap:6px"><span class="log-score ${cls}">${avg.toFixed(2)}</span><button class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)">Edit log</button><button class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)">✕</button></div></div>${dl.map(l=>`<div class="log-detail" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px"><span>${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${l.note?" — "+l.note:""}${l.outcome==="fail"?" · failed rep target":l.outcome==="time"?" · time-capped":""}</span><span class="row" style="gap:4px;flex-shrink:0"><button type="button" class="btn btn-sm btn-ghost log-move-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--ice)">Move</button><button type="button" class="btn btn-sm btn-ghost log-del-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--red)">Remove</button></span></div>`).join("")}</div>`}).join(""):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`}
     </div>
   </details></div>`;
 }
