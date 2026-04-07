@@ -1,0 +1,135 @@
+:root{
+  --radius-card:16px;
+  --radius-pill:999px;
+  --elev-soft:0 8px 30px rgba(0,0,0,.04);
+  --elev-soft-dark:0 10px 34px rgba(0,0,0,.28);
+}
+
+/* Premium surface language */
+body{
+  letter-spacing:.002em;
+}
+
+.card,
+.ex-card,
+.hero-card,
+.settings-fold,
+.ob-card{
+  border-radius:var(--radius-card) !important;
+  border:1px solid color-mix(in srgb,var(--border) 70%, transparent);
+  background:var(--card);
+  box-shadow:var(--elev-soft);
+}
+
+body:not(.appearance-light) .card,
+body:not(.appearance-light) .ex-card,
+body:not(.appearance-light) .hero-card,
+body:not(.appearance-light) .settings-fold,
+body:not(.appearance-light) .ob-card{
+  box-shadow:var(--elev-soft-dark);
+}
+
+.page{
+  background:var(--bg);
+}
+
+p,
+label,
+.ex-reason,
+.breadcrumb{
+  line-height:1.65;
+}
+
+/* Mobile-accessible tap targets */
+.btn,
+.feel-chip,
+.subtab,
+.nav-btn,
+.step-btn{
+  min-height:48px !important;
+}
+
+.feel-chip{
+  padding:10px 14px;
+}
+
+/* Onboarding visual refresh shell */
+.ob-overlay{
+  backdrop-filter:blur(10px);
+}
+
+.ob-card{
+  width:min(680px,94vw);
+  padding:22px;
+}
+
+.ob-wizard-step{
+  display:grid;
+  gap:14px;
+}
+
+.ob-wizard-title{
+  font-size:24px;
+  font-weight:700;
+  line-height:1.25;
+}
+
+.ob-choice-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+.ob-choice-card{
+  border:1px solid var(--border);
+  background:var(--surface);
+  border-radius:14px;
+  padding:14px;
+  min-height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  cursor:pointer;
+}
+
+.ob-choice-card.active{
+  border-color:var(--ice);
+  background:color-mix(in srgb,var(--ice) 10%,var(--surface));
+}
+
+/* Dashboard hierarchy */
+.hero-card{
+  padding:18px;
+}
+
+.hero-card .hero-title{
+  font-size:28px;
+  line-height:1.15;
+}
+
+.hero-card .hero-target{
+  font-size:17px;
+}
+
+.analytics-drawer{
+  margin-top:14px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  background:var(--surface);
+}
+
+.analytics-drawer summary{
+  list-style:none;
+  cursor:pointer;
+  padding:14px 16px;
+  font-weight:600;
+}
+
+.analytics-drawer summary::-webkit-details-marker{
+  display:none;
+}
+
+.analytics-drawer-body{
+  padding:0 16px 16px;
+}
