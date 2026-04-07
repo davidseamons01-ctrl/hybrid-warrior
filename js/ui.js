@@ -1,18 +1,6 @@
 // ═══════════════════════════════════════════════════════════
 import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js";
 
-function traceBoot(step, data){
-  try{
-    const row=`${new Date().toISOString()} | ${step} | ${JSON.stringify(data||{})}`;
-    const key="hw-debug-trace";
-    const prev=JSON.parse(localStorage.getItem(key)||"[]");
-    prev.push(row);
-    localStorage.setItem(key,JSON.stringify(prev.slice(-20)));
-    const el=document.getElementById("authErr");
-    if(el){el.textContent=row;el.classList.add("show")}
-  }catch{}
-}
-
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you";
 const PLANS=(function(){
@@ -160,9 +148,6 @@ function getEmbeddedFirebaseConfig(){
 }
 function getResolvedFirebaseConfig(){return getSavedCfg()||getEmbeddedFirebaseConfig()}
 async function initFB(cfg){
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H12',location:'js/ui.js:initFB:start',message:'initFB start',data:{hasApiKey:!!(cfg&&cfg.apiKey),projectId:cfg&&cfg.projectId},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   try{
     await loadFBSDK();
   }catch(err){
@@ -192,9 +177,6 @@ async function initFB(cfg){
   }
   // Keep auth session across reloads/devices until explicit sign-out.
   await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H12',location:'js/ui.js:initFB:success',message:'initFB success',data:{hasFbAuth:!!fbAuth,hasFbDb:!!fbDb},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 }
 function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);normalizeProgramStart(S);save();render()}})}
 async function cloudPush(){
@@ -225,20 +207,11 @@ async function cloudPullOnce(uid){
 }
 
 async function enterApp(user){
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H13',location:'js/ui.js:enterApp:start',message:'enterApp start',data:{uid:!!(user&&user.uid),onboarded:!!(S&&S.profile&&S.profile.onboarded)},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   try{
     offlineMode=false;
     currentUser=user;
     showAuthLoading();
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-3',hypothesisId:'H15',location:'js/ui.js:enterApp:beforeCloudPull',message:'before cloud pull',data:{uid:user&&user.uid},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     await cloudPullOnce(user.uid); // ensure newest cross-device state is loaded before onboarding decision
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-3',hypothesisId:'H15',location:'js/ui.js:enterApp:afterCloudPull',message:'after cloud pull',data:{onboarded:!!(S&&S.profile&&S.profile.onboarded)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     document.getElementById("authScreen").style.display="none";
     applyVisualTheme(false);
     if(!S.profile.onboarded){showOnboarding();return}
@@ -247,16 +220,10 @@ async function enterApp(user){
     startSync();
     render();
   }catch(err){
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-3',hypothesisId:'H15',location:'js/ui.js:enterApp:catch',message:'enterApp failed',data:{message:err&&err.message},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     const e=document.getElementById("authErr");
     if(e){e.textContent=`enterApp failed: ${err&&err.message?err.message:"unknown"}`;e.classList.add("show")}
     throw err;
   }
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H13',location:'js/ui.js:enterApp:end',message:'enterApp end',data:{authDisplay:document.getElementById("authScreen")&&document.getElementById("authScreen").style.display,appDisplay:document.getElementById("app")&&document.getElementById("app").style.display,navDisplay:document.getElementById("mainNav")&&document.getElementById("mainNav").style.display},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 }
 async function doSignOut(){
   offlineMode=false;
@@ -268,10 +235,6 @@ async function doSignOut(){
   getResolvedFirebaseConfig()?showAuthLogin():showAuthSetup();
 }
 function showAuthSetup(){
-  traceBoot("ui.showAuthSetup");
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H5',location:'js/ui.js:showAuthSetup',message:'showAuthSetup called',data:{hasSetup:!!document.getElementById("auth-setup"),hasLogin:!!document.getElementById("auth-login"),hasLoading:!!document.getElementById("auth-loading")},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   document.getElementById("auth-setup").style.display="block";
   document.getElementById("auth-login").style.display="none";
   document.getElementById("auth-loading").style.display="none";
@@ -286,20 +249,12 @@ function applyAuthTabUI(){
   if(fg)fg.style.display=authMode==="in"?"inline-flex":"none";
 }
 function showAuthLogin(){
-  traceBoot("ui.showAuthLogin",{authMode});
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H4',location:'js/ui.js:showAuthLogin',message:'showAuthLogin called',data:{authMode},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   document.getElementById("auth-setup").style.display="none";
   document.getElementById("auth-login").style.display="block";
   document.getElementById("auth-loading").style.display="none";
   applyAuthTabUI();
 }
 function showAuthLoading(){
-  traceBoot("ui.showAuthLoading",{authMode});
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H4',location:'js/ui.js:showAuthLoading',message:'showAuthLoading called',data:{authMode},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   document.getElementById("auth-setup").style.display="none";
   document.getElementById("auth-login").style.display="none";
   document.getElementById("auth-loading").style.display="block";
@@ -324,10 +279,6 @@ function parseFirebaseConfig(raw){
 }
 
 function bindAuthUI(){
-  traceBoot("ui.bindAuthUI",{cfgSave:!!document.getElementById("auth-cfg-save"),authGo:!!document.getElementById("auth-go")});
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H3',location:'js/ui.js:bindAuthUI',message:'bindAuthUI entered',data:{cfgSave:!!document.getElementById("auth-cfg-save"),authGo:!!document.getElementById("auth-go"),changeCfg:!!document.getElementById("auth-change-cfg"),pass:!!document.getElementById("auth-pass")},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   document.getElementById("auth-cfg-save").onclick=async()=>{
     try{
       const cfg=parseFirebaseConfig(document.getElementById("auth-cfg").value);
@@ -1078,10 +1029,6 @@ function bodyMapSVG(grow=[],burn=[]){
 //  ONBOARDING WIZARD
 // ═══════════════════════════════════════════════════════════
 function showOnboarding(){applyVisualTheme(true);document.getElementById("obScreen").classList.add("show");obStep=0;renderOB()}
-// #region agent log
-const __hwShowOnboarding=showOnboarding;
-showOnboarding=function(){fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H14',location:'js/ui.js:showOnboarding',message:'showOnboarding called',data:{hasOb:!!document.getElementById("obScreen")},timestamp:Date.now()})}).catch(()=>{});return __hwShowOnboarding.apply(this,arguments)}
-// #endregion
 function hideOnboarding(){document.getElementById("obScreen").classList.remove("show");document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";applyVisualTheme(false);startSync();render()}
 
 function renderOB(){
@@ -2056,9 +2003,6 @@ function render(){
     if(sessionStorage.getItem("ease-open")==="1"){sessionStorage.removeItem("ease-open");requestAnimationFrame(()=>document.getElementById("ease-wiz")?.classList.add("show"))}
     maybeShowWomenMissWelcome();
   }catch(err){
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-3',hypothesisId:'H16',location:'js/ui.js:render:catch',message:'render failed',data:{message:err&&err.message,tab},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     const e=document.getElementById("authErr");
     if(e){e.textContent=`render failed: ${err&&err.message?err.message:"unknown"}`;e.classList.add("show")}
     throw err;
@@ -2099,39 +2043,24 @@ function initRestBarDock(){
   if(s30)s30.onclick=()=>{restEndMs-=3e4;if(restEndMs<Date.now()+8e3)restEndMs=Date.now()+8e3};
 }
 export async function bootstrapApp(){
-  traceBoot("ui.bootstrap.start");
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H2',location:'js/ui.js:bootstrapApp:start',message:'bootstrapApp entered',data:{hasSkipMain:!!document.getElementById("skip-main")},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   initRestBarDock();
-  traceBoot("ui.bootstrap.restbar.ok");
   const sk=document.getElementById("skip-main");
   if(sk)sk.addEventListener("click",()=>{requestAnimationFrame(()=>{const a=document.getElementById("app");if(a)try{a.focus()}catch{}})});
   if(tryThemePreviewBoot())return;
-  traceBoot("ui.bootstrap.themePreview.checked");
   applyVisualTheme(true);
-  traceBoot("ui.bootstrap.visualTheme.ok");
   try{
     bindAuthUI();
-    traceBoot("ui.bootstrap.bindAuthUI.ok");
   }catch(err){
-    traceBoot("ui.bootstrap.bindAuthUI.err",{message:err&&err.message});
     throw err;
   }
   window.addEventListener("online",()=>{if(currentUser){toast("Back online.");cloudPush();render()}});
   window.addEventListener("offline",()=>{render()});
-  traceBoot("ui.bootstrap.onlineOfflineHooks.ok");
   const cfg=getResolvedFirebaseConfig();
-  traceBoot("ui.bootstrap.cfg",{hasCfg:!!cfg});
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H4',location:'js/ui.js:bootstrapApp:cfg',message:'resolved firebase config',data:{hasCfg:!!cfg},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if(cfg){
     try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else{offlineMode=false;showAuthLogin()}})}
-    catch(err){traceBoot("ui.bootstrap.fb.init.err",{message:err&&err.message});showAuthSetup()}
+    catch(err){showAuthSetup()}
   }
   else showAuthSetup();
-  traceBoot("ui.bootstrap.authPath.done");
   if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){
     navigator.serviceWorker.register("./sw.js").then((reg)=>{
       try{reg.update()}catch{}
@@ -2144,11 +2073,9 @@ export async function bootstrapApp(){
         });
       });
       navigator.serviceWorker.addEventListener("controllerchange",()=>{
-        traceBoot("ui.sw.controllerchange.reload");
         location.reload();
       },{once:true});
-      traceBoot("ui.bootstrap.sw.register.ok");
-    }).catch((err)=>{traceBoot("ui.bootstrap.sw.register.err",{message:err&&err.message})});
+    }).catch(()=>{});
   }
   setInterval(()=>{const p=document.getElementById("navPill");if(p){const w=S.program.week;p.textContent=`Week ${w}/13 · ${phaseName(w)}`}},6e4);
 }
@@ -2437,9 +2364,6 @@ function mkDay(slot,w){
       ?"Low-impact finisher: 10-min walk + diaphragmatic breathing"
       :"Postpartum finisher: 8-10 min easy incline walk + core reset";
   }
-  // #region agent log
-  fetch("http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"3e0776"},body:JSON.stringify({sessionId:"3e0776",runId:"mkday-restore",hypothesisId:"H1",location:"js/ui.js:mkDay",message:"mkDay built plan",data:{slot:String(slot),w,exCount:(out.exs||[]).length},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   return out;
 }
 
