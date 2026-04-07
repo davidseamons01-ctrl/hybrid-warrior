@@ -1,6 +1,18 @@
 // ═══════════════════════════════════════════════════════════
 import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js";
 
+function traceBoot(step, data){
+  try{
+    const row=`${new Date().toISOString()} | ${step} | ${JSON.stringify(data||{})}`;
+    const key="hw-debug-trace";
+    const prev=JSON.parse(localStorage.getItem(key)||"[]");
+    prev.push(row);
+    localStorage.setItem(key,JSON.stringify(prev.slice(-20)));
+    const el=document.getElementById("authErr");
+    if(el){el.textContent=row;el.classList.add("show")}
+  }catch{}
+}
+
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you";
 
@@ -185,6 +197,7 @@ async function doSignOut(){
   getResolvedFirebaseConfig()?showAuthLogin():showAuthSetup();
 }
 function showAuthSetup(){
+  traceBoot("ui.showAuthSetup");
   // #region agent log
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H5',location:'js/ui.js:showAuthSetup',message:'showAuthSetup called',data:{hasSetup:!!document.getElementById("auth-setup"),hasLogin:!!document.getElementById("auth-login"),hasLoading:!!document.getElementById("auth-loading")},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
@@ -202,6 +215,7 @@ function applyAuthTabUI(){
   if(fg)fg.style.display=authMode==="in"?"inline-flex":"none";
 }
 function showAuthLogin(){
+  traceBoot("ui.showAuthLogin",{authMode});
   // #region agent log
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H4',location:'js/ui.js:showAuthLogin',message:'showAuthLogin called',data:{authMode},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
@@ -211,6 +225,7 @@ function showAuthLogin(){
   applyAuthTabUI();
 }
 function showAuthLoading(){
+  traceBoot("ui.showAuthLoading",{authMode});
   // #region agent log
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H4',location:'js/ui.js:showAuthLoading',message:'showAuthLoading called',data:{authMode},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
@@ -238,6 +253,7 @@ function parseFirebaseConfig(raw){
 }
 
 function bindAuthUI(){
+  traceBoot("ui.bindAuthUI",{cfgSave:!!document.getElementById("auth-cfg-save"),authGo:!!document.getElementById("auth-go")});
   // #region agent log
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H3',location:'js/ui.js:bindAuthUI',message:'bindAuthUI entered',data:{cfgSave:!!document.getElementById("auth-cfg-save"),authGo:!!document.getElementById("auth-go"),changeCfg:!!document.getElementById("auth-change-cfg"),pass:!!document.getElementById("auth-pass")},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
@@ -1865,6 +1881,7 @@ function initRestBarDock(){
   if(s30)s30.onclick=()=>{restEndMs-=3e4;if(restEndMs<Date.now()+8e3)restEndMs=Date.now()+8e3};
 }
 export async function bootstrapApp(){
+  traceBoot("ui.bootstrap.start");
   // #region agent log
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H2',location:'js/ui.js:bootstrapApp:start',message:'bootstrapApp entered',data:{hasSkipMain:!!document.getElementById("skip-main")},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
@@ -1877,6 +1894,7 @@ export async function bootstrapApp(){
   window.addEventListener("online",()=>{if(currentUser){toast("Back online.");cloudPush();render()}});
   window.addEventListener("offline",()=>{render()});
   const cfg=getResolvedFirebaseConfig();
+  traceBoot("ui.bootstrap.cfg",{hasCfg:!!cfg});
   // #region agent log
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H4',location:'js/ui.js:bootstrapApp:cfg',message:'resolved firebase config',data:{hasCfg:!!cfg},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
