@@ -173,6 +173,24 @@ th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;le
 .log-detail{font-size:11px;color:var(--text3)}
 
 .ref-grid{display:grid;grid-template-columns:280px 1fr;gap:14px}
+.ref-pane .ref-intro{margin:0 0 12px;font-size:12px;color:var(--text2);line-height:1.5}
+.ref-search-label{display:block;margin-bottom:8px}
+.ref-search-input{width:100%;box-sizing:border-box}
+.ref-tags{font-size:11px;color:var(--text3);margin:0 0 10px;line-height:1.45;min-height:1.2em}
+.ref-result{font-size:11px;color:var(--text3);margin-top:8px;min-height:1em;line-height:1.45}
+.ref-canvas{width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px;display:none}
+.ref-pdf-actions{margin-top:10px;flex-wrap:wrap;gap:8px}
+.plan-context-inner{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.plan-context-kicker{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em}
+.plan-context-title{font-size:16px;font-weight:600;margin-top:4px;letter-spacing:-0.02em}
+.plan-context-sub{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.45;max-width:42em}
+.plan-phase-legend-sum{cursor:pointer;font-weight:600;font-size:13px;list-style:none}
+.plan-phase-legend-sum::-webkit-details-marker{display:none}
+.plan-phase-legend-note{font-size:12px;color:var(--text2);margin:10px 0;line-height:1.5}
+.plan-phase-legend-list{list-style:none;margin:0;padding:0;font-size:12px;color:var(--text2);line-height:1.65}
+.plan-phase-legend-list li{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.plan-phase-swatch{width:26px;height:26px;border-radius:6px;flex-shrink:0;box-sizing:border-box}
+.you-subtabs{flex-wrap:wrap}
 .ref-list{max-height:480px;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
 .ref-item{padding:8px 10px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:.2s}
 .ref-item:hover,.ref-item.sel{border-color:var(--border-lit);background:var(--card-hover)}.ref-item b{font-size:12px}.ref-item span{font-size:10px;color:var(--text3);display:block;margin-top:1px}
@@ -348,6 +366,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px soli
   .ex-actions-primary{grid-template-columns:1fr}
   #p-today.train-session-active:not(.train-focus-mode){padding-bottom:calc(148px + env(safe-area-inset-bottom))}
   #p-today.train-focus-mode{padding-bottom:calc(148px + env(safe-area-inset-bottom))}
+  .plan-context-inner .btn{width:100%}
+  .plan-context-inner{align-items:stretch}
 }
 
 /* Additional premium overrides */

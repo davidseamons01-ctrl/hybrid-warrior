@@ -1,5 +1,5 @@
-import { mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate } from "./ui.js?v=20260407r6";
-import { S } from "./state.js?v=20260407r6";
-import { exById } from "./exercises.js?v=20260407r6";
+import { mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate } from "./ui.js?v=20260407r8";
+import { S } from "./state.js?v=20260407r8";
+import { exById } from "./exercises.js?v=20260407r8";
 
 export { S, exById, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate };

@@ -1370,6 +1370,7 @@ function renderDash(){
     <div class="quick-actions" role="group" aria-label="Quick actions">
       <button type="button" class="btn btn-secondary-solid btn-sm qa-pill" id="dash-q-log">Quick log</button>
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-plan">13-week plan</button>
+      <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-ref">Exercise library</button>
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-plates">Plate helper</button>
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-health">Health</button>
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-ease">Ease load</button>
@@ -1494,7 +1495,8 @@ function bindDash(){
   const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const gl=document.getElementById("dash-go-log");if(gl)gl.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
   const ql=document.getElementById("dash-q-log");if(ql)ql.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
-  const qp=document.getElementById("dash-q-plan");if(qp)qp.onclick=()=>{tab=TAB_PLAN;render()};
+  const qp=document.getElementById("dash-q-plan");if(qp)qp.onclick=()=>{tab=TAB_PLAN;location.hash=TAB_PLAN;render()};
+  const qref=document.getElementById("dash-q-ref");if(qref)qref.onclick=()=>{tab=TAB_YOU;youSub="ref";location.hash=TAB_YOU;render()};
   const qr=document.getElementById("dash-q-plates");if(qr)qr.onclick=()=>{tab=TAB_TRAIN;trainSub="workout";sessionStorage.setItem("hw-open-plates","1");render()};
   const qh=document.getElementById("dash-q-health");if(qh)qh.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-health");render()};
   const qe=document.getElementById("dash-q-ease");if(qe)qe.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-ease");sessionStorage.setItem("ease-open","1");render()};
@@ -1616,7 +1618,8 @@ function renderTrain(){
   return`<div class="subtab-row"><button type="button" class="subtab ${trainSub==="workout"?"on":""} train-sub" data-s="workout">Session</button><button type="button" class="subtab ${trainSub==="log"?"on":""} train-sub" data-s="log">Log</button></div><div id="train-inner">${trainSub==="workout"?renderToday():renderLog()}</div>`;
 }
 function renderYou(){
-  return`<div class="subtab-row"><button type="button" class="subtab ${youSub==="home"?"on":""} you-sub" data-s="home">Overview</button><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" data-s="settings">Settings</button></div><div id="you-inner">${youSub==="home"?renderDash():renderSettings()}</div>`;
+  const inner=youSub==="home"?renderDash():youSub==="ref"?renderRef():renderSettings();
+  return`<div class="subtab-row you-subtabs" role="tablist" aria-label="You sections"><button type="button" class="subtab ${youSub==="home"?"on":""} you-sub" role="tab" aria-selected="${youSub==="home"}" data-s="home">Overview</button><button type="button" class="subtab ${youSub==="ref"?"on":""} you-sub" role="tab" aria-selected="${youSub==="ref"}" data-s="ref">Library</button><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" role="tab" aria-selected="${youSub==="settings"}" data-s="settings">Settings</button></div><div id="you-inner">${inner}</div>`;
 }
 function bindTrain(){
   document.querySelectorAll(".train-sub").forEach(b=>b.onclick=()=>{if(b.dataset.s==="log")trainFocusIdx=null;trainSub=b.dataset.s;render()});
@@ -1625,7 +1628,9 @@ function bindTrain(){
 function bindYou(){
   releaseWorkoutWakeLock();
   document.querySelectorAll(".you-sub").forEach(b=>b.onclick=()=>{youSub=b.dataset.s;render()});
-  if(youSub==="home")bindDash();else bindSettings();
+  if(youSub==="home")bindDash();
+  else if(youSub==="ref"){enhanceNumericInputs(document.getElementById("you-inner")||document);bindRef()}
+  else bindSettings();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1981,11 +1986,13 @@ function renderProgram(){
   const ws=womenProgramSummary();
   const planToggleLbl=compact?(wSimple?"Show more detail":"Show all exercises"):"Simpler view";
   return`<div class="plan-root"><div class="section"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h2 style="font-size:18px;font-weight:600;letter-spacing:-0.02em">Thirteen-week block</h2><div class="row" style="gap:8px;align-items:center"><span style="font-size:12px;color:var(--text3)">Loads follow your logs</span><button type="button" class="btn btn-sm btn-ghost" id="plan-compact-toggle">${planToggleLbl}</button></div></div>
+    <div class="plan-context-card card section"><div class="plan-context-inner"><div><div class="plan-context-kicker">You are here</div><div class="plan-context-title">Week ${cur} of 13 · ${phaseName(cur)}</div><div class="plan-context-sub">${planSlotsN()} session${planSlotsN()!==1?"s":""} per training week · bar loads follow your logs</div></div><button type="button" class="btn btn-secondary-solid btn-sm" id="plan-jump-current">Open this week</button></div></div>
     ${planAnchorSummaryHtml(wSimple)}
     ${ws?`<div class="card plan-hide-women" style="margin-bottom:10px;border-left:3px solid var(--mint)"><div class="card-h"><h2>Women's Program Summary</h2><span class="badge badge-mint">${ws.label}</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:8px">Baseline: <b style="color:var(--text)">${ws.tier}</b> · Life stage: <b style="color:var(--text)">${ws.life}</b> · Equipment: <b style="color:var(--text)">${ws.eq}</b> · Session style: <b style="color:var(--text)">${ws.style}</b></div><div style="display:grid;gap:4px">${ws.tracks.map(t=>`<div style="font-size:11px;color:var(--text2)">• ${t}</div>`).join("")}</div>${ws.fa.length?`<div style="margin-top:8px;font-size:10px;color:var(--text3)">Goals: ${ws.fa.join(" · ")}</div>`:""}</div>`:""}
     <div class="card plan-hide-women" style="margin-bottom:10px"><div class="card-h"><h2>Expected Changes Heatmap</h2></div><div class="row" style="gap:14px"><div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">${hm.glutes}%</b></div><div style="font-size:11px;color:var(--text2)">Core <b style="color:var(--mint)">${hm.core}%</b></div><div style="font-size:11px;color:var(--text2)">Back <b style="color:var(--mint)">${hm.back}%</b></div><div style="font-size:11px;color:var(--text2)">Posture <b style="color:var(--mint)">${hm.posture}%</b></div></div></div>
     <div class="timeline">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" title="Training week ${w}">${w}</div>`}).join("")}</div>
     <p class="plan-hide-women" style="font-size:11px;color:var(--text3);margin:8px 0 0;line-height:1.45">Weeks are <b style="color:var(--text2)">training weeks</b> (${planSlotsN()} session${planSlotsN()!==1?"s":""} each, in order from your start date — not Mon–Sun buckets).</p>
+    <details class="plan-phase-legend card section plan-hide-women"><summary class="plan-phase-legend-sum">How phase colors work</summary><p class="plan-phase-legend-note">Weeks <b>4</b> and <b>8</b> are deloads inside Hypertrophy and Strength. Week <b>13</b> is test / consolidation.</p><ul class="plan-phase-legend-list"><li><span class="plan-phase-swatch tl-wk phase-hyp" aria-hidden="true"></span> Hypertrophy — weeks 1–4</li><li><span class="plan-phase-swatch tl-wk phase-str" aria-hidden="true"></span> Strength — weeks 5–8</li><li><span class="plan-phase-swatch tl-wk phase-peak" aria-hidden="true"></span> Peak — weeks 9–12</li><li><span class="plan-phase-swatch tl-wk phase-test" aria-hidden="true"></span> Test — week 13</li></ul></details>
     ${nextTrainingDotsHtml(8)}</div>
   <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;
     const tDates=trainingDatesInBlockWeek(w);
@@ -2008,6 +2015,8 @@ function bindProgram(){
     }else sessionStorage.setItem("hw-plan-compact",sessionStorage.getItem("hw-plan-compact")==="1"?"0":"1");
     render();
   };
+  const pjc=document.getElementById("plan-jump-current");
+  if(pjc)pjc.onclick=()=>{autoWeek();expandedWeek=S.program.week;sessionStorage.setItem("hw-plan-scroll-wk",String(S.program.week));render()};
   document.querySelectorAll(".tl-wk").forEach(el=>el.onclick=()=>{expandedWeek=+el.dataset.w;render()});
   document.querySelectorAll(".pw-head").forEach(el=>el.onclick=()=>{const w=+el.dataset.w;expandedWeek=expandedWeek===w?null:w;render()});
 }
@@ -2015,7 +2024,7 @@ function bindProgram(){
 // ═══════════════════════════════════════════════════════════
 //  RENDER — REFERENCE
 // ═══════════════════════════════════════════════════════════
-function renderRef(){return`<div class="ref-grid"><div class="card"><div class="card-h"><h2>Exercises</h2></div><input id="r-search" placeholder="Search…" style="margin-bottom:8px"><div class="ref-list" id="r-list"></div></div><div class="card"><h2 id="r-title" style="margin-bottom:4px">Select an exercise</h2><p id="r-tags" style="color:var(--text3);font-size:11px;margin-bottom:10px"></p><div id="r-howto"></div><div class="grid2" style="margin-top:12px"><div><label>Book</label><select id="r-book">${Object.keys(S.pdfs).map(k=>`<option value="${k}">${k}</option>`).join("")}</select></div><div><label>Keyword</label><input id="r-kw" placeholder="auto"></div></div><div class="row" style="margin-top:8px"><button class="btn btn-ice" id="r-find">Find Page</button><button class="btn btn-ghost" id="r-render">Render</button></div><p id="r-result" style="color:var(--text3);font-size:11px;margin-top:6px"></p><canvas id="r-canvas" style="width:100%;border-radius:8px;border:1px solid var(--border);margin-top:8px;display:none"></canvas></div></div>`}
+function renderRef(){return`<div class="ref-pane section"><p class="ref-intro">Search the catalog, read how-tos, and jump to PDF pages you uploaded in Settings.</p><div class="ref-grid"><div class="card"><div class="card-h"><h2>Exercises</h2></div><label class="ref-search-label"><span style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">Search</span><input type="search" id="r-search" class="input-sm ref-search-input" placeholder="Name, tag, or keyword…" autocomplete="off" aria-label="Search exercises"></label><div class="ref-list" id="r-list"></div></div><div class="card ref-detail-card"><div class="card-h"><h2 id="r-title">Select an exercise</h2></div><p id="r-tags" class="ref-tags"></p><div id="r-howto" class="ref-howto"></div><div class="grid2 ref-pdf-row"><div><label>Book</label><select id="r-book">${Object.keys(S.pdfs).map(k=>`<option value="${k}">${k}</option>`).join("")}</select></div><div><label>Keyword</label><input id="r-kw" class="input-sm" placeholder="auto"></div></div><div class="row ref-pdf-actions"><button type="button" class="btn btn-ice" id="r-find">Find in PDF</button><button type="button" class="btn btn-ghost" id="r-render">Render page</button></div><p id="r-result" class="ref-result"></p><canvas id="r-canvas" class="ref-canvas"></canvas></div></div></div>`}
 let refSel=null,refFound=null;
 function bindRef(){
   const s=document.getElementById("r-search"),l=document.getElementById("r-list");
@@ -2038,7 +2047,7 @@ function renderSettings(){
         <li><b style="color:var(--text)">Log after you train</b> — entries tune adaptation so prescribed loads stay realistic.</li>
         <li><b style="color:var(--text)">Train</b> — Session is your in-gym checklist; Log is for entering what you did (any date).</li>
         <li><b style="color:var(--text)">Plan</b> — 13 training weeks (sessions in order from your start date, not Mon–Sun grids). If the Plan looks like plain weekdays with no dates, update the app (reopen or clear site data) once.</li>
-        <li><b style="color:var(--text)">You</b> — Overview for streaks and goals; Settings for profile, backup, and if the block feels too hard.</li>
+        <li><b style="color:var(--text)">You</b> — Overview for streaks and goals; <b style="color:var(--text)">Library</b> for exercise how-tos and PDF lookup; Settings for profile, backup, and if the block feels too hard.</li>
       </ul>
     </div>
   </details>
@@ -2187,6 +2196,8 @@ function render(){
     frag.appendChild(tpl.content);
     app.replaceChildren(frag);
     bindFn();
+    const psw=sessionStorage.getItem("hw-plan-scroll-wk");
+    if(psw&&tab===TAB_PLAN){sessionStorage.removeItem("hw-plan-scroll-wk");requestAnimationFrame(()=>{document.querySelector(`#p-plan .pw-head[data-w="${psw}"]`)?.scrollIntoView({behavior:"smooth",block:"start"})})}
     const hs=sessionStorage.getItem("hw-scroll");if(hs){sessionStorage.removeItem("hw-scroll");scrollToHashAfterRender(hs)}
     if(sessionStorage.getItem("ease-open")==="1"){sessionStorage.removeItem("ease-open");requestAnimationFrame(()=>document.getElementById("ease-wiz")?.classList.add("show"))}
     maybeShowWomenMissWelcome();
