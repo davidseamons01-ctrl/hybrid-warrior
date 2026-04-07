@@ -1,7 +1,7 @@
-import "./exercises.js";
-import { S, initFB } from "./state.js";
-import { rollingPlanForDate } from "./engine.js";
-import { bootstrapApp, render } from "./ui.js";
+import "./exercises.js?v=20260407r1";
+import { S, initFB } from "./state.js?v=20260407r1";
+import { rollingPlanForDate } from "./engine.js?v=20260407r1";
+import { bootstrapApp, render } from "./ui.js?v=20260407r1";
 
 function traceBoot(step, data) {
   try {
