@@ -459,3 +459,89 @@ label,
 .analytics-drawer-body{
   padding:0 16px 16px;
 }
+
+/* Consumer UX refresh */
+.card,.ex-card{
+  border:0;
+  border-radius:20px;
+  background:color-mix(in srgb,var(--surface) 55%,var(--card));
+  box-shadow:var(--elev-soft);
+}
+.card{padding:20px}
+.ex-top{padding:18px 20px}
+.ex-body{padding:0 20px 16px;border-top:0}
+.ex-name-lg,.hero-target,.focus-session-progress,.rest-bar-time{
+  font-weight:700;
+  letter-spacing:-0.02em;
+}
+label,.fig-title,.ex-rest,.ex-reason{
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  font-size:10px;
+  color:var(--text3);
+}
+.btn,.subtab,.nav-btn,.details-panel,.ex-body{
+  transition:all .24s ease;
+}
+.quick-actions{
+  display:flex;
+  gap:8px;
+  overflow:auto;
+  padding-top:12px;
+  -webkit-overflow-scrolling:touch;
+}
+.qa-pill{
+  white-space:nowrap;
+  border-radius:999px;
+  flex:0 0 auto;
+}
+.q-save{
+  min-height:52px;
+  font-size:13px;
+}
+
+@media(max-width:860px){
+  .nav{
+    position:fixed;
+    top:auto;
+    bottom:0;
+    left:0;
+    right:0;
+    border-top:1px solid var(--border);
+    border-bottom:0;
+    padding:6px 12px calc(6px + env(safe-area-inset-bottom));
+    background:color-mix(in srgb,var(--surface) 86%,transparent);
+    backdrop-filter:blur(20px);
+  }
+  .nav-inner{
+    height:auto;
+    justify-content:space-between;
+    gap:8px;
+    overflow:visible;
+  }
+  .logo,.nav-pill,#nav-so{display:none}
+  .nav-btn{
+    flex:1;
+    min-height:56px!important;
+    padding:6px 8px;
+    border-radius:16px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+  }
+  .nav-ic{display:block;font-size:17px;line-height:1}
+  .nav-lb{font-size:11px;font-weight:700}
+  .page{
+    padding:14px 14px calc(120px + env(safe-area-inset-bottom));
+  }
+  #p-today.train-focus-mode .ex-actions .ex-skip,
+  #p-today.train-focus-mode .ex-actions .ex-swap,
+  #p-today.train-focus-mode .ex-actions .ex-rest{
+    display:none;
+  }
+  #p-today.train-focus-mode .ex-log-grid{
+    display:none;
+  }
+}
