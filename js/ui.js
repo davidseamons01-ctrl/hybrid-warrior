@@ -15,6 +15,27 @@ function traceBoot(step, data){
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you";
+const PLANS=(function(){
+  const G=["strength","hybrid","fat_loss","muscle"];
+  const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy"];
+  const fN=["3-4 Day","5-6 Day"];
+  const dN=["Express","Full"];
+  const sN=["Men's","Women's"];
+  const eN=["Foundation","Advanced"];
+  const base={
+    strength:{"00":["FB","SR","FB"],"01":["HP","SR","HL","TR"],"10":["HP","SR","HL","TR","HB"],"11":["HP","HPL","HL","SR","PW"]},
+    hybrid:{"00":["FB","SR","FB"],"01":["HP","SR","HL","TR"],"10":["HP","SR","HL","TR","HB"],"11":["HP","SR","HL","TR","HB"]},
+    fat_loss:{"00":["CT","SR","FBC"],"01":["HB","SR","CT","TR"],"10":["CT","SR","HB","TR","CT"],"11":["HB","SR","HL","TR","CT"]},
+    muscle:{"00":["FB","FB","FB"],"01":["HYP","HYG","HYL"],"10":["HYP","HYL","HYG","HB","CT"],"11":["HYP","HYL","HYG","HP","HL"]}
+  };
+  const plans=[];
+  for(let g=0;g<4;g++)for(let f=0;f<2;f++)for(let d=0;d<2;d++)for(let s=0;s<2;s++)for(let e=0;e<2;e++){
+    let sl=[...base[G[g]][""+f+d]];
+    if(e===0)sl=sl.map(x=>x==="PW"?"FB":x==="HPL"?"FB":x);
+    plans.push({id:g*16+f*8+d*4+s*2+e,name:`${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`,goal:G[g],slots:sl});
+  }
+  return plans;
+})();
 
 function isoFromDate(d){const x=d instanceof Date?d:new Date(d);return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`}
 const iso=()=>isoFromDate(new Date());
@@ -345,6 +366,7 @@ function applyVisualTheme(forceNeutral=false){
 function phaseName(w){return w<=4?"Hypertrophy":w<=8?"Strength":w<=12?"Peak":"Test"}
 function phaseClass(w){return w<=4?"phase-hyp":w<=8?"phase-str":w<=12?"phase-peak":"phase-test"}
 function phaseColor(w){return w<=4?"var(--ice)":w<=8?"var(--gold)":w<=12?"var(--fire)":"var(--mint)"}
+function selectPlan(){return S.planId!=null?S.planId:0}
 function wkFactor(w){return[.62,.65,.68,.60,.72,.76,.79,.65,.80,.84,.88,.92,.85][clamp(w,1,13)-1]}
 function phaseReps(w){return w<=4?[10,8,8,6]:w<=8?[6,5,4,3]:w<=12?[4,3,2,2]:[3,2,1,1]}
 function phaseSets(w){return w<=4?4:w<=8?5:w<=12?5:3}
