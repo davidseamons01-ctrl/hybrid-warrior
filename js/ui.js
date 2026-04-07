@@ -1904,7 +1904,21 @@ export async function bootstrapApp(){
   }
   else showAuthSetup();
   if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    navigator.serviceWorker.register("./sw.js").then((reg)=>{
+      try{reg.update()}catch{}
+      if(reg.waiting)reg.waiting.postMessage({type:"SKIP_WAITING"});
+      reg.addEventListener("updatefound",()=>{
+        const nw=reg.installing;
+        if(!nw)return;
+        nw.addEventListener("statechange",()=>{
+          if(nw.state==="installed"&&navigator.serviceWorker.controller)nw.postMessage({type:"SKIP_WAITING"});
+        });
+      });
+      navigator.serviceWorker.addEventListener("controllerchange",()=>{
+        traceBoot("ui.sw.controllerchange.reload");
+        location.reload();
+      },{once:true});
+    }).catch(()=>{});
   }
   setInterval(()=>{const p=document.getElementById("navPill");if(p){const w=S.program.week;p.textContent=`Week ${w}/13 · ${phaseName(w)}`}},6e4);
 }
