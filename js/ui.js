@@ -151,9 +151,6 @@ function getResolvedFirebaseConfig(){
   try{return normalizeFirebaseConfigObject(fallback)}catch{return null}
 }
 async function initFB(cfg){
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H3',location:'js/ui.js:initFB:start',message:'initFB start',data:{hasCfg:!!cfg,hasApiKey:!!(cfg&&cfg.apiKey),projectId:cfg&&cfg.projectId},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   try{
     await loadFBSDK();
   }catch(err){
@@ -164,9 +161,6 @@ async function initFB(cfg){
     if(setup)setup.style.display="block";
     const e=document.getElementById("authErr");
     if(e){e.textContent="Failed to connect to cloud. Check network or ad-blocker.";e.classList.add("show")}
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H4',location:'js/ui.js:initFB:loadSDKError',message:'loadFBSDK failed',data:{name:err&&err.name,message:err&&err.message},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     throw err;
   }
   const APP_NAME="hw-main";
@@ -186,9 +180,6 @@ async function initFB(cfg){
   }
   // Keep auth session across reloads/devices until explicit sign-out.
   await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H3',location:'js/ui.js:initFB:success',message:'initFB success',data:{hasFbAuth:!!fbAuth,hasFbDb:!!fbDb},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 }
 function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);normalizeProgramStart(S);save();render()}})}
 async function cloudPush(){
@@ -280,16 +271,10 @@ function bindAuthUI(){
     try{await fbAuth.sendPasswordResetEmail(em);toast("Check your email for a reset link.")}catch(e){showAuthErr(e.message||"Could not send reset email.")}
   };
   document.getElementById("auth-go").onclick=async()=>{const em=document.getElementById("auth-email").value.trim(),pw=document.getElementById("auth-pass").value;
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H1',location:'js/ui.js:auth-go:entry',message:'auth-go clicked',data:{authMode,hasFbAuth:!!fbAuth,hasFbDb:!!fbDb,emailLen:em.length,pwLen:pw.length},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     if(!em||!pw){showAuthErr("Enter email and password.");return}
     if(pw.length<6){showAuthErr("Password must be 6+ characters.");return}
     if(!fbAuth){showAuthErr("Missing Firebase config. Add window.__HYBRID_FIREBASE_CONFIG__ in index.html.");showAuthLogin();return}
     try{showAuthLoading();let u;if(authMode==="in"){const c=await fbAuth.signInWithEmailAndPassword(em,pw);u=c.user}else{const c=await fbAuth.createUserWithEmailAndPassword(em,pw);u=c.user;try{await u.sendEmailVerification()}catch(err){console.warn(err)}}await enterApp(u)}catch(e){
-      // #region agent log
-      fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H2',location:'js/ui.js:auth-go:catch',message:'auth-go catch',data:{name:e&&e.name,message:e&&e.message,hasFbAuth:!!fbAuth},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       showAuthLogin();showAuthErr(e.code==="auth/user-not-found"?"No account. Switch to Create Account.":e.code==="auth/wrong-password"||e.code==="auth/invalid-credential"?"Wrong email or password.":e.code==="auth/email-already-in-use"?"Email in use. Switch to Sign In.":e.message)}};
     document.getElementById("auth-pass").onkeydown=e=>{if(e.key==="Enter")document.getElementById("auth-go").click()};
 }
@@ -2118,15 +2103,9 @@ export async function bootstrapApp(){
   window.addEventListener("online",()=>{if(currentUser){toast("Back online.");cloudPush();render()}});
   window.addEventListener("offline",()=>{render()});
   const cfg=getResolvedFirebaseConfig();
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H5',location:'js/ui.js:bootstrapApp:cfg',message:'resolved cfg',data:{hasCfg:!!cfg,hasApiKey:!!(cfg&&cfg.apiKey),projectId:cfg&&cfg.projectId},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if(cfg){
     try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else{offlineMode=false;showAuthLogin()}})}
     catch(err){
-      // #region agent log
-      fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H4',location:'js/ui.js:bootstrapApp:initFBCatch',message:'bootstrap initFB catch',data:{name:err&&err.name,message:err&&err.message},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       showAuthSetup()}
   }
   else{showAuthLogin();showAuthErr("Missing Firebase config. Add window.__HYBRID_FIREBASE_CONFIG__ in index.html.");}
