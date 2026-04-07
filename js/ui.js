@@ -184,17 +184,32 @@ async function enterApp(user){
   // #region agent log
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H13',location:'js/ui.js:enterApp:start',message:'enterApp start',data:{uid:!!(user&&user.uid),onboarded:!!(S&&S.profile&&S.profile.onboarded)},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
-  offlineMode=false;
-  currentUser=user;
-  showAuthLoading();
-  await cloudPullOnce(user.uid); // ensure newest cross-device state is loaded before onboarding decision
-  document.getElementById("authScreen").style.display="none";
-  applyVisualTheme(false);
-  if(!S.profile.onboarded){showOnboarding();return}
-  document.getElementById("mainNav").style.display="";
-  document.getElementById("app").style.display="";
-  startSync();
-  render();
+  try{
+    offlineMode=false;
+    currentUser=user;
+    showAuthLoading();
+    // #region agent log
+    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-3',hypothesisId:'H15',location:'js/ui.js:enterApp:beforeCloudPull',message:'before cloud pull',data:{uid:user&&user.uid},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    await cloudPullOnce(user.uid); // ensure newest cross-device state is loaded before onboarding decision
+    // #region agent log
+    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-3',hypothesisId:'H15',location:'js/ui.js:enterApp:afterCloudPull',message:'after cloud pull',data:{onboarded:!!(S&&S.profile&&S.profile.onboarded)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    document.getElementById("authScreen").style.display="none";
+    applyVisualTheme(false);
+    if(!S.profile.onboarded){showOnboarding();return}
+    document.getElementById("mainNav").style.display="";
+    document.getElementById("app").style.display="";
+    startSync();
+    render();
+  }catch(err){
+    // #region agent log
+    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-3',hypothesisId:'H15',location:'js/ui.js:enterApp:catch',message:'enterApp failed',data:{message:err&&err.message},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    const e=document.getElementById("authErr");
+    if(e){e.textContent=`enterApp failed: ${err&&err.message?err.message:"unknown"}`;e.classList.add("show")}
+    throw err;
+  }
   // #region agent log
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H13',location:'js/ui.js:enterApp:end',message:'enterApp end',data:{authDisplay:document.getElementById("authScreen")&&document.getElementById("authScreen").style.display,appDisplay:document.getElementById("app")&&document.getElementById("app").style.display,navDisplay:document.getElementById("mainNav")&&document.getElementById("mainNav").style.display},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
@@ -1857,24 +1872,33 @@ function maybeShowWomenMissWelcome(){
   document.getElementById("mw-later").onclick=()=>done();
 }
 function render(){
-  autoWeek();
-  normalizeTabs();
-  applyVisualTheme(document.getElementById("obScreen")&&document.getElementById("obScreen").classList.contains("show"));
-  renderNav();
-  const app=document.getElementById("app");
-  let html,bindFn;
-  if(tab===TAB_TRAIN){html=`<div class="pane show" id="p-train">${renderTrain()}</div>`;bindFn=bindTrain}
-  else if(tab===TAB_PLAN){
-    const planClass=[useWomenSoftUi()?"plan-women-simple":"",planCompactOn()?"plan-compact":""].filter(Boolean).join(" ");
-    html=`<div class="pane show ${planClass}" id="p-plan">${renderProgram()}</div>`;
-    bindFn=bindProgram;
+  try{
+    autoWeek();
+    normalizeTabs();
+    applyVisualTheme(document.getElementById("obScreen")&&document.getElementById("obScreen").classList.contains("show"));
+    renderNav();
+    const app=document.getElementById("app");
+    let html,bindFn;
+    if(tab===TAB_TRAIN){html=`<div class="pane show" id="p-train">${renderTrain()}</div>`;bindFn=bindTrain}
+    else if(tab===TAB_PLAN){
+      const planClass=[useWomenSoftUi()?"plan-women-simple":"",planCompactOn()?"plan-compact":""].filter(Boolean).join(" ");
+      html=`<div class="pane show ${planClass}" id="p-plan">${renderProgram()}</div>`;
+      bindFn=bindProgram;
+    }
+    else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
+    app.innerHTML=html;
+    bindFn();
+    const hs=sessionStorage.getItem("hw-scroll");if(hs){sessionStorage.removeItem("hw-scroll");scrollToHashAfterRender(hs)}
+    if(sessionStorage.getItem("ease-open")==="1"){sessionStorage.removeItem("ease-open");requestAnimationFrame(()=>document.getElementById("ease-wiz")?.classList.add("show"))}
+    maybeShowWomenMissWelcome();
+  }catch(err){
+    // #region agent log
+    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-3',hypothesisId:'H16',location:'js/ui.js:render:catch',message:'render failed',data:{message:err&&err.message,tab},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    const e=document.getElementById("authErr");
+    if(e){e.textContent=`render failed: ${err&&err.message?err.message:"unknown"}`;e.classList.add("show")}
+    throw err;
   }
-  else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
-  app.innerHTML=html;
-  bindFn();
-  const hs=sessionStorage.getItem("hw-scroll");if(hs){sessionStorage.removeItem("hw-scroll");scrollToHashAfterRender(hs)}
-  if(sessionStorage.getItem("ease-open")==="1"){sessionStorage.removeItem("ease-open");requestAnimationFrame(()=>document.getElementById("ease-wiz")?.classList.add("show"))}
-  maybeShowWomenMissWelcome();
 }
 
 // ═══════════════════════════════════════════════════════════
