@@ -575,6 +575,30 @@ function weekIntentLine(w){
   const faBit=fa.length?` · ${fa.slice(0,2).join(" & ")}`:"";
   return`This training week (${phase}): ${parts.join(" + ")||"full-body progress"}${faBit}.`;
 }
+function weeklyExpectedChanges(){
+  const plan=PLANS[S.planId!=null?S.planId:0];
+  const slots=Array.isArray(plan&&plan.slots)?plan.slots:[];
+  const score={glutes:0,core:0,back:0,posture:0};
+  const W={
+    glutes:{HL:3,GL:4,HYG:4,HB:2,FBC:1,CT:1,FB:2},
+    core:{CT:4,FBC:3,SR:2,TR:2,HB:2,FB:2,GL:2,HYG:2},
+    back:{HPL:4,HYL:4,HP:2,FB:2,HB:1,PW:2},
+    posture:{HPL:4,HYL:3,GL:2,HP:2,FB:2,TR:1,SR:1}
+  };
+  for(const sl of slots){
+    score.glutes+=W.glutes[sl]||0;
+    score.core+=W.core[sl]||0;
+    score.back+=W.back[sl]||0;
+    score.posture+=W.posture[sl]||0;
+  }
+  const mx=Math.max(1,...Object.values(score));
+  return{
+    glutes:Math.round(score.glutes/mx*100),
+    core:Math.round(score.core/mx*100),
+    back:Math.round(score.back/mx*100),
+    posture:Math.round(score.posture/mx*100)
+  };
+}
 function milestoneCheckpointCopy(w){
   if(w===4||w===8)return{title:"Deload checkpoint",body:"Week "+w+" eases volume on purpose so you absorb the last block and come back stronger. This is planned progression — not lost time."};
   if(w===13)return{title:"Test week",body:"Treat heavy work as crisp technique practice. Log honestly; scores inform the next block without judging you."};
