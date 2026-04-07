@@ -301,6 +301,20 @@ function enhanceNumericInputs(scope){(scope||document).querySelectorAll('input[t
 function fmtPace(secPerMile){return mmss(secPerMile)+"/mi"}
 function est5k(r4){return r4>0?r4*Math.pow(5000/(4*1609.34),1.06):0}
 function paceMi(fk){return fk>0?fk/3.10686:0}
+function applyAppearanceMeta(m){
+  m=m||document.getElementById("meta-theme");
+  if(!m)return;
+  m.setAttribute("content","#17171d");
+}
+function applyVisualTheme(forceNeutral=false){
+  const b=document.body;
+  if(!b)return;
+  b.classList.remove("theme-neutral","theme-feminine","theme-masculine","women-vivid");
+  if(forceNeutral||!S.profile.onboarded)b.classList.add("theme-neutral");
+  else if(S.profile.sex==="female")b.classList.add("theme-feminine");
+  else b.classList.add("theme-masculine");
+  applyAppearanceMeta();
+}
 function phaseName(w){return w<=4?"Hypertrophy":w<=8?"Strength":w<=12?"Peak":"Test"}
 function phaseClass(w){return w<=4?"phase-hyp":w<=8?"phase-str":w<=12?"phase-peak":"phase-test"}
 function phaseColor(w){return w<=4?"var(--ice)":w<=8?"var(--gold)":w<=12?"var(--fire)":"var(--mint)"}
