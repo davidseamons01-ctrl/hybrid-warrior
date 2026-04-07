@@ -1,4 +1,4 @@
-const CACHE_NAME = "hybrid-warrior-v22";
+const CACHE_NAME = "hybrid-warrior-v24";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -29,16 +29,19 @@ self.addEventListener("fetch", (event) => {
   const isHtmlRequest =
     event.request.mode === "navigate" || acceptHeader.includes("text/html");
 
-  // Always prefer fresh HTML so auth/setup UI changes appear immediately.
+  // Cache-first HTML shell for reliable offline gym usage.
   if (isHtmlRequest) {
     event.respondWith(
-      fetch(event.request)
-        .then((resp) => {
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return resp;
-        })
-        .catch(() => caches.match(event.request).then((r) => r || caches.match("./index.html")))
+      caches.match(event.request).then((cached) => {
+        const network = fetch(event.request)
+          .then((resp) => {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            return resp;
+          })
+          .catch(() => null);
+        return cached || network.then((r) => r || caches.match("./index.html"));
+      })
     );
     return;
   }
