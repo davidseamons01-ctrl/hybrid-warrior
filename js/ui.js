@@ -1886,13 +1886,23 @@ export async function bootstrapApp(){
   fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-1',hypothesisId:'H2',location:'js/ui.js:bootstrapApp:start',message:'bootstrapApp entered',data:{hasSkipMain:!!document.getElementById("skip-main")},timestamp:Date.now()})}).catch(()=>{});
   // #endregion
   initRestBarDock();
+  traceBoot("ui.bootstrap.restbar.ok");
   const sk=document.getElementById("skip-main");
   if(sk)sk.addEventListener("click",()=>{requestAnimationFrame(()=>{const a=document.getElementById("app");if(a)try{a.focus()}catch{}})});
   if(tryThemePreviewBoot())return;
+  traceBoot("ui.bootstrap.themePreview.checked");
   applyVisualTheme(true);
-  bindAuthUI();
+  traceBoot("ui.bootstrap.visualTheme.ok");
+  try{
+    bindAuthUI();
+    traceBoot("ui.bootstrap.bindAuthUI.ok");
+  }catch(err){
+    traceBoot("ui.bootstrap.bindAuthUI.err",{message:err&&err.message});
+    throw err;
+  }
   window.addEventListener("online",()=>{if(currentUser){toast("Back online.");cloudPush();render()}});
   window.addEventListener("offline",()=>{render()});
+  traceBoot("ui.bootstrap.onlineOfflineHooks.ok");
   const cfg=getResolvedFirebaseConfig();
   traceBoot("ui.bootstrap.cfg",{hasCfg:!!cfg});
   // #region agent log
@@ -1900,9 +1910,10 @@ export async function bootstrapApp(){
   // #endregion
   if(cfg){
     try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else{offlineMode=false;showAuthLogin()}})}
-    catch{showAuthSetup()}
+    catch(err){traceBoot("ui.bootstrap.fb.init.err",{message:err&&err.message});showAuthSetup()}
   }
   else showAuthSetup();
+  traceBoot("ui.bootstrap.authPath.done");
   if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){
     navigator.serviceWorker.register("./sw.js").then((reg)=>{
       try{reg.update()}catch{}
@@ -1918,7 +1929,8 @@ export async function bootstrapApp(){
         traceBoot("ui.sw.controllerchange.reload");
         location.reload();
       },{once:true});
-    }).catch(()=>{});
+      traceBoot("ui.bootstrap.sw.register.ok");
+    }).catch((err)=>{traceBoot("ui.bootstrap.sw.register.err",{message:err&&err.message})});
   }
   setInterval(()=>{const p=document.getElementById("navPill");if(p){const w=S.program.week;p.textContent=`Week ${w}/13 · ${phaseName(w)}`}},6e4);
 }

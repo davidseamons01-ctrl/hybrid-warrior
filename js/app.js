@@ -55,7 +55,7 @@ async function start() {
     if(setup)setup.style.display="block";
     const e=document.getElementById("authErr");
     if(e){
-      e.textContent="App failed to initialize. Refresh once, then check network/ad-blocker if this persists.";
+      e.textContent=`App failed to initialize: ${err&&err.message?err.message:"unknown error"}`;
       e.classList.add("show");
     }
   }
