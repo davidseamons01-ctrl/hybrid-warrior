@@ -937,6 +937,26 @@ function mergeZones(plan){
   });
   return out;
 }
+function getSafetyMode(){
+  if(S.profile.sex!=="female")return "none";
+  const life=((S.profile.prefs||{}).lifeStage||"general");
+  const wm=((S.profile.prefs||{}).womenMode||"auto");
+  const fa=S.goals.focusAreas||[];
+  if(life==="pregnancy"||wm==="pregnancy"||fa.includes("Pregnancy Safe"))return "pregnancy";
+  if(life==="postpartum"||wm==="postpartum"||fa.includes("Postpartum Recovery"))return "postpartum";
+  return "none";
+}
+function postpartumMicroRoutine(dayIdx){
+  const map={
+    1:["90/90 breathing x 2 min","Wall posture slides 2x12","Dead bug breathing 2x8/side"],
+    2:["Pelvic tilt breathing x 2 min","Bird dog 2x8/side","Band pull-aparts 2x15"],
+    3:["Glute bridge hold 3x20s","Side plank (knees) 2x20s/side","Thoracic open-book 8/side"],
+    4:["Cat-cow x 60s","Tall-kneel anti-rotation press 2x10/side","Scap push-up 2x10"],
+    5:["Hip flexor stretch 2x40s/side","Face pulls 2x15","Diaphragm breathing x 2 min"],
+    6:["Easy walk 15-20 min","Gentle mobility flow 8-10 min","Pelvic floor relaxation breathing 2 min"]
+  };
+  return map[dayIdx]||["Gentle walk + breathing reset"];
+}
 function bodyMapSVG(grow=[],burn=[]){
   const has=z=>grow.includes(z)||burn.includes(z);
   const color=z=>grow.includes(z)&&burn.includes(z)?"#ffd740":grow.includes(z)?"#00e676":burn.includes(z)?"#ff6b35":"#2a2a38";
