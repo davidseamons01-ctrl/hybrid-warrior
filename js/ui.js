@@ -283,7 +283,10 @@ function bindAuthUI(){
     // #region agent log
     fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H1',location:'js/ui.js:auth-go:entry',message:'auth-go clicked',data:{authMode,hasFbAuth:!!fbAuth,hasFbDb:!!fbDb,emailLen:em.length,pwLen:pw.length},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
-    if(!em||!pw){showAuthErr("Enter email and password.");return}if(pw.length<6){showAuthErr("Password must be 6+ characters.");return}try{showAuthLoading();let u;if(authMode==="in"){const c=await fbAuth.signInWithEmailAndPassword(em,pw);u=c.user}else{const c=await fbAuth.createUserWithEmailAndPassword(em,pw);u=c.user;try{await u.sendEmailVerification()}catch(err){console.warn(err)}}await enterApp(u)}catch(e){
+    if(!em||!pw){showAuthErr("Enter email and password.");return}
+    if(pw.length<6){showAuthErr("Password must be 6+ characters.");return}
+    if(!fbAuth){showAuthErr("Missing Firebase config. Add window.__HYBRID_FIREBASE_CONFIG__ in index.html.");showAuthLogin();return}
+    try{showAuthLoading();let u;if(authMode==="in"){const c=await fbAuth.signInWithEmailAndPassword(em,pw);u=c.user}else{const c=await fbAuth.createUserWithEmailAndPassword(em,pw);u=c.user;try{await u.sendEmailVerification()}catch(err){console.warn(err)}}await enterApp(u)}catch(e){
       // #region agent log
       fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'auth-null-debug-1',hypothesisId:'H2',location:'js/ui.js:auth-go:catch',message:'auth-go catch',data:{name:e&&e.name,message:e&&e.message,hasFbAuth:!!fbAuth},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
