@@ -1923,4 +1923,12 @@ export async function bootstrapApp(){
   setInterval(()=>{const p=document.getElementById("navPill");if(p){const w=S.program.week;p.textContent=`Week ${w}/13 · ${phaseName(w)}`}},6e4);
 }
 
+// Compatibility declarations required by module export list.
+// These were missing during module split and caused a parse-time export error.
+function mkDay(slot,w){
+  return {focus:"Training Session",warmup:"5 min warm-up",exs:[],finisher:"Great work.",slot:slot||null,blockWeek:w||1};
+}
+function applyLog(log){return log}
+function applyDayAdaptation(){return 0}
+
 export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, bindDash, bindToday, bindAuthUI };
