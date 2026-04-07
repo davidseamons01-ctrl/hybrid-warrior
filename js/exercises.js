@@ -1,5 +1,5 @@
 // Source-of-truth exercise catalog/data (extracted from monolith)
-const EX=[
+export const EX=[
   {id:"bench",name:"Barbell Bench Press",tags:["chest","push","upper"],rest:"2-3 min",howTo:["Retract shoulder blades, arch upper back, plant feet.","Lower bar to lower chest, elbows ~45°.","Drive up explosively to lockout."],books:["Copy of OffSeason_2ndEdition_Final.pdf","IN Season workouts.pdf"],kw:["bench","press","chest"]},
   {id:"incline_db",name:"Incline DB Press",tags:["chest","push","upper"],rest:"90s",howTo:["Bench 30-45°, dumbbells at shoulders.","Press up and slightly inward.","Lower with control."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["incline","dumbbell","chest"]},
   {id:"cgbench",name:"Close-Grip Bench",tags:["triceps","push","upper"],rest:"90s",howTo:["Hands shoulder-width.","Lower to chest, elbows tucked.","Focus on tricep lockout."],books:["Copy of OffSeason_2ndEdition_Final.pdf"],kw:["close","grip","bench"]},
@@ -37,8 +37,8 @@ const EX=[
   {id:"donkey_kick",name:"Donkey Kick",tags:["glutes","home"],rest:"30s",howTo:["Begin on all fours with your hands under your shoulders and knees under your hips.","Brace your core to keep your lower back from arching.","Keeping your right knee bent at a 90-degree angle and your foot flexed, drive your right heel up and back toward the ceiling.","Squeeze your glute at the top of the movement, ensuring your lower back stays completely still.","Lower the knee back down slowly."],books:["28DayPlan_FinalVersion.pdf"],kw:["donkey kick","glute"]},
   {id:"side_leg_raise",name:"Side-Lying Leg Raise",tags:["glutes","hips","home"],rest:"30s",howTo:["Lie on your side with your bottom leg slightly bent for stability and your top leg perfectly straight.","Rest your head on your arm.","Slightly angle the toes of your top foot downward toward the floor.","Slowly raise the top leg straight up into the air, focusing on using the muscles on the outer side of your hip and glute.","Lower the leg slowly and controlled back to the starting position."],books:["28DayPlan_FinalVersion.pdf"],kw:["side leg raise","hip dip","glute medius"]}
 ];
-function exById(id){return EX.find(e=>e.id===id)}
-const EX_MEDIA={
+export function exById(id){return EX.find(e=>e.id===id)}
+export const EX_MEDIA={
   bench:{video:"https://www.youtube.com/embed/rT7DgCr-3pg",grow:["chest","triceps","frontShoulders"],burn:["upperBody"]},
   incline_db:{video:"https://www.youtube.com/embed/8iPEnn-ltC8",grow:["chest","frontShoulders","triceps"],burn:["upperBody"]},
   cgbench:{video:"https://www.youtube.com/embed/nEF0bv2FW94",grow:["triceps","chest"],burn:["upperBody"]},
@@ -76,7 +76,7 @@ const EX_MEDIA={
   donkey_kick:{video:"https://www.youtube.com/watch?v=OZH0-OB_sm0",grow:["glutes"],burn:["lowerBody"]},
   side_leg_raise:{video:"https://www.youtube.com/watch?v=wJo8inKVKus",grow:["glutes","hips"],burn:["lowerBody"]}
 };
-const EX_MEDIA_FEMALE={
+export const EX_MEDIA_FEMALE={
   bench:{video:"https://www.youtube.com/embed/4Y2ZdHCOXok"},
   incline_db:{video:"https://www.youtube.com/embed/8iPEnn-ltC8"},
   cgbench:{video:"https://www.youtube.com/embed/nEF0bv2FW94"},
@@ -115,7 +115,7 @@ const EX_MEDIA_FEMALE={
   side_leg_raise:{video:"https://www.youtube.com/watch?v=wJo8inKVKus"}
 };
 /** Optional ~2 min demo URLs (women-led); primary embed stays in EX_MEDIA / EX_MEDIA_FEMALE. */
-const EX_QUICK_DEMO_VIDEO={
+export const EX_QUICK_DEMO_VIDEO={
   hip_thrust:"https://www.youtube.com/watch?v=_i6qpcI1Nw4",
   fire_hydrant:"https://www.youtube.com/watch?v=3UvmdA0bJ-w",
   clamshell:"https://www.youtube.com/watch?v=f-COgi-oVKY",
@@ -136,7 +136,7 @@ const EX_QUICK_DEMO_VIDEO={
   pelvic_breath:"https://www.youtube.com/watch?v=nmUr_pA4BCQ",
   lunge:"https://www.youtube.com/watch?v=2ea3_b9rFdM"
 };
-const EX_MUSCLE_IDS={
+export const EX_MUSCLE_IDS={
   bench:{primary:["pectoralis_major_l","pectoralis_major_r"],secondary:["triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],tertiary:["anterior_deltoid_l","anterior_deltoid_r"],burn:["rectus_abdominis_1","external_oblique_1_l","external_oblique_1_r"]},
   incline_db:{primary:["pectoralis_major_l","pectoralis_major_r"],secondary:["anterior_deltoid_l","anterior_deltoid_r"],tertiary:["triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],burn:["rectus_abdominis_1"]},
   cgbench:{primary:["triceps_brachii_caput_laterale_l","triceps_brachii_caput_laterale_r","triceps_brachii_caput_longum_l","triceps_brachii_caput_longum_r"],secondary:["pectoralis_major_l","pectoralis_major_r"],tertiary:["anterior_deltoid_l","anterior_deltoid_r"],burn:["rectus_abdominis_1"]},
@@ -175,9 +175,3 @@ const EX_MUSCLE_IDS={
   side_leg_raise:{primary:["gluteus_medius_l","gluteus_medius_r"],secondary:["tensor_fasciae_latae_l","tensor_fasciae_latae_r"],tertiary:["external_oblique_1_l","external_oblique_1_r"],burn:["gluteus_medius_l","gluteus_medius_r"]}
 };
 
-window.EX = EX;
-window.exById = exById;
-window.EX_MEDIA = EX_MEDIA;
-window.EX_MEDIA_FEMALE = EX_MEDIA_FEMALE;
-window.EX_QUICK_DEMO_VIDEO = EX_QUICK_DEMO_VIDEO;
-window.EX_MUSCLE_IDS = EX_MUSCLE_IDS;
