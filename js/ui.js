@@ -125,8 +125,6 @@ async function loadFBSDK(){
   await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js");
   await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js");
 }
-function getSavedCfg(){try{return JSON.parse(localStorage.getItem("hw-fb-config")||"")}catch{return null}}
-function saveCfg(c){localStorage.setItem("hw-fb-config",JSON.stringify(c))}
 function normalizeFirebaseConfigObject(obj){
   if(!obj||typeof obj!=="object")throw new Error("Invalid Firebase config.");
   const required=["apiKey","authDomain","projectId","appId","messagingSenderId"];
@@ -146,7 +144,12 @@ function getEmbeddedFirebaseConfig(){
   }catch(e){console.warn("embedded-firebase-config JSON invalid:",e&&e.message)}
   return null;
 }
-function getResolvedFirebaseConfig(){return getSavedCfg()||getEmbeddedFirebaseConfig()}
+function getResolvedFirebaseConfig(){
+  const emb=getEmbeddedFirebaseConfig();
+  if(emb)return emb;
+  const fallback={apiKey:"",authDomain:"",projectId:"",appId:"",messagingSenderId:""};
+  try{return normalizeFirebaseConfigObject(fallback)}catch{return null}
+}
 async function initFB(cfg){
   try{
     await loadFBSDK();
@@ -232,14 +235,11 @@ async function doSignOut(){
   document.getElementById("authScreen").style.display="flex";
   document.getElementById("mainNav").style.display="none";
   document.getElementById("app").style.display="none";
-  getResolvedFirebaseConfig()?showAuthLogin():showAuthSetup();
+  showAuthLogin();
 }
 function showAuthSetup(){
-  document.getElementById("auth-setup").style.display="block";
-  document.getElementById("auth-login").style.display="none";
-  document.getElementById("auth-loading").style.display="none";
-  const cfgInput=document.getElementById("auth-cfg");
-  if(cfgInput)cfgInput.value="";
+  showAuthLogin();
+  showAuthErr("Auth config missing. Add window.__HYBRID_FIREBASE_CONFIG__ in index.html.");
 }
 function applyAuthTabUI(){
   document.querySelectorAll(".auth-tab").forEach(x=>x.classList.toggle("active",x.dataset.m===authMode));
@@ -249,60 +249,29 @@ function applyAuthTabUI(){
   if(fg)fg.style.display=authMode==="in"?"inline-flex":"none";
 }
 function showAuthLogin(){
-  document.getElementById("auth-setup").style.display="none";
+  const setup=document.getElementById("auth-setup");
+  if(setup)setup.style.display="none";
   document.getElementById("auth-login").style.display="block";
   document.getElementById("auth-loading").style.display="none";
   applyAuthTabUI();
 }
 function showAuthLoading(){
-  document.getElementById("auth-setup").style.display="none";
+  const setup=document.getElementById("auth-setup");
+  if(setup)setup.style.display="none";
   document.getElementById("auth-login").style.display="none";
   document.getElementById("auth-loading").style.display="block";
 }
 function showAuthErr(m){const el=document.getElementById("authErr");el.textContent=m;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),6000)}
-function parseFirebaseConfig(raw){
-  const txt=(raw||"").trim();
-  if(!txt)throw new Error("Paste your Firebase config first.");
-  let obj=null;
-  // Case 1: pure JSON object
-  try{obj=JSON.parse(txt)}catch{}
-  // Case 2: pasted JS snippet like: const firebaseConfig = { ... };
-  if(!obj){
-    const m=txt.match(/\{[\s\S]*\}/);
-    if(m){
-      let block=m[0].replace(/,\s*([}\]])/g,"$1"); // remove trailing commas
-      try{obj=JSON.parse(block)}catch{}
-    }
-  }
-  if(!obj||typeof obj!=="object")throw new Error("Invalid config format. Paste the full firebaseConfig object.");
-  return normalizeFirebaseConfigObject(obj);
-}
-
 function bindAuthUI(){
-  document.getElementById("auth-cfg-save").onclick=async()=>{
-    try{
-      const cfg=parseFirebaseConfig(document.getElementById("auth-cfg").value);
-      saveCfg(cfg);
-      showAuthLoading();
-      await initFB(cfg);
-      authMode="up";
-      showAuthLogin();
-      toast("Config saved — create your account below.");
-    }catch(e){
-      showAuthErr(e.message||"Invalid config JSON.");
-      showAuthSetup();
-    }
-  };
   document.querySelectorAll(".auth-tab").forEach(t=>t.onclick=()=>{authMode=t.dataset.m;applyAuthTabUI()});
   document.getElementById("auth-forgot").onclick=async()=>{
     const em=document.getElementById("auth-email").value.trim();
     if(!em){showAuthErr("Enter your email, then tap Forgot password.");return}
-    if(!fbAuth){showAuthErr("Connect Firebase first.");return}
+    if(!fbAuth){showAuthErr("Auth unavailable. Check Firebase config.");return}
     try{await fbAuth.sendPasswordResetEmail(em);toast("Check your email for a reset link.")}catch(e){showAuthErr(e.message||"Could not send reset email.")}
   };
   document.getElementById("auth-go").onclick=async()=>{const em=document.getElementById("auth-email").value.trim(),pw=document.getElementById("auth-pass").value;if(!em||!pw){showAuthErr("Enter email and password.");return}if(pw.length<6){showAuthErr("Password must be 6+ characters.");return}try{showAuthLoading();let u;if(authMode==="in"){const c=await fbAuth.signInWithEmailAndPassword(em,pw);u=c.user}else{const c=await fbAuth.createUserWithEmailAndPassword(em,pw);u=c.user;try{await u.sendEmailVerification()}catch(err){console.warn(err)}}await enterApp(u)}catch(e){showAuthLogin();showAuthErr(e.code==="auth/user-not-found"?"No account. Switch to Create Account.":e.code==="auth/wrong-password"||e.code==="auth/invalid-credential"?"Wrong email or password.":e.code==="auth/email-already-in-use"?"Email in use. Switch to Sign In.":e.message)}};
-  document.getElementById("auth-change-cfg").onclick=()=>showAuthSetup();
-  document.getElementById("auth-pass").onkeydown=e=>{if(e.key==="Enter")document.getElementById("auth-go").click()};
+    document.getElementById("auth-pass").onkeydown=e=>{if(e.key==="Enter")document.getElementById("auth-go").click()};
 }
 
 
@@ -338,6 +307,15 @@ function womenBaselineTier(){
 }
 let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;
 let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;
+function tabFromHash(){
+  const h=(location.hash||"").replace(/^#/,"").toLowerCase();
+  if(h===TAB_TRAIN||h===TAB_PLAN||h===TAB_YOU)return h;
+  return null;
+}
+function syncTabToHash(){
+  const t=tabFromHash();
+  if(t&&t!==tab)tab=t;
+}
 
 // ═══════════════════════════════════════════════════════════
 //  UTILITIES
@@ -673,8 +651,11 @@ function todayPlanFiltered(){
   });
   exs=exs.filter(ex=>!skip.has(ex.eid));
   const qm=Number((S.profile.prefs||{}).quickSessionMin)||0;
-  const quickNote=qm>0&&base.exs.length>2;
-  if(qm>0&&exs.length>2)exs=exs.slice(0,2);
+  const missedActive=!!(adj.catchUpQueue&&adj.catchUpQueue.length);
+  const autoQuick=(getStreak()===0&&missedActive)?15:0;
+  const effectiveQuick=Math.max(qm,autoQuick);
+  const quickNote=effectiveQuick>0&&base.exs.length>2;
+  if(effectiveQuick>0&&exs.length>2)exs=exs.slice(0,2);
   return{...base,exs,quickNote};
 }
 function celebrateFinish(){
@@ -1174,7 +1155,7 @@ function renderNav(){
   el.innerHTML=`<div class="logo">Hybrid<span class="logo-tag">Training</span></div>`+tabs.map(([id,lb,hint])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""}><span class="nav-ic"></span>${lb}</button>`).join("")+
     `<div class="nav-pill" id="navPill">Week ${w}/13 · ${phaseName(w)}</div>`+
     (currentUser?`<button class="nav-btn" id="nav-so" style="color:var(--text3);flex-shrink:0;font-size:11px" type="button" title="${(currentUser.email||"").replace(/"/g,"&quot;")}">Sign out</button>`:offlineMode?`<span style="font-size:10px;color:var(--text3)">Offline</span>`:``);
-  el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
+  el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{location.hash=b.dataset.t;});
   const so=document.getElementById("nav-so");if(so)so.onclick=()=>{if(confirm("Sign out?"))doSignOut()};
 }
 
@@ -1400,6 +1381,7 @@ function renderDash(){
       ${wl.length?`<div class="wt-bar">${wtBars}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">Last ${wl.length} entries</div>`:""}
     </div>
   </div></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Strength trend (30 days)</h2></div><canvas id="dash-strength-chart" height="170" style="width:100%;border:1px solid var(--border);border-radius:10px;background:var(--surface)"></canvas><div style="font-size:11px;color:var(--text3);margin-top:8px">Estimated 1RM from logs (Epley), plotted by day.</div></div></div>
   <div class="section"><div class="card"><div class="card-h"><h2>Health metrics (manual)</h2></div>
     <div class="grid3">
       <div><label>Active calories</label><input id="d-cal" type="number" placeholder="540"></div>
@@ -1468,6 +1450,47 @@ function bindDash(){
     S.extraActivities=S.extraActivities.slice(-200);
     await persist();render();toast("Activity saved");
   };
+  drawStrengthTrendChart();
+}
+function oneRmSeriesFor(exName){
+  const byDay=new Map();
+  const cutoff=Date.now()-30*864e5;
+  for(const l of S.logs||[]){
+    if(l.exercise!==exName)continue;
+    const d=new Date(l.date+"T12:00:00").getTime();
+    if(Number.isNaN(d)||d<cutoff)continue;
+    const est=epley(Number(l.aW)||0,Number(l.aR)||0);
+    if(!est)continue;
+    const k=l.date;
+    byDay.set(k,Math.max(byDay.get(k)||0,est));
+  }
+  return [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+}
+function drawStrengthTrendChart(){
+  const cv=document.getElementById("dash-strength-chart");
+  if(!cv)return;
+  const ctx=cv.getContext("2d");
+  if(!ctx)return;
+  const series=[
+    {c:"#7d9eb4",d:oneRmSeriesFor("Barbell Bench Press")},
+    {c:"#c9ae7a",d:oneRmSeriesFor("Back Squat")},
+    {c:"#c4735c",d:oneRmSeriesFor("Deadlift")}
+  ];
+  const w=cv.width=cv.clientWidth||700,h=cv.height=170,p=24;
+  ctx.clearRect(0,0,w,h);
+  const days=[...new Set(series.flatMap(s=>s.d.map(x=>x[0])))].sort();
+  if(!days.length){ctx.fillStyle="rgba(184,184,196,.8)";ctx.font="12px DM Sans, sans-serif";ctx.fillText("No lift logs in last 30 days yet.",16,32);return;}
+  const values=series.flatMap(s=>s.d.map(x=>x[1]));
+  const lo=Math.min(...values),hi=Math.max(...values),span=Math.max(1,hi-lo);
+  const x=(i)=>p+(i/(days.length-1||1))*(w-p*2),y=(v)=>h-p-((v-lo)/span)*(h-p*2);
+  ctx.strokeStyle="rgba(120,120,130,.35)";
+  ctx.beginPath();ctx.moveTo(p,h-p);ctx.lineTo(w-p,h-p);ctx.moveTo(p,p);ctx.lineTo(p,h-p);ctx.stroke();
+  for(const s of series){
+    if(!s.d.length)continue;
+    ctx.strokeStyle=s.c;ctx.lineWidth=2;ctx.beginPath();
+    s.d.forEach((pt,idx)=>{const xi=x(days.indexOf(pt[0])),yi=y(pt[1]);if(idx===0)ctx.moveTo(xi,yi);else ctx.lineTo(xi,yi);});
+    ctx.stroke();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1912,7 +1935,7 @@ function renderSettings(){
   </div></details>
   <details class="settings-fold settings-section" data-k="data backup export import clear logs difficult hard ease deload recovery too program" id="settings-ease" open><summary>Data, backup &amp; program ease</summary><div class="settings-fold-body">
     <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Export a full backup of your training state, or import a saved JSON file from another device.</p>
-    <div class="row" style="flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="s-clear">Clear logs</button><button type="button" class="btn btn-ghost" id="s-export">Export</button><button type="button" class="btn btn-ghost" id="s-import-btn">Import</button><input type="file" id="s-import-file" accept="application/json" style="display:none"></div>
+    <div class="row" style="flex-wrap:wrap"><button type="button" class="btn btn-ghost" id="s-clear">Clear logs</button><button type="button" class="btn btn-ghost" id="s-export">Export JSON</button><button type="button" class="btn btn-ghost" id="s-export-csv">Export CSV</button><button type="button" class="btn btn-ghost" id="s-import-btn">Import</button><input type="file" id="s-import-file" accept="application/json" style="display:none"></div>
     <button type="button" class="btn btn-secondary-solid btn-block" id="s-ease-open" style="margin-top:12px">Program feels too hard</button>
     <div class="ease-wizard" id="ease-wiz"><p style="font-size:12px;color:var(--text2);margin-bottom:8px">We'll nudge adaptation down ~5% and add a few minutes to your session budget (cap 75 min) so targets feel more doable.</p><button type="button" class="btn btn-cta btn-sm" id="ease-go">Ease my program</button></div>
   </div></details>`;
@@ -1943,6 +1966,17 @@ function bindSettings(){
   document.getElementById("s-reonboard").onclick=()=>{if(!confirm("Re-run the full onboarding wizard? Your logs stay saved, but you'll step through goals and schedule again."))return;S.profile.onboarded=false;save();showOnboarding()};
   document.getElementById("s-clear").onclick=async()=>{if(!confirm("Clear all workout logs and weight history? This cannot be auto-restored except via undo in the next few seconds or an exported backup."))return;const logs=S.logs.slice(),wl=S.weightLog.slice(),ad={...S.adapt};S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Logs cleared.",{undo:()=>{S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
   document.getElementById("s-export").onclick=()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="hybrid-warrior-backup.json";a.click()};
+  const csvBtn=document.getElementById("s-export-csv");
+  if(csvBtn)csvBtn.onclick=()=>{
+    const esc=(v)=>`"${String(v??"").replace(/"/g,'""')}"`;
+    const logsHead=["type","date","week","exercise","planned_sets","planned_reps","planned_weight","actual_sets","actual_reps","actual_weight","outcome","score","note"];
+    const logsRows=(S.logs||[]).map(l=>["log",l.date,l.week,l.exercise,l.tS,l.tR,l.tW,l.aS,l.aR,l.aW,l.outcome,l.score,l.note||""]);
+    const healthHead=["type","date","active_calories","exercise_minutes","steps"];
+    const healthRows=(S.healthLog||[]).map(h=>["health",h.date,h.cal||0,h.exMin||0,h.steps||0]);
+    const lines=[logsHead.join(","),...logsRows.map(r=>r.map(esc).join(",")),"",healthHead.join(","),...healthRows.map(r=>r.map(esc).join(","))];
+    const b=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="hybrid-training-export.csv";a.click();
+  };
   document.getElementById("s-import-btn").onclick=()=>document.getElementById("s-import-file").click();
   document.getElementById("s-import-file").onchange=async ev=>{const f=ev.target.files[0];if(!f)return;try{const prev=structuredClone(S);S=merge(structuredClone(DEF),JSON.parse(await f.text()));trimStaleSkipped(S);normalizeProgramStart(S);await persist();render();toast("Imported state.",{undo:()=>{S=prev;persist();render()},duration:7200})}catch{toast("Invalid file")}};
 }
@@ -1997,7 +2031,11 @@ function render(){
       bindFn=bindProgram;
     }
     else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
-    app.innerHTML=html;
+    const frag=document.createDocumentFragment();
+    const tpl=document.createElement("template");
+    tpl.innerHTML=html;
+    frag.appendChild(tpl.content);
+    app.replaceChildren(frag);
     bindFn();
     const hs=sessionStorage.getItem("hw-scroll");if(hs){sessionStorage.removeItem("hw-scroll");scrollToHashAfterRender(hs)}
     if(sessionStorage.getItem("ease-open")==="1"){sessionStorage.removeItem("ease-open");requestAnimationFrame(()=>document.getElementById("ease-wiz")?.classList.add("show"))}
@@ -2053,6 +2091,10 @@ export async function bootstrapApp(){
   }catch(err){
     throw err;
   }
+  if(!location.hash)location.hash=TAB_YOU;
+  const routeTab=tabFromHash();
+  if(routeTab)tab=routeTab;
+  window.addEventListener("hashchange",()=>{const t=tabFromHash();if(t){tab=t;render();}});
   window.addEventListener("online",()=>{if(currentUser){toast("Back online.");cloudPush();render()}});
   window.addEventListener("offline",()=>{render()});
   const cfg=getResolvedFirebaseConfig();
@@ -2060,7 +2102,7 @@ export async function bootstrapApp(){
     try{showAuthLoading();await initFB(cfg);fbAuth.onAuthStateChanged(u=>{if(u)enterApp(u);else{offlineMode=false;showAuthLogin()}})}
     catch(err){showAuthSetup()}
   }
-  else showAuthSetup();
+  else{showAuthLogin();showAuthErr("Missing Firebase config. Add window.__HYBRID_FIREBASE_CONFIG__ in index.html.");}
   if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){
     navigator.serviceWorker.register("./sw.js").then((reg)=>{
       try{reg.update()}catch{}
