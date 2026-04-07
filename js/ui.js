@@ -770,6 +770,21 @@ function toast(m,opt){
   });
 }
 function gaugeHTML(pct,val,sub,color){const c=282.74,off=c*(1-clamp(pct,0,1));return`<div class="gauge"><svg width="100" height="100" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="45"/><circle class="gauge-fill" cx="50" cy="50" r="45" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg><div class="gauge-center"><div class="gauge-val">${val}</div><div class="gauge-sub">${sub}</div></div></div>`}
+function heatmapBandLabel(pct){const p=Number(pct)||0;if(p>=66)return"High";if(p>=34)return"Med";return"Low"}
+function dashLogDayHeader(isoD){
+  const t=iso();const y=addCalendarDaysIso(t,-1);
+  if(isoD===t)return"Today";
+  if(isoD===y)return"Yesterday";
+  const dt=parseIsoNoon(isoD);return dt.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+}
+function fiveKGoalProgressDisplay(goalSec,fkSec){
+  const g=Number(goalSec)||0,b=Number(fkSec)||0;
+  if(g<=0)return{pct:0,sub:"est 5K",line:"Set a 5K goal in onboarding.",bestLabel:"—"};
+  if(!isFinite(b)||b<=0)return{pct:0,sub:"est 5K",line:`Goal ${mmss(g)} · log a 4-mile pace in Training &amp; profile to estimate your current 5K.`,bestLabel:"—"};
+  const faster=b<=g;
+  const pct=faster?1:clamp(g/b,0,1);
+  return{pct,sub:"est 5K",line:`Current best ~ <b style="color:var(--text)">${mmss(Math.round(b))}</b> · Goal <b style="color:var(--text)">${mmss(g)}</b>${faster?" · at or ahead of goal":""}`,bestLabel:mmss(Math.round(b))};
+}
 function estCalories(type,mins,weightLb){const kg=weightLb*0.4536;const met=type==="run"?9.5:type==="acc"?5:6.5;return Math.round(met*kg*(mins/60))}
 function weightTrend(){const wl=S.weightLog.slice(-14);if(wl.length<2)return null;const first=wl[0].wt,last=wl[wl.length-1].wt;return{change:last-first,perWeek:(last-first)/(wl.length/7||1),last}}
 function exMedia(eid){
@@ -1255,10 +1270,15 @@ function trainingDayHint(){
 function renderDash(){
   autoWeek();
   const d=new Date(),w=S.program.week,plan=rollingPlanForDate(iso());
+  const dateLine=d.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
   const p=S.profile,g=S.goals;const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5);const fatLost=p.startWt-p.weight;
-  const bP=g.bench?clamp(p.bench1RM/g.bench,0,1):0;const rP=g.fiveK?clamp(g.fiveK/fk,0,1):0;const fP=g.fatLoss?clamp(fatLost/g.fatLoss,0,1):0;
+  const bP=g.bench?clamp(p.bench1RM/g.bench,0,1):0;const fP=g.fatLoss?clamp(fatLost/g.fatLoss,0,1):0;
   const streak=getStreak();const bT=trendArrow("bench"),sT=trendArrow("squat"),dT=trendArrow("dead"),rT=trendArrow("run");
-  const wt=weightTrend();const recent=S.logs.slice(-6).reverse();
+  const wt=weightTrend();
+  const recentRaw=S.logs.slice(-24);
+  const recentByDate={};for(const l of recentRaw){if(!recentByDate[l.date])recentByDate[l.date]=[];recentByDate[l.date].push(l)}
+  const recentDates=Object.keys(recentByDate).sort().reverse().slice(0,6);
+  const fiveKUi=g.fiveK?fiveKGoalProgressDisplay(g.fiveK,fk):null;
   const hm=weeklyExpectedChanges();
   const whr=(p.waist>0&&p.hips>0)?(p.waist/p.hips):0;
   const swr=(p.waist>0&&p.shoulders>0)?(p.shoulders/p.waist):0;
@@ -1275,7 +1295,6 @@ function renderDash(){
   const ringLen=113;const pctRing=mg.target?Math.min(1,mg.logged/mg.target):0;const off=ringLen*(1-pctRing);
   const openDet=sessionStorage.getItem("hw-dash-details")==="1";
   const weekLogEmpty=mg.target>0&&mg.logged===0;
-  const dateLine=d.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
   const nextLine=trainingDayHint();
   const progPct=Math.round(w/13*100);
   const intentLine=weekIntentLine(w);
@@ -1294,15 +1313,18 @@ function renderDash(){
   ${mile?`<div class="card section milestone-card"><div style="font-size:14px;font-weight:600">${mile.title}</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5">${mile.body}</p></div>`:""}
   ${ms?`<div class="card section missed-card"><div style="font-size:14px;font-weight:600">Still room for ${ms.dayName}</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">No log for <b style="color:var(--text)">${ms.date}</b> — that happens. When you're ready, backfill it or carry the session forward without guilt.</p><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px"><button type="button" class="btn btn-cta btn-sm" id="dash-miss-log" data-d="${ms.date}">Log ${ms.dayName}</button><button type="button" class="btn btn-secondary-solid btn-sm" id="dash-miss-plan">Open calendar</button></div></div>`:""}
   ${dashPin?`<div class="pin-feed">`:""}
-  <div class="hero-card">
-    <div class="hero-title">${heroTitle}</div>
-    <div class="breadcrumb">${bc}</div>
-    ${bpos?`<div style="font-size:11px;color:var(--text3);margin-top:4px">${bpos}</div>`:""}
-    <div class="hero-meta">${heroMeta}</div>
-    <div style="font-size:11px;color:var(--text3);margin-top:6px">First move · <span class="ex-name-lg" style="display:inline">${heroExName}</span></div>
-    <div class="hero-target">${heroTarget}</div>
-    <button type="button" class="btn btn-cta btn-block hero-cta" id="dash-start-workout">Start Workout</button>
-    <button type="button" class="btn btn-secondary-solid btn-block" id="dash-whats-today" style="margin-top:8px">Review session details</button>
+  <div class="dash-hero-banner hero-card">
+    <div class="dash-hero-banner-main">
+      <div class="dash-hero-kicker">${dateLine} · Week ${w} of 13</div>
+      <div class="hero-title dash-hero-title-compact">${heroTitle}</div>
+      <div class="breadcrumb dash-hero-bc">${bc}</div>
+      ${bpos?`<div class="dash-hero-bpos">${bpos}</div>`:""}
+      <div class="hero-meta">${heroMeta} · <span class="ex-name-lg" style="display:inline">${heroExName}</span> · ${heroTarget}</div>
+    </div>
+    <div class="dash-hero-banner-cta">
+      <button type="button" class="btn btn-cta btn-block dash-hero-start" id="dash-start-workout">Start</button>
+      <button type="button" class="btn btn-secondary-solid btn-sm btn-block" id="dash-whats-today">Details</button>
+    </div>
   </div>
   <div class="card dash-context section" style="padding:14px">
     <div style="font-size:13px;font-weight:600;color:var(--text)">${dateLine}</div>
@@ -1329,14 +1351,25 @@ function renderDash(){
       <div><div style="font-size:10px;color:var(--text3)">Shoulders</div><div style="font-size:17px;font-weight:600">${p.shoulders>0?p.shoulders+" in":"—"}</div></div>
     </div>
     <button type="button" class="btn btn-secondary-solid btn-sm" id="dash-update-metrics" style="margin-top:10px">Update metrics</button>
-    <p style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.45">Update anytime in Settings → Training &amp; profile. This app runs in the browser — it cannot read Apple Health or Fitness directly; use manual entries, Overview below, or the Shortcuts workflow in Activity &amp; wearables.</p>
+    <p style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.45">Update anytime in Settings → Training &amp; profile.</p>
+  </div>
+  <div class="card section dash-health-connect" style="padding:14px">
+    <div style="font-size:12px;font-weight:600;margin-bottom:4px">Apple Health &amp; Google Fit</div>
+    <p style="font-size:11px;color:var(--text2);line-height:1.45;margin-bottom:10px">Browser PWAs cannot access Health or Fit APIs yet. For now, use manual entries below, the FAB quick log, or Settings → Activity &amp; wearables. Native app hooks may land here later.</p>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn btn-sm btn-ghost" disabled title="Not available in this web app">Connect Apple Health</button>
+      <button type="button" class="btn btn-sm btn-ghost" disabled title="Not available in this web app">Connect Google Fit</button>
+    </div>
   </div>
   <div class="micro-goal card" style="padding:14px;display:flex;align-items:center;gap:14px">
     <div class="micro-ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="rbg" cx="26" cy="26" r="18"/><circle class="rfill" cx="26" cy="26" r="18" stroke-dasharray="${ringLen}" stroke-dashoffset="${off}"/></svg><span>${mg.logged}/${mg.target}</span></div>
     <div><div style="font-size:14px;font-weight:600">This training week</div><div style="font-size:12px;color:var(--text2);margin-top:2px">Aim for ${mg.target} session${mg.target!==1?"s":""} in this rolling week (not Mon–Sun). Logging keeps prescriptions realistic.</div></div>
   </div>
   <div class="card section" style="padding:14px">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div style="font-size:13px;font-weight:600">Hybrid Warrior Score</div><span class="badge badge-ice">${calcStrengthScore()}</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600">Hybrid Warrior Score</span>
+      <button type="button" class="dash-info-btn" id="dash-warrior-info" aria-label="How Hybrid Warrior Score is calculated" title="How is this calculated?">i</button></div>
+      <span class="badge badge-ice">${calcStrengthScore()}</span></div>
     <div style="font-size:11px;color:var(--text3);margin-top:6px">Blend of strength PRs, running pace, and consistency.</div>
     <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${warriorBadges().length?warriorBadges().map(x=>`<span class="badge badge-mint">${x}</span>`).join(""):`<span style="font-size:11px;color:var(--text3)">Log sessions to unlock badges.</span>`}</div>
   </div>
@@ -1361,16 +1394,13 @@ function renderDash(){
     <div class="details-panel ${openDet?"open":""}" id="dash-details-body">
   <div class="grid-auto">
     ${g.bench?`<div class="card"><div class="card-h"><h2>Bench → ${g.bench}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(bP*100)}%</div>
-      <div class="row">${gaugeHTML(bP,p.bench1RM+"","est 1RM","var(--fire)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.bench} lb</div><div style="font-size:11px" class="${bT.c}">${bT.i} ${bT.t}</div></div></div></div>`:""}
+      <div class="row">${gaugeHTML(bP,p.bench1RM+"","est 1RM","#7d9eb4")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.bench} lb</div><div style="font-size:11px" class="${bT.c}">${bT.i} ${bT.t}</div></div></div></div>`:""}
     ${g.squat?`<div class="card"><div class="card-h"><h2>Squat → ${g.squat}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(clamp(p.squat1RM/g.squat,0,1)*100)}%</div>
-      <div class="row">${gaugeHTML(clamp(p.squat1RM/g.squat,0,1),p.squat1RM+"","est 1RM","var(--gold)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.squat} lb</div><div style="font-size:11px" class="${sT.c}">${sT.i} ${sT.t}</div></div></div></div>`:""}
+      <div class="row">${gaugeHTML(clamp(p.squat1RM/g.squat,0,1),p.squat1RM+"","est 1RM","#c4735c")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.squat} lb</div><div style="font-size:11px" class="${sT.c}">${sT.i} ${sT.t}</div></div></div></div>`:""}
     ${g.deadlift?`<div class="card"><div class="card-h"><h2>Dead → ${g.deadlift}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(clamp(p.dead1RM/g.deadlift,0,1)*100)}%</div>
-      <div class="row">${gaugeHTML(clamp(p.dead1RM/g.deadlift,0,1),p.dead1RM+"","est 1RM","var(--fire)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.deadlift} lb</div><div style="font-size:11px" class="${dT.c}">${dT.i} ${dT.t}</div></div></div></div>`:""}
-    ${g.fiveK?`<div class="card"><div class="card-h"><h2>Sub-${mmss(g.fiveK)} 5K</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(rP*100)}%</div>
-      <div class="row">${gaugeHTML(rP,mmss(Math.round(fk)),"est 5K","var(--ice)")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${mmss(g.fiveK)}</div><div style="font-size:11px" class="${rT.c}">${rT.i} ${rT.t}</div></div></div></div>`:""}
-    ${g.fatLoss?`<div class="card"><div class="card-h"><h2>Lose ${g.fatLoss}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(fP*100)}%</div>
-      <div class="row">${gaugeHTML(fP,fatLost.toFixed(0)+"","lbs lost","var(--mint)")}<div><div style="font-size:12px;color:var(--text2)">${p.weight}lb → ${p.goalWt}lb</div>
-        ${wt?`<div style="font-size:11px;color:${wt.perWeek<0?"var(--mint)":"var(--gold)"}">Trend: ${wt.perWeek.toFixed(1)} lb/wk</div>`:""}</div></div></div>`:""}
+      <div class="row">${gaugeHTML(clamp(p.dead1RM/g.deadlift,0,1),p.dead1RM+"","est 1RM","#7aab96")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.deadlift} lb</div><div style="font-size:11px" class="${dT.c}">${dT.i} ${dT.t}</div></div></div></div>`:""}
+    ${g.fiveK&&fiveKUi?`<div class="card"><div class="card-h"><h2>Sub-${mmss(g.fiveK)} 5K</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px;line-height:1.45">${fiveKUi.line}</div>
+      <div class="row">${gaugeHTML(fiveKUi.pct,fiveKUi.bestLabel==="—"?"—":fiveKUi.bestLabel,fiveKUi.sub,"var(--ice)")}<div><div style="font-size:12px;color:var(--text2)">Ring = progress toward goal pace (from your 4-mile estimate).</div><div style="font-size:11px" class="${rT.c}">${rT.i} ${rT.t}</div></div></div></div>`:""}
   </div>
   <div class="section"><div class="card"><div class="card-h"><h2>Body measurements</h2></div>
     <div class="grid3">
@@ -1381,27 +1411,34 @@ function renderDash(){
   </div></div>
   <div class="section"><div class="card"><div class="card-h"><h2>Expected emphasis (heatmap)</h2></div>
     <div class="grid2">
-      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Glutes</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.glutes}%;background:var(--mint)"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.glutes}%</div></div>
-      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Core</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.core}%;background:var(--mint)"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.core}%</div></div>
-      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Back</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.back}%;background:var(--mint)"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.back}%</div></div>
-      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Posture</div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.posture}%;background:var(--mint)"></div></div><div style="font-size:10px;color:var(--text3);margin-top:3px">${hm.posture}%</div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Glutes</span><span class="heatmap-pill">${heatmapBandLabel(hm.glutes)} · ${hm.glutes}%</span></div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.glutes}%;background:var(--mint)"></div></div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Core</span><span class="heatmap-pill">${heatmapBandLabel(hm.core)} · ${hm.core}%</span></div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.core}%;background:var(--mint)"></div></div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Back</span><span class="heatmap-pill">${heatmapBandLabel(hm.back)} · ${hm.back}%</span></div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.back}%;background:var(--mint)"></div></div></div>
+      <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Posture</span><span class="heatmap-pill">${heatmapBandLabel(hm.posture)} · ${hm.posture}%</span></div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.posture}%;background:var(--mint)"></div></div></div>
     </div>
   </div></div>
-  <div class="section"><div class="grid2">
+  <div class="section"><div class="grid2 dash-streak-weight-row">
     <div class="card"><div class="card-h"><h2>Streak</h2></div>
       <div style="font-size:32px;font-weight:600;color:${streak>=5?"var(--mint)":streak>=2?"var(--gold)":"var(--text3)"}">${streak}</div>
       <div class="streak-bar">${[0,1,2,3,4,5,6].map(i=>{const dd=new Date();dd.setDate(dd.getDate()-6+i);const k=isoFromDate(dd);const done=S.logs.some(l=>l.date===k);return`<div class="streak-dot ${done?"done":""} ${k===iso()?"today":""}">${DAYS[dd.getDay()].slice(0,2)}</div>`}).join("")}</div>
     </div>
-    <div class="card"><div class="card-h"><h2>Weight</h2></div>
+    <div class="dash-fat-weight-cluster card">
+      ${g.fatLoss?`<div class="dash-fatloss-strip">
+        <div class="card-h" style="margin-bottom:8px"><h2>Lose ${g.fatLoss} lb</h2></div>
+        <div style="font-size:11px;color:var(--text3);margin:-4px 0 8px">Goal progress ${Math.round(fP*100)}% · ${p.weight}lb → ${p.goalWt}lb</div>
+        <div class="row" style="align-items:center;gap:12px;flex-wrap:wrap">${gaugeHTML(fP,fatLost.toFixed(0)+"","lbs lost","var(--mint)")}${wt?`<div style="font-size:11px;color:${wt.perWeek<0?"var(--mint)":"var(--gold)"}">Trend: ${wt.perWeek.toFixed(1)} lb/wk</div>`:""}</div>
+      </div>`:""}
+      <div class="dash-weight-strip ${g.fatLoss?"dash-weight-strip-connected":""}"><div class="card-h"><h2>Weight &amp; pace</h2></div>
       <div class="grid2">
         <div><label>Today's weight (lb)</label><input id="d-wt" type="number" value="${p.weight}"></div>
         <div><label>4-mile (mm:ss)</label><input id="d-run" value="${p.run4mi?mmss(p.run4mi):""}"></div>
       </div>
       <button class="btn btn-cta btn-block" id="d-save" style="margin-top:8px">Save weight & run pace</button>
       ${wl.length?`<div class="wt-bar">${wtBars}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">Last ${wl.length} entries</div>`:""}
+      </div>
     </div>
   </div></div>
-  <div class="section"><div class="card"><div class="card-h"><h2>Strength trend (30 days)</h2></div><canvas id="dash-strength-chart" height="170" style="width:100%;border:1px solid var(--border);border-radius:10px;background:var(--surface)"></canvas><div style="font-size:11px;color:var(--text3);margin-top:8px">Estimated 1RM from logs (Epley), plotted by day.</div></div></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Strength trend (30 days)</h2></div><canvas id="dash-strength-chart" height="200" style="width:100%;border:1px solid var(--border);border-radius:10px;background:var(--surface)"></canvas><div class="dash-chart-caption" style="font-size:11px;color:var(--text3);margin-top:8px">Estimated 1RM from logs (Epley). Axes show lb and calendar dates.</div></div></div>
   <div class="section"><div class="card"><div class="card-h"><h2>Health metrics (manual)</h2></div>
     <div class="grid3">
       <div><label>Active calories</label><input id="d-cal" type="number" placeholder="540"></div>
@@ -1411,8 +1448,8 @@ function renderDash(){
     <button class="btn btn-ice btn-block" id="d-health-save" style="margin-top:8px">Save health metrics</button>
     <div style="font-size:11px;color:var(--text3);margin-top:6px">Optional. Nudges conditioning when calories/steps are very high or low.</div>
   </div></div>
-  ${recent.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent logs</h2></div>
-    ${recent.map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${l.date} — ${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${l.aS}×${l.aR} @ ${l.aW}</div></div>`}).join("")}</div></div>`:""}
+  ${recentDates.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent logs</h2></div>
+    ${recentDates.map(ds=>`<div class="dash-log-day-group"><div class="dash-log-day-head">${dashLogDayHeader(ds)}</div>${recentByDate[ds].map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry dash-log-entry-compact"><div class="log-entry-head"><span class="log-date">${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${l.aS}×${l.aR} @ ${l.aW}</div></div>`}).join("")}</div>`).join("")}</div></div>`:""}
     </div>
   </div>`;
 }
@@ -1421,7 +1458,6 @@ function bindDash(){
   const st=document.getElementById("dash-start-workout");if(st)st.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const gl=document.getElementById("dash-go-log");if(gl)gl.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
-  const qs=document.getElementById("dash-q-session");if(qs)qs.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const ql=document.getElementById("dash-q-log");if(ql)ql.onclick=()=>{tab=TAB_TRAIN;trainSub="log";logDate=iso();render()};
   const qp=document.getElementById("dash-q-plan");if(qp)qp.onclick=()=>{tab=TAB_PLAN;render()};
   const qr=document.getElementById("dash-q-plates");if(qr)qr.onclick=()=>{tab=TAB_TRAIN;trainSub="workout";sessionStorage.setItem("hw-open-plates","1");render()};
@@ -1456,6 +1492,11 @@ function bindDash(){
     if(cal<220&&steps<4000)S.adapt.run=clamp(S.adapt.run-0.01,.85,1.2);
     await persist();render();toast("Health metrics saved",{undo:()=>{S.healthLog=snap;S.adapt.run=ar;persist();render()}});
   };
+  const wInfo=document.getElementById("dash-warrior-info"),wModal=document.getElementById("dash-warrior-modal"),wClose=document.getElementById("dash-warrior-modal-close");
+  const closeWarriorModal=()=>{if(wModal){wModal.hidden=true;wModal.setAttribute("aria-hidden","true")}};
+  if(wInfo&&wModal)wInfo.onclick=()=>{wModal.hidden=false;wModal.setAttribute("aria-hidden","false")};
+  if(wClose)wClose.onclick=closeWarriorModal;
+  if(wModal)wModal.onclick=e=>{if(e.target===wModal)closeWarriorModal()};
   const eas=document.getElementById("ex-act-save");
   if(eas)eas.onclick=async()=>{
     const date=(document.getElementById("ex-act-date")?.value||"").trim();
@@ -1494,22 +1535,41 @@ function drawStrengthTrendChart(){
   if(!ctx)return;
   const series=[
     {c:"#7d9eb4",d:oneRmSeriesFor("Barbell Bench Press")},
-    {c:"#c9ae7a",d:oneRmSeriesFor("Back Squat")},
-    {c:"#c4735c",d:oneRmSeriesFor("Deadlift")}
+    {c:"#c4735c",d:oneRmSeriesFor("Back Squat")},
+    {c:"#7aab96",d:oneRmSeriesFor("Deadlift")}
   ];
-  const w=cv.width=cv.clientWidth||700,h=cv.height=170,p=24;
+  const w=cv.width=cv.clientWidth||700,h=cv.height=200;
+  const padL=46,padR=14,padT=16,padB=40;
+  const plotW=w-padL-padR,plotH=h-padT-padB;
   ctx.clearRect(0,0,w,h);
   const days=[...new Set(series.flatMap(s=>s.d.map(x=>x[0])))].sort();
   if(!days.length){ctx.fillStyle="rgba(184,184,196,.8)";ctx.font="12px DM Sans, sans-serif";ctx.fillText("No lift logs in last 30 days yet.",16,32);return;}
   const values=series.flatMap(s=>s.d.map(x=>x[1]));
-  const lo=Math.min(...values),hi=Math.max(...values),span=Math.max(1,hi-lo);
-  const x=(i)=>p+(i/(days.length-1||1))*(w-p*2),y=(v)=>h-p-((v-lo)/span)*(h-p*2);
+  const lo=Math.floor(Math.min(...values)),hi=Math.ceil(Math.max(...values)),span=Math.max(1,hi-lo);
+  const xAt=(i)=>padL+(i/(days.length-1||1))*plotW;
+  const yAt=(v)=>padT+plotH-((v-lo)/span)*plotH;
   ctx.strokeStyle="rgba(120,120,130,.35)";
-  ctx.beginPath();ctx.moveTo(p,h-p);ctx.lineTo(w-p,h-p);ctx.moveTo(p,p);ctx.lineTo(p,h-p);ctx.stroke();
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,h-padB);ctx.lineTo(w-padR,h-padB);ctx.moveTo(padL,padT);ctx.lineTo(padL,h-padB);ctx.stroke();
+  ctx.fillStyle="rgba(140,140,150,.9)";
+  ctx.font="10px DM Sans, sans-serif";
+  ctx.textAlign="right";
+  for(let t=0;t<=2;t++){const val=lo+(span*t)/2;const yy=yAt(val);ctx.fillText(`${Math.round(val)} lb`,padL-6,yy+3)}
+  ctx.textAlign="center";
+  const fmtX=iso=>{const d=parseIsoNoon(iso);return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})};
+  if(days.length===1){ctx.fillText(fmtX(days[0]),padL+plotW/2,h-12)}
+  else if(days.length>1){
+    ctx.fillText(fmtX(days[0]),xAt(0),h-12);
+    if(days.length>2)ctx.fillText(fmtX(days[Math.floor(days.length/2)]),xAt(Math.floor(days.length/2)),h-12);
+    ctx.fillText(fmtX(days[days.length-1]),xAt(days.length-1),h-12);
+  }
+  ctx.fillStyle="rgba(120,120,130,.75)";
+  ctx.font="9px DM Sans, sans-serif";
+  ctx.fillText("Last 30 days",w-padR-2,h-4);
   for(const s of series){
     if(!s.d.length)continue;
     ctx.strokeStyle=s.c;ctx.lineWidth=2;ctx.beginPath();
-    s.d.forEach((pt,idx)=>{const xi=x(days.indexOf(pt[0])),yi=y(pt[1]);if(idx===0)ctx.moveTo(xi,yi);else ctx.lineTo(xi,yi);});
+    s.d.forEach((pt,idx)=>{const xi=xAt(days.indexOf(pt[0])),yi=yAt(pt[1]);if(idx===0)ctx.moveTo(xi,yi);else ctx.lineTo(xi,yi);});
     ctx.stroke();
   }
 }

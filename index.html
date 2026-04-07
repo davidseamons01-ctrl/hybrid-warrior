@@ -58,7 +58,20 @@ window.__HYBRID_FIREBASE_CONFIG__ = window.__HYBRID_FIREBASE_CONFIG__ || {
 <div class="rest-bar" id="restBar" aria-live="polite"><div class="rest-bar-inner"><div class="rest-bar-label" id="restBarLabel">Rest</div><div class="rest-bar-time" id="restBarTime">0:00</div><div class="rest-bar-actions"><button type="button" class="btn btn-sm btn-ghost" id="restAdd30">+30s</button><button type="button" class="btn btn-sm btn-secondary-solid" id="restSkip30">−30s</button><button type="button" class="btn btn-sm btn-cta" id="restDone">Done</button></div></div></div>
 <div id="confetti-layer" aria-hidden="true"></div>
 <div id="ex-swap-overlay" class="ex-swap-overlay" aria-hidden="true"><div class="ex-swap-sheet" role="dialog" aria-modal="true" aria-labelledby="ex-swap-title"><div id="ex-swap-title" style="font-size:15px;font-weight:600;margin-bottom:4px">Swap for a similar move</div><p style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.45">Suggestions share muscle emphasis with your programmed lift. Loads prefer your last log for that movement when available.</p><div id="ex-swap-list"></div><button type="button" class="btn btn-ghost btn-block" id="ex-swap-close" style="margin-top:14px">Cancel</button></div></div>
+<div class="dash-modal-overlay" id="dash-warrior-modal" hidden aria-hidden="true">
+  <div class="dash-modal" role="dialog" aria-modal="true" aria-labelledby="dash-warrior-modal-title">
+    <h3 id="dash-warrior-modal-title" style="font-size:16px;font-weight:600;margin-bottom:10px">Hybrid Warrior Score</h3>
+    <p style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:10px">One number that summarizes how you are trending across the program. It combines:</p>
+    <ul style="font-size:12px;color:var(--text2);margin:0 0 12px 18px;line-height:1.55">
+      <li><b style="color:var(--text)">Strength</b> — sum of the bench, squat, and deadlift 1RM numbers in your profile.</li>
+      <li><b style="color:var(--text)">Run</b> — reward for a faster 4-mile pace (converted toward a 5K estimate).</li>
+      <li><b style="color:var(--text)">Consistency</b> — streak and how often you have logged in the last month.</li>
+    </ul>
+    <p style="font-size:11px;color:var(--text3);line-height:1.45;margin-bottom:14px">It is a motivational snapshot, not a medical score. Use goals and logs for precise progress.</p>
+    <button type="button" class="btn btn-secondary-solid btn-block" id="dash-warrior-modal-close">Close</button>
+  </div>
+</div>
 <script type="application/json" id="embedded-firebase-config"></script>
-<script type="module" src="./js/app.js?v=20260407r5"></script>
+<script type="module" src="./js/app.js?v=20260407r6"></script>
 </body>
 </html>

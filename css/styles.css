@@ -615,3 +615,87 @@ label,.fig-title,.ex-rest,.ex-reason{
 body:not(.appearance-light) .auth-card,body:not(.appearance-light) .miss-welcome-card{background:var(--elev-3);border-color:var(--border-lit)}
 .ex-swap-sheet{background:var(--elev-2)}
 body:not(.appearance-light) .ob-card{background:var(--elev-2)}
+
+/* Phase 2 — Overview / dashboard */
+.dash-hero-banner{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  padding:14px 16px!important;
+}
+.dash-hero-banner-main{flex:1;min-width:min(100%,220px)}
+.dash-hero-kicker{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.dash-hero-title-compact{font-size:clamp(18px,4vw,22px)!important;line-height:1.2!important;margin-bottom:2px!important}
+.dash-hero-bc{margin:4px 0!important;font-size:12px!important}
+.dash-hero-bpos{font-size:11px;color:var(--text3);margin-top:2px}
+.dash-hero-banner-cta{display:flex;flex-direction:column;gap:8px;min-width:min(140px,100%)}
+.dash-hero-start{font-size:15px!important;font-weight:700!important;min-height:48px!important}
+
+.dash-info-btn{
+  width:28px;height:28px;min-width:28px;min-height:28px!important;
+  padding:0;border-radius:50%;
+  border:1px solid color-mix(in srgb,var(--ice) 55%,var(--border));
+  background:color-mix(in srgb,var(--ice) 12%,transparent);
+  color:var(--ice);
+  font:700 13px/1 'DM Sans',sans-serif;
+  cursor:pointer;
+  flex-shrink:0;
+}
+.dash-info-btn:hover{border-color:var(--ice);color:var(--text)}
+
+.heatmap-pill{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.04em}
+
+.streak-dot.today{
+  transform:scale(1.18);
+  border-width:3px!important;
+  border-color:var(--ice)!important;
+  color:var(--text)!important;
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--ice) 35%,transparent);
+  z-index:1;
+}
+.streak-dot.done{
+  border-color:var(--mint)!important;
+  color:color-mix(in srgb,var(--mint) 95%,var(--text))!important;
+  background:color-mix(in srgb,var(--mint) 22%,transparent)!important;
+}
+
+.dash-fat-weight-cluster{padding:16px!important;text-align:left}
+.dash-fatloss-strip{padding-bottom:14px;margin-bottom:4px;border-bottom:1px solid var(--border)}
+.dash-weight-strip-connected{padding-top:12px;border-top:1px solid color-mix(in srgb,var(--mint) 25%,var(--border))}
+
+.dash-log-day-group{margin-bottom:14px}
+.dash-log-day-head{
+  font-size:12px;font-weight:700;color:var(--text);
+  margin:10px 0 6px;padding-bottom:4px;
+  border-bottom:1px solid var(--border);
+}
+.dash-log-day-group:first-child .dash-log-day-head{margin-top:0}
+
+.dash-streak-weight-row{align-items:stretch}
+@media(max-width:700px){
+  .dash-streak-weight-row{grid-template-columns:1fr!important}
+}
+
+.dash-modal-overlay{
+  position:fixed;inset:0;z-index:280;
+  background:rgba(10,10,14,.55);
+  backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));
+}
+.dash-modal-overlay[hidden]{display:none!important}
+.dash-modal{
+  width:100%;max-width:400px;
+  background:var(--elev-2);
+  border:1px solid var(--border-lit);
+  border-radius:var(--radius-card,16px);
+  padding:20px 22px;
+  box-shadow:var(--elev);
+  max-height:min(85vh,520px);
+  overflow-y:auto;
+}
+
+.dash-health-connect .btn:disabled{opacity:.55;cursor:not-allowed}
