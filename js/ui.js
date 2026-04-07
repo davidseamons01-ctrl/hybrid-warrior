@@ -116,6 +116,9 @@ function getEmbeddedFirebaseConfig(){
 }
 function getResolvedFirebaseConfig(){return getSavedCfg()||getEmbeddedFirebaseConfig()}
 async function initFB(cfg){
+  // #region agent log
+  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H12',location:'js/ui.js:initFB:start',message:'initFB start',data:{hasApiKey:!!(cfg&&cfg.apiKey),projectId:cfg&&cfg.projectId},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   try{
     await loadFBSDK();
   }catch(err){
@@ -145,6 +148,9 @@ async function initFB(cfg){
   }
   // Keep auth session across reloads/devices until explicit sign-out.
   await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  // #region agent log
+  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H12',location:'js/ui.js:initFB:success',message:'initFB success',data:{hasFbAuth:!!fbAuth,hasFbDb:!!fbDb},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
 }
 function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);normalizeProgramStart(S);save();render()}})}
 async function cloudPush(){
@@ -175,6 +181,9 @@ async function cloudPullOnce(uid){
 }
 
 async function enterApp(user){
+  // #region agent log
+  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H13',location:'js/ui.js:enterApp:start',message:'enterApp start',data:{uid:!!(user&&user.uid),onboarded:!!(S&&S.profile&&S.profile.onboarded)},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   offlineMode=false;
   currentUser=user;
   showAuthLoading();
@@ -186,6 +195,9 @@ async function enterApp(user){
   document.getElementById("app").style.display="";
   startSync();
   render();
+  // #region agent log
+  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H13',location:'js/ui.js:enterApp:end',message:'enterApp end',data:{authDisplay:document.getElementById("authScreen")&&document.getElementById("authScreen").style.display,appDisplay:document.getElementById("app")&&document.getElementById("app").style.display,navDisplay:document.getElementById("mainNav")&&document.getElementById("mainNav").style.display},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
 }
 async function doSignOut(){
   offlineMode=false;
@@ -927,6 +939,10 @@ function bodyMapSVG(grow=[],burn=[]){
 //  ONBOARDING WIZARD
 // ═══════════════════════════════════════════════════════════
 function showOnboarding(){applyVisualTheme(true);document.getElementById("obScreen").classList.add("show");obStep=0;renderOB()}
+// #region agent log
+const __hwShowOnboarding=showOnboarding;
+showOnboarding=function(){fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'pre-fix-2',hypothesisId:'H14',location:'js/ui.js:showOnboarding',message:'showOnboarding called',data:{hasOb:!!document.getElementById("obScreen")},timestamp:Date.now()})}).catch(()=>{});return __hwShowOnboarding.apply(this,arguments)}
+// #endregion
 function hideOnboarding(){document.getElementById("obScreen").classList.remove("show");document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";applyVisualTheme(false);startSync();render()}
 
 function renderOB(){
