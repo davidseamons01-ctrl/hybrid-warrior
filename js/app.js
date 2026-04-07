@@ -13,9 +13,26 @@ function ensurePremiumStylesheet() {
 }
 
 async function start() {
-  ensurePremiumStylesheet();
-  window.HWModular = { state: S, engine: { rollingPlanForDate }, ui: { render }, services: { initFB } };
-  await bootstrapApp();
+  try{
+    ensurePremiumStylesheet();
+    window.HWModular = { state: S, engine: { rollingPlanForDate }, ui: { render }, services: { initFB } };
+    await bootstrapApp();
+  }catch(err){
+    console.error("Hybrid boot failed:",err);
+    const auth=document.getElementById("authScreen");
+    const setup=document.getElementById("auth-setup");
+    const login=document.getElementById("auth-login");
+    const loading=document.getElementById("auth-loading");
+    if(auth)auth.style.display="flex";
+    if(loading)loading.style.display="none";
+    if(login)login.style.display="none";
+    if(setup)setup.style.display="block";
+    const e=document.getElementById("authErr");
+    if(e){
+      e.textContent="App failed to initialize. Refresh once, then check network/ad-blocker if this persists.";
+      e.classList.add("show");
+    }
+  }
 }
 
 if (document.readyState === "loading") {
