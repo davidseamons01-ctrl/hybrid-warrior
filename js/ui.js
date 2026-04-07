@@ -363,6 +363,12 @@ function applyVisualTheme(forceNeutral=false){
   else b.classList.add("theme-masculine");
   applyAppearanceMeta();
 }
+function useWomenSoftUi(){
+  return S.profile.sex==="female"&&((S.profile.prefs||{}).womenSimpleUi!==false);
+}
+function planCompactOn(){
+  return useWomenSoftUi()?sessionStorage.getItem("hw-plan-compact")!=="0":sessionStorage.getItem("hw-plan-compact")==="1";
+}
 function phaseName(w){return w<=4?"Hypertrophy":w<=8?"Strength":w<=12?"Peak":"Test"}
 function phaseClass(w){return w<=4?"phase-hyp":w<=8?"phase-str":w<=12?"phase-peak":"phase-test"}
 function phaseColor(w){return w<=4?"var(--ice)":w<=8?"var(--gold)":w<=12?"var(--fire)":"var(--mint)"}
