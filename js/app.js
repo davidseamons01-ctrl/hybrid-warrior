@@ -1,7 +1,7 @@
-import "./exercises.js?v=20260407r4";
-import { S, initFB } from "./state.js?v=20260407r4";
-import { rollingPlanForDate } from "./engine.js?v=20260407r4";
-import { bootstrapApp, render } from "./ui.js?v=20260407r4";
+import "./exercises.js?v=20260407r5";
+import { S, initFB } from "./state.js?v=20260407r5";
+import { rollingPlanForDate } from "./engine.js?v=20260407r5";
+import { bootstrapApp, render } from "./ui.js?v=20260407r5";
 
 function ensurePremiumStylesheet() {
   const href = "./css/styles.css";

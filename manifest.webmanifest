@@ -5,11 +5,16 @@
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#17171d",
   "theme_color": "#17171d",
   "description": "13-week hybrid strength and conditioning: logging, adaptation, goals, and cloud sync.",
   "categories": ["health", "fitness", "lifestyle"],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "./icons/icon-192.png",
