@@ -1180,6 +1180,32 @@ function warriorBadges(){
   if((Number(S.profile.dead1RM)||0)>=275)b.push("Deadlift 275");
   return b.slice(0,6);
 }
+function womenProgramSummary(){
+  if(S.profile.sex!=="female")return null;
+  const mode=((S.profile.prefs||{}).womenMode||"auto");
+  const label={
+    hourglass:"Hourglass Sculpt",
+    glute_shelf:"Glute Shelf Program",
+    posture:"Back + Posture Tone",
+    pilates:"Pilates Plus Tone",
+    home:"Home Sculpt",
+    auto:"Balanced Sculpt"
+  }[mode]||"Balanced Sculpt";
+  return{label,tier:"adaptive",life:(S.profile.prefs||{}).lifeStage||"general",eq:(S.profile.prefs||{}).equipment||"gym",style:(S.profile.prefs||{}).style||"balanced",fa:S.goals.focusAreas||[],tracks:["Glute/hip emphasis","Upper-back posture work","Core conditioning","Short finishers"]};
+}
+function slotMeta(slot){
+  const meta={
+    HP:{muscles:"Chest, triceps, upper-back",why:"Pressing strength and upper-body muscle.",expect:"Bench/press performance improves."},
+    HPL:{muscles:"Lats, mid-back, rear delts",why:"Pulling strength and posture support.",expect:"Back strength and control improve."},
+    HL:{muscles:"Quads, glutes, hamstrings",why:"Heavy lower loading drives strength.",expect:"Lower-body force increases."},
+    GL:{muscles:"Glutes, hamstrings, core",why:"Shape and hip stability focus.",expect:"Glute development and stability improve."},
+    SR:{muscles:"Cardio system + core",why:"Speed intervals for race pace.",expect:"Faster splits and aerobic power."},
+    TR:{muscles:"Cardio system + posterior chain",why:"Threshold endurance training.",expect:"Better sustained pace."},
+    FB:{muscles:"Full-body",why:"Efficient broad stimulus.",expect:"Steady all-around progress."},
+    CT:{muscles:"Full-body conditioning",why:"Higher density and calorie burn.",expect:"Work capacity improves."}
+  };
+  return meta[slot]||null;
+}
 function trainingDayHint(){
   for(let k=0;k<14;k++){
     const ds=addCalendarDaysIso(iso(),k);
