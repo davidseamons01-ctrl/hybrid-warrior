@@ -410,7 +410,7 @@ function applyVisualTheme(forceNeutral=false){
   if(!b)return;
   b.classList.remove("theme-neutral","theme-feminine","theme-masculine","women-vivid");
   if(forceNeutral||!S.profile.onboarded)b.classList.add("theme-neutral");
-  else if(S.profile.sex==="female")b.classList.add("theme-feminine");
+  else if(S.profile.sex==="female"){b.classList.add("theme-feminine");b.classList.add("women-vivid")}
   else b.classList.add("theme-masculine");
   applyAppearanceMeta();
 }

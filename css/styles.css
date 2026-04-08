@@ -1,14 +1,46 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&display=swap');
 :root{--bg:#17171d;--surface:#1f2028;--card:#262730;--card-hover:#2e303c;--border:#3d3f4d;--border-lit:#585b70;--text:#f4f4f7;--text2:#b8b8c4;--text3:#8b8b9a;--fire:#c4735c;--ice:#7d9eb4;--mint:#7aab96;--gold:#c9ae7a;--red:#c96a6a;--radius:12px;--radius-sm:8px;--elev:0 4px 24px rgba(0,0,0,.28);--elev-soft:0 2px 12px rgba(0,0,0,.18);--elev-0:var(--bg);--elev-1:var(--surface);--elev-2:var(--card);--elev-3:var(--card-hover)}
 body.theme-neutral{--fire:#b56b58;--ice:#6f92a8;--mint:#6fa08c;--gold:#b89a72;--border-lit:#5c5f73}
-body.theme-feminine{--fire:#b07a86;--ice:#8080a0;--mint:#74a894;--gold:#c4aeb8;--border-lit:#636077}
-body.theme-masculine{--fire:#b8735a;--ice:#6494ac;--mint:#6aa080;--gold:#b89a78;--border-lit:#4f5c68}
+/* Feminine — fun bright palette (Pink Punch, Violet Syrup, Lemon Drop, Lime Wedge, Orange Paloma, Blue Crystal) */
+body.theme-feminine{
+  --fire:#F055A5;
+  --ice:#7A88FE;
+  --mint:#CCD537;
+  --gold:#FABE37;
+  --red:#ff5c8a;
+  --border-lit:#9b8fc4;
+  --bg:#140f1a;
+  --surface:#1a1424;
+  --card:#241d32;
+  --card-hover:#2e2640;
+  --border:#3d3452;
+  --text:#faf7ff;
+  --text2:#d8d0ee;
+  --text3:#9b90b8;
+}
+/* Masculine — timeless organic (Beige Sand, Slate Blue Grey, Earth Brown, Dark Pine, Charcoal) */
+body.theme-masculine{
+  --fire:#c4a574;
+  --ice:#6B7B84;
+  --mint:#5e8f68;
+  --gold:#bdae92;
+  --red:#b56e5c;
+  --border-lit:#7a868e;
+  --bg:#1a1917;
+  --surface:#232220;
+  --card:#2c2a26;
+  --card-hover:#35322e;
+  --border:#3d3b37;
+  --text:#E1DBC9;
+  --text2:#c9c3b4;
+  --text3:#8f8a7e;
+}
 body.appearance-light{--bg:#e8eaef;--surface:#ffffff;--card:#ffffff;--card-hover:#f4f5f9;--border:#c5cad8;--border-lit:#9aa1b5;--text:#1a1c24;--text2:#3d4150;--text3:#5c6070;--fire:#a85a45;--ice:#4e7490;--mint:#3d705a;--gold:#8a7038;--red:#a34545;--elev:0 4px 20px rgba(26,28,36,.08);--elev-soft:0 2px 8px rgba(26,28,36,.06)}
 *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
 body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;font-size:15px;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 body.theme-feminine{letter-spacing:.01em}
 body.theme-feminine .card,body.theme-feminine .goal-option,body.theme-feminine .btn,body.theme-feminine .chip,body.theme-feminine input,body.theme-feminine select,body.theme-feminine textarea{border-radius:14px}
-body.theme-feminine .nav{background:rgba(22,20,26,.94)}
+body.theme-feminine .nav{background:rgba(20,15,26,.93)}
 body.appearance-light.theme-feminine .nav{background:rgba(255,255,255,.92)}
 body.theme-feminine .logo-tag{font-style:italic;font-weight:500}
 body.theme-feminine .btn-fire{background:var(--fire);color:#f8f6f5}
@@ -19,7 +51,7 @@ body.theme-feminine .goal-option.selected{border-color:var(--ice);background:col
 body.theme-feminine .badge-fire{background:color-mix(in srgb,var(--fire) 18%,transparent);color:var(--text)}
 body.theme-masculine{letter-spacing:0}
 body.theme-masculine .card,body.theme-masculine .goal-option,body.theme-masculine .btn,body.theme-masculine .chip,body.theme-masculine input,body.theme-masculine select,body.theme-masculine textarea{border-radius:10px}
-body.theme-masculine .nav{background:rgba(18,20,26,.94)}
+body.theme-masculine .nav{background:rgba(22,21,19,.93)}
 body.appearance-light.theme-masculine .nav{background:rgba(255,255,255,.92)}
 body.theme-masculine .logo{font-weight:600;letter-spacing:-0.03em}
 body.theme-masculine .btn-fire{background:var(--fire);color:#f8f6f4}
@@ -29,18 +61,35 @@ body.theme-masculine .nav-btn.active{background:var(--surface);border-color:colo
 body.theme-masculine .goal-option.selected{border-color:var(--ice);background:color-mix(in srgb,var(--ice) 7%,transparent)}
 body.theme-masculine .badge-fire{background:color-mix(in srgb,var(--fire) 18%,transparent);color:var(--text)}
 body.theme-neutral{background:radial-gradient(120% 80% at 50% -15%,rgba(125,158,180,.09),transparent 55%),var(--bg)}
-body.theme-feminine{background:radial-gradient(120% 70% at 30% -10%,rgba(128,128,160,.1),transparent 50%),radial-gradient(90% 50% at 100% 0%,rgba(176,122,134,.06),transparent 45%),var(--bg)}
-body.theme-masculine{background:radial-gradient(120% 70% at 70% -10%,rgba(100,148,172,.1),transparent 50%),radial-gradient(90% 50% at 0% 0%,rgba(184,115,90,.06),transparent 45%),var(--bg)}
+body.theme-feminine{background:radial-gradient(110% 65% at 15% -5%,rgba(240,85,165,.11),transparent 52%),radial-gradient(90% 55% at 100% 5%,rgba(122,136,254,.1),transparent 48%),var(--bg)}
+body.theme-masculine{background:radial-gradient(115% 70% at 75% -8%,rgba(107,123,132,.14),transparent 52%),radial-gradient(85% 50% at 0% 0%,rgba(45,69,48,.16),transparent 48%),radial-gradient(70% 45% at 100% 100%,rgba(94,75,59,.1),transparent 50%),var(--bg)}
 body.appearance-light.theme-neutral{background:linear-gradient(180deg,#f2f4f8 0%,var(--bg) 32%)}
-body.appearance-light.theme-feminine{background:linear-gradient(180deg,#faf8fc 0%,var(--bg) 40%)}
-/* Pinterest-inspired soft palette for women (pinks, lilac, sky, coral) — less “spreadsheet” */
-body.theme-feminine.women-vivid{--fire:#e85d8e;--ice:#7b9bd4;--mint:#6ec4a0;--gold:#e8a05c;--red:#e07070;--border-lit:#6b5a72;--text:#f8f4f8;--text2:#d8c8dc;--text3:#a898b0}
-body.theme-feminine.women-vivid{--bg:#1a121c;--surface:#261f2e;--card:#322536;--card-hover:#3d2d42;--border:#4a3d52}
-body.theme-feminine.women-vivid{background:radial-gradient(100% 60% at 100% 0%,rgba(232,93,142,.14),transparent 50%),radial-gradient(90% 50% at 0% 20%,rgba(123,155,212,.12),transparent 45%),radial-gradient(70% 40% at 50% 100%,rgba(232,160,92,.08),transparent 50%),var(--bg)}
-body.appearance-light.theme-feminine.women-vivid{--bg:#fff5f9;--surface:#ffffff;--card:#ffffff;--card-hover:#fff0f6;--border:#f0c8dd;--border-lit:#e8a8c8;--text:#2a1a28;--text2:#5c4558;--text3:#8a7080;--fire:#d63384;--ice:#5b7fc9;--mint:#3d9b7a;--gold:#e07020;--red:#c94c6a}
-body.appearance-light.theme-feminine.women-vivid{background:linear-gradient(185deg,#ffe4f0 0%,#f5e8ff 28%,#e8f4ff 55%,var(--bg) 100%)}
+body.appearance-light.theme-feminine{background:linear-gradient(180deg,#e8f4fc 0%,#fdf6ff 45%,var(--bg) 100%)}
+/* Women: layered accents (same tokens as .theme-feminine; boosts gradients + card polish) */
+body.theme-feminine.women-vivid{background:radial-gradient(100% 55% at 100% -5%,rgba(240,85,165,.16),transparent 50%),radial-gradient(85% 50% at 0% 15%,rgba(122,136,254,.14),transparent 48%),radial-gradient(75% 45% at 50% 100%,rgba(255,155,40,.09),transparent 50%),radial-gradient(60% 40% at 80% 60%,rgba(250,190,55,.06),transparent 45%),var(--bg)}
+body.appearance-light.theme-feminine.women-vivid{
+  --bg:#eef6fc;
+  --surface:#ffffff;
+  --card:#ffffff;
+  --card-hover:#f7f2ff;
+  --border:#d8e8f5;
+  --border-lit:#BFDFF3;
+  --text:#2a1f38;
+  --text2:#4d3f62;
+  --text3:#756888;
+  --fire:#e8489a;
+  --ice:#656ef0;
+  --mint:#b0c42a;
+  --gold:#e5ae20;
+  --red:#e04d72;
+}
+body.appearance-light.theme-feminine.women-vivid{background:linear-gradient(185deg,#BFDFF3 0%,#fde8f4 26%,#fff4d6 52%,#f0e8ff 78%,var(--bg) 100%)}
+body.theme-feminine .btn-mint,body.theme-feminine.women-vivid .btn-mint{background:var(--mint);color:#1a1c22}
+body.appearance-light.theme-feminine.women-vivid .btn-mint{color:#1a1c22}
+body.theme-feminine .fab-quick-log{color:#1a1c22}
+body.appearance-light.theme-feminine.women-vivid .fab-quick-log{color:#1a1c22}
 body.theme-feminine.women-vivid .card,body.theme-feminine.women-vivid .ex-card,body.theme-feminine.women-vivid .hero-card,body.theme-feminine.women-vivid .pw-card{border-radius:18px;border-color:color-mix(in srgb,var(--fire) 22%,var(--border))}
-body.theme-feminine.women-vivid .ex-card{box-shadow:0 8px 28px rgba(232,93,142,.08)}
+body.theme-feminine.women-vivid .ex-card{box-shadow:0 8px 28px rgba(240,85,165,.1)}
 body.theme-feminine.women-vivid .nav-btn.active{border-color:color-mix(in srgb,var(--fire) 45%,var(--border-lit));background:color-mix(in srgb,var(--fire) 10%,var(--surface))}
 body.theme-feminine.women-vivid .subtab.on{border-color:color-mix(in srgb,var(--ice) 40%,var(--border));color:var(--text)}
 body.theme-feminine.women-vivid label{text-transform:none;letter-spacing:.02em;font-size:11px;color:var(--text3)}
@@ -56,7 +105,25 @@ body.theme-feminine.women-vivid .pin-feed{display:grid;grid-template-columns:1fr
 #p-plan.plan-women-simple .plan-hide-women{display:none!important}
 #p-plan.plan-women-simple .timeline{gap:6px}
 #p-plan.plan-women-simple .tl-wk{min-height:40px;border-radius:12px;font-size:11px}
-body.appearance-light.theme-masculine{background:linear-gradient(180deg,#f6f9fb 0%,var(--bg) 40%)}
+body.appearance-light.theme-masculine{
+  --bg:#E1DBC9;
+  --surface:#ebe6db;
+  --card:#faf8f5;
+  --card-hover:#e8e4dc;
+  --border:#cfc8ba;
+  --border-lit:#6B7B84;
+  --text:#2D4530;
+  --text2:#4d5548;
+  --text3:#6B7B84;
+  --fire:#5E4B3B;
+  --ice:#56656e;
+  --mint:#2D4530;
+  --gold:#8f7f62;
+  --red:#9c4a3d;
+}
+body.appearance-light.theme-masculine{background:linear-gradient(178deg,#E1DBC9 0%,#e8ebe5 38%,#dde3df 100%)}
+body.appearance-light.theme-masculine .btn-fire{color:#faf8f5}
+body.appearance-light.theme-masculine .btn-mint{color:#faf8f5}
 
 .nav{position:sticky;top:0;z-index:100;background:rgba(23,23,29,.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 20px}
 body.appearance-light .nav{background:rgba(255,255,255,.9)}
