@@ -75,7 +75,8 @@ const DEF={
   sessionAdaptedByDate:{},
   trustBannerLastShown:0,
   extraActivities:[],
-  warmupDoneByDate:{}
+  warmupDoneByDate:{},
+  exerciseOrderByDate:{}
 };
 
 // Runtime state/auth/persistence extracted from inline script
@@ -311,7 +312,7 @@ function womenBaselineTier(){
   if(strength>=2.8)return "intermediate";
   return "beginner";
 }
-let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;
+let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let logHistoryFilter="";let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;
 const DASH_RANGES=[["1w","1W"],["1m","1M"],["3m","3M"],["6m","6M"],["all","All-Time"]];
 let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;
 function tabFromHash(){
@@ -424,6 +425,23 @@ function planCompactOn(){
 function phaseName(w){return w<=4?"Hypertrophy":w<=8?"Strength":w<=12?"Peak":"Test"}
 function phaseClass(w){return w<=4?"phase-hyp":w<=8?"phase-str":w<=12?"phase-peak":"phase-test"}
 function phaseColor(w){return w<=4?"var(--ice)":w<=8?"var(--gold)":w<=12?"var(--fire)":"var(--mint)"}
+function phaseAbbrev(w){return w<=4?"Hyp":w<=8?"Str":w<=12?"Peak":"Test"}
+/** Reorder prescribed exercises for a calendar day (Plan + Train) from saved drag order. */
+function applyExerciseOrderForDate(dateIso,exs){
+  if(!dateIso||!exs||!exs.length)return exs||[];
+  const ord=(S.exerciseOrderByDate&&S.exerciseOrderByDate[dateIso])||null;
+  if(!ord||!ord.length)return exs;
+  const pos=new Map();
+  ord.forEach((eid,i)=>{if(eid&&!pos.has(eid))pos.set(eid,i)});
+  const copy=exs.slice();
+  copy.sort((a,b)=>{
+    const pa=pos.has(a.eid)?pos.get(a.eid):999;
+    const pb=pos.has(b.eid)?pos.get(b.eid):999;
+    if(pa!==pb)return pa-pb;
+    return exs.indexOf(a)-exs.indexOf(b);
+  });
+  return copy;
+}
 /** Prescribed load for Plan / log tables — avoids "BW BW" when unit is BW. */
 function formatPrescribedLoad(ex){
   if(!ex)return"BW";
@@ -525,6 +543,32 @@ function trainingDatesInBlockWeek(blockWeek){
   const endG=blockWeek*N-1;
   return trainingDatesForIndexRange(startG,endG);
 }
+/** Calendar days from first to last session in this training week — marks train vs rest by schedule. */
+function calendarSpanRhythmDays(blockWeek){
+  const tDates=trainingDatesInBlockWeek(blockWeek);
+  if(!tDates.length)return[];
+  const sortedSch=sortedScheduleDays();
+  const min=tDates[0],max=tDates[tDates.length-1];
+  const out=[];
+  let cur=min;
+  while(cur&&cur<=max){
+    const dow=parseIsoNoon(cur).getDay();
+    out.push({iso:cur,dow,train:sortedSch.includes(dow)});
+    cur=addCalendarDaysIso(cur,1);
+  }
+  return out;
+}
+function rhythmStripHtmlForWeek(blockWeek){
+  const days=calendarSpanRhythmDays(blockWeek);
+  if(!days.length)return"";
+  const cells=days.map(d=>{
+    const short=shortDowLetter(d.dow);
+    const cls=d.train?"plan-rhythm-train":"plan-rhythm-rest";
+    const title=`${d.iso} · ${DAYS[d.dow]} · ${d.train?"Scheduled train day":"Rest / off template"}`;
+    return`<span class="plan-rhythm-cell ${cls}" title="${title.replace(/"/g,"&quot;")}" aria-label="${title.replace(/"/g,"&quot;")}">${short}</span>`;
+  }).join("");
+  return`<div class="plan-week-rhythm" role="group" aria-label="Train and rest days spanning this training week"><span class="plan-rhythm-label">Week rhythm</span><div class="plan-rhythm-cells">${cells}</div><span class="plan-rhythm-legend" aria-hidden="true"><span class="plan-rhythm-train">●</span> train <span class="plan-rhythm-rest">●</span> rest</span></div>`;
+}
 function rollingPlanForDate(dateIso){
   const sorted=sortedScheduleDays();
   const dow=parseIsoNoon(dateIso).getDay();
@@ -542,6 +586,7 @@ function rollingPlanForDate(dateIso){
   p.globalIdx=g;
   p.sessionInWeek=slotIdx+1;
   p.sessionsPerWeek=N;
+  p.exs=applyExerciseOrderForDate(dateIso,p.exs||[]);
   return p;
 }
 function getWkForDate(d){
@@ -643,6 +688,10 @@ function trimStaleSkipped(st){
   const nwu={};
   for(const k of Object.keys(wu)){if(new Date(k+"T12:00:00").getTime()>=cutoff)nwu[k]=wu[k]}
   st.warmupDoneByDate=nwu;
+  const eo=st.exerciseOrderByDate||{};
+  const neo={};
+  for(const k of Object.keys(eo)){if(new Date(k+"T12:00:00").getTime()>=cutoff)neo[k]=eo[k]}
+  st.exerciseOrderByDate=neo;
   if(Array.isArray(st.extraActivities)){
     const t0=Date.now()-180*864e5;
     st.extraActivities=st.extraActivities.filter(a=>{if(!a||!a.date)return false;const t=new Date(String(a.date)+"T12:00:00").getTime();return!Number.isNaN(t)&&t>=t0});
@@ -727,6 +776,7 @@ function todayPlanFiltered(){
     base.sessionInWeek=(q.globalIdx%N)+1;
     base.sessionsPerWeek=N;
     base._catchUpDue=true;
+    base.exs=applyExerciseOrderForDate(todayIso,base.exs||[]);
   }else if(adj.extraTrainingIso===todayIso&&q){
     base=mkDay(q.slot,q.blockWeek);
     base.slot=q.slot;
@@ -736,6 +786,7 @@ function todayPlanFiltered(){
     base.sessionInWeek=(q.globalIdx%N)+1;
     base.sessionsPerWeek=N;
     base._catchUpExtra=true;
+    base.exs=applyExerciseOrderForDate(todayIso,base.exs||[]);
   }else{
     base=rollingPlanForDate(todayIso);
   }
@@ -2206,6 +2257,14 @@ function renderLog(){
   const dObj=new Date(logDate+"T12:00:00");const dayIdx=dObj.getDay();const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);
   const sessLbl=plan.sessionInWeek&&plan.sessionsPerWeek?` · Sess ${plan.sessionInWeek}/${plan.sessionsPerWeek}`:"";
   const allDates=[...new Set(S.logs.map(l=>l.date))].sort().reverse();
+  const qRaw=logHistoryFilter.trim().toLowerCase();
+  const filterDay=(d,dl)=>{if(!qRaw)return true;if(d.toLowerCase().includes(qRaw))return true;return dl.some(l=>String(l.exercise||"").toLowerCase().includes(qRaw)||String(l.note||"").toLowerCase().includes(qRaw))};
+  const filteredDates=allDates.filter(d=>filterDay(d,S.logs.filter(l=>l.date===d)));
+  const showDates=filteredDates.slice(0,80);
+  const avgScoreTitle="Average log score vs plan for this day (volume and estimated strength vs prescription). 1.0 ≈ on target; higher = you outperformed; lower = lighter loads or a tough day.";
+  const lineHtml=l=>{const txt=`${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${l.note?" — "+l.note:""}${l.outcome==="fail"?" · failed rep target":l.outcome==="time"?" · time-capped":""}`;return`<div class="log-detail log-detail-row"><span>${txt}</span><span class="row log-line-actions" style="gap:4px;flex-shrink:0"><button type="button" class="btn btn-sm btn-ghost log-move-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Move ${l.exercise} entry">Move</button><button type="button" class="btn btn-sm btn-ghost log-del-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Remove ${l.exercise} set">Remove</button></span></div>`};
+  const historyBlocks=allDates.length?(showDates.length?showDates.map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<details class="log-entry" data-d="${d}"><summary class="log-entry-summary"><span class="log-sum-lead"><span class="log-sum-chev" aria-hidden="true">▸</span><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><span class="log-tap-hint">Tap for sets</span></span><span class="log-sum-meta"><span class="log-score ${cls}" title="${avgScoreTitle}"><span class="log-score-prefix">Avg</span> ${avg.toFixed(2)}</span><span class="log-avg-hint" title="${avgScoreTitle}">intensity vs plan</span></span><span class="row log-history-actions" style="gap:6px"><button type="button" class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Edit log for ${d}">Edit log</button><button type="button" class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Delete all logs for ${d}">✕</button></span></summary><div class="log-entry-expanded">${dl.map(lineHtml).join("")}</div></details>`}).join(""):`<p style="color:var(--text3);font-size:12px">No days match your search.</p>`):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`;
+  const filterMeta=qRaw&&allDates.length?`<p class="log-history-meta">${showDates.length===filteredDates.length?`Showing ${showDates.length} day${showDates.length!==1?"s":""}`:`Showing ${showDates.length} of ${filteredDates.length} matching days`}${filteredDates.length<allDates.length?` (${allDates.length} total)`:""}</p>`:"";
   const editingOther=logDate!==iso();
   const editBanner=editingOther?`<div class="log-edit-banner session-banner" role="status"><b style="color:var(--text)">Editing mode.</b> Showing <b>${logDate}</b> (${DAYS[dayIdx]}). Update the table and save — or pick another date.</div>`:"";
   return`<div class="section">${editBanner}<div class="card"><div class="card-h"><h2>Session report</h2><span class="badge badge-ice">Updates loads</span></div>
@@ -2215,17 +2274,27 @@ function renderLog(){
     <button class="btn btn-mint btn-block" id="log-save" style="margin-top:12px">Save report</button>`:`<div style="padding:16px;color:var(--text3);text-align:center">Recovery day.</div>`}
   </div></div>
   <div class="section"><details class="settings-fold log-history-fold" open><summary class="log-history-summary"><span style="font-weight:600;font-size:14px">History</span><span class="badge badge-ice">${S.logs.length} entries</span></summary>
-    <div class="settings-fold-body">${allDates.length?allDates.slice(0,20).map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<div class="log-entry"><div class="log-entry-head"><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><div class="row log-history-actions" style="gap:6px"><span class="log-score ${cls}" title="Average log score for this day"><span class="log-score-prefix">Avg</span> ${avg.toFixed(2)}</span><button type="button" class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Edit log for ${d}">Edit log</button><button type="button" class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Delete all logs for ${d}">✕</button></div></div>${dl.map(l=>`<div class="log-detail log-detail-row"><span>${l.exercise}: ${l.aS}×${l.aR} @ ${l.aW}${l.note?" — "+l.note:""}${l.outcome==="fail"?" · failed rep target":l.outcome==="time"?" · time-capped":""}</span><span class="row log-line-actions" style="gap:4px;flex-shrink:0"><button type="button" class="btn btn-sm btn-ghost log-move-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Move ${l.exercise} entry">Move</button><button type="button" class="btn btn-sm btn-ghost log-del-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Remove ${l.exercise} set">Remove</button></span></div>`).join("")}</div>`}).join(""):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`}
+    <div class="settings-fold-body"><label class="log-history-search"><span class="log-history-search-lbl">Search</span><input type="search" id="log-history-q" placeholder="Exercise or date (YYYY-MM-DD)…" autocomplete="off" aria-label="Search workout history"></label>${filterMeta}${historyBlocks}
     </div>
   </details></div>`;
 }
 function bindLog(){
   const di=document.getElementById("log-date");if(di)di.onchange=()=>{logDate=di.value;render()};
+  const lq=document.getElementById("log-history-q");
+  if(lq){
+    lq.value=logHistoryFilter;
+    lq.oninput=()=>{logHistoryFilter=lq.value;sessionStorage.setItem("hw-refocus-log-q","1");render()};
+    if(sessionStorage.getItem("hw-refocus-log-q")==="1"){
+      sessionStorage.removeItem("hw-refocus-log-q");
+      requestAnimationFrame(()=>{const el=document.getElementById("log-history-q");if(!el)return;el.focus();const n=el.value.length;try{el.setSelectionRange(n,n)}catch{}});
+    }
+  }
+  document.querySelectorAll(".log-history-actions").forEach(el=>{el.addEventListener("click",e=>e.stopPropagation());el.addEventListener("mousedown",e=>e.stopPropagation())});
   const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{hapticKey();const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=Number(document.getElementById("lg-w"+i).value)||0;if(aS>0&&aR>0){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:plan.blockWeek!=null?plan.blockWeek:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(c>0)resolveCatchUpQueueAfterLog(logDate);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
-  document.querySelectorAll(".log-edit").forEach(b=>b.onclick=()=>{logDate=b.dataset.d;render();toast("Editing "+logDate+" — update the table, then Save report.")});
-  document.querySelectorAll(".log-del").forEach(b=>b.onclick=async()=>{const ds=b.dataset.d;if(!confirm("Delete logs for "+ds+"?"))return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
-  document.querySelectorAll(".log-move-line").forEach(b=>b.onclick=async()=>{const id=b.dataset.id;const log=S.logs.find(x=>x.id===id);if(!log)return;const nd=prompt("Move this entry to date (YYYY-MM-DD):",log.date);if(nd==null)return;const nd2=nd.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Invalid date.");return}const oldDate=log.date;log.date=nd2;log.week=getWkForDate(nd2);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[oldDate];delete S.sessionAdaptedByDate[nd2];await persist();render();toast("Entry moved to "+nd2)});
-  document.querySelectorAll(".log-del-line").forEach(b=>b.onclick=async()=>{const id=b.dataset.id;if(!confirm("Remove this logged set?"))return;const prev=S.logs.slice();const rm=S.logs.find(x=>x.id===id);S.logs=S.logs.filter(x=>x.id!==id);if(rm&&S.sessionAdaptedByDate)delete S.sessionAdaptedByDate[rm.date];await persist();render();toast("Removed",{undo:()=>{S.logs=prev;persist();render()}})});
+  document.querySelectorAll(".log-edit").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();logDate=b.dataset.d;render();toast("Editing "+logDate+" — update the table, then Save report.")});
+  document.querySelectorAll(".log-del").forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const ds=b.dataset.d;if(!confirm("Delete logs for "+ds+"?"))return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
+  document.querySelectorAll(".log-move-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;const log=S.logs.find(x=>x.id===id);if(!log)return;const nd=prompt("Move this entry to date (YYYY-MM-DD):",log.date);if(nd==null)return;const nd2=nd.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Invalid date.");return}const oldDate=log.date;log.date=nd2;log.week=getWkForDate(nd2);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[oldDate];delete S.sessionAdaptedByDate[nd2];await persist();render();toast("Entry moved to "+nd2)});
+  document.querySelectorAll(".log-del-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;if(!confirm("Remove this logged set?"))return;const prev=S.logs.slice();const rm=S.logs.find(x=>x.id===id);S.logs=S.logs.filter(x=>x.id!==id);if(rm&&S.sessionAdaptedByDate)delete S.sessionAdaptedByDate[rm.date];await persist();render();toast("Removed",{undo:()=>{S.logs=prev;persist();render()}})});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2263,7 +2332,7 @@ function renderProgram(){
     let bodyHTML="";
     if(isOpen){
       if(tDates.length){
-        bodyHTML=tDates.map((ds,si)=>{const p=rollingPlanForDate(ds);const dow=parseIsoNoon(ds).getDay();const isToday=ds===iso()&&w===cur;const dateLong=parseIsoNoon(ds).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"});const mins=estimateDayMinutes(p);const head=planFocusHeadline(p.focus);return`<div class="pw-day ${isToday?"pw-day-today":""}"><div class="pw-day-label"><span class="pw-date-line" style="color:${phaseColor(w)}">${dateLong}</span> <span class="pw-day-dow">${DAYS[dow]}</span> <span class="pw-meta-muted">· Sess ${si+1}/${tDates.length}</span>${isToday?` <span class="badge badge-ice pw-today-badge">Today</span>`:""}${mins>0?` <span class="pw-est-min" title="Rough session length">~${mins} min</span>`:""} <span class="badge pw-focus-badge" title="Session theme">${escPlanChip(head)}</span></div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row"><b>${e?e.name:ex.eid}</b><span>${formatPrescribedRx(ex)}</span></div>`}).join(""):`<div class="pw-ex-row pw-ex-recovery">Recovery — walk or easy mobility</div>`}${p.finisher?`<div class="pw-finisher-block" role="group" aria-label="Finisher"><span class="pw-finisher-label">Finisher</span><div class="pw-finisher-txt">${escPlanChip(p.finisher)}</div></div>`:""}</div>`}).join("");
+        bodyHTML=rhythmStripHtmlForWeek(w)+tDates.map((ds,si)=>{const p=rollingPlanForDate(ds);const dow=parseIsoNoon(ds).getDay();const isToday=ds===iso()&&w===cur;const dateLong=parseIsoNoon(ds).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"});const mins=estimateDayMinutes(p);const head=planFocusHeadline(p.focus);return`<div class="pw-day ${isToday?"pw-day-today":""}" style="border-left:3px solid ${phaseColor(w)};padding-left:10px;border-radius:8px;box-sizing:border-box"><div class="pw-day-label"><span class="pw-date-line" style="color:${phaseColor(w)}">${dateLong}</span> <span class="pw-day-dow">${DAYS[dow]}</span> <span class="pw-meta-muted">· Sess ${si+1}/${tDates.length}</span>${isToday?` <span class="badge badge-ice pw-today-badge">Today</span>`:""}${mins>0?` <span class="pw-est-min" title="Rough session length">~${mins} min</span>`:""} <span class="badge pw-focus-badge" title="Session theme">${escPlanChip(head)}</span></div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row pw-ex-drag" draggable="true" data-date="${ds}" data-eid="${ex.eid}"><span class="pw-ex-drag-hint" aria-hidden="true" title="Drag to reorder">⋮⋮</span><span class="pw-phase-tag ${phaseClass(w)}" title="${phaseName(w)}">${phaseAbbrev(w)}</span><div class="pw-ex-main"><b>${e?e.name:ex.eid}</b><span>${formatPrescribedRx(ex)}</span></div></div>`}).join(""):`<div class="pw-ex-row pw-ex-recovery"><span class="pw-phase-tag ${phaseClass(w)}" title="${phaseName(w)}">${phaseAbbrev(w)}</span><span>Recovery — walk or easy mobility</span></div>`}${p.finisher?`<div class="pw-finisher-block" role="group" aria-label="Finisher"><span class="pw-finisher-label">Finisher</span><div class="pw-finisher-txt">${escPlanChip(p.finisher)}</div></div>`:""}</div>`}).join("");
       }else bodyHTML=`<div class="pw-ex-row" style="color:var(--text3)">No sessions mapped (check program start & schedule).</div>`;
     }
     return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · Deload":""}</span>${w===cur?`<span class="badge badge-ice" style="font-size:9px">This training week</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${logCount?logCount+" entries":"scheduled"}</span></div>
@@ -2282,6 +2351,58 @@ function bindProgram(){
   if(pjc)pjc.onclick=()=>{autoWeek();expandedWeek=S.program.week;sessionStorage.setItem("hw-plan-scroll-wk",String(S.program.week));render()};
   document.querySelectorAll(".tl-wk").forEach(el=>el.onclick=()=>{expandedWeek=+el.dataset.w;render()});
   document.querySelectorAll(".pw-head").forEach(el=>el.onclick=()=>{const w=+el.dataset.w;expandedWeek=expandedWeek===w?null:w;render()});
+  bindPlanExerciseDrag();
+}
+function bindPlanExerciseDrag(){
+  const root=document.getElementById("pw-list");
+  if(!root)return;
+  let dragEid=null,dragDate=null;
+  root.addEventListener("dragstart",e=>{
+    const row=e.target.closest(".pw-ex-drag");
+    if(!row)return;
+    dragEid=row.dataset.eid;
+    dragDate=row.dataset.date;
+    try{e.dataTransfer.setData("text/plain",dragEid||"");e.dataTransfer.effectAllowed="move"}catch{}
+    row.classList.add("pw-ex-dragging");
+  });
+  root.addEventListener("dragend",()=>{
+    root.querySelectorAll(".pw-ex-dragging").forEach(x=>x.classList.remove("pw-ex-dragging"));
+    root.querySelectorAll(".pw-ex-drop-over").forEach(x=>x.classList.remove("pw-ex-drop-over"));
+    dragEid=null;dragDate=null;
+  });
+  root.addEventListener("dragover",e=>{
+    const row=e.target.closest(".pw-ex-drag");
+    if(!row||!dragDate||row.dataset.date!==dragDate)return;
+    e.preventDefault();
+    try{e.dataTransfer.dropEffect="move"}catch{}
+    root.querySelectorAll(".pw-ex-drop-over").forEach(x=>{if(x!==row)x.classList.remove("pw-ex-drop-over")});
+    row.classList.add("pw-ex-drop-over");
+  });
+  root.addEventListener("dragleave",e=>{
+    const row=e.target.closest(".pw-ex-drag");
+    if(row&&e.relatedTarget&&typeof row.contains==="function"&&!row.contains(e.relatedTarget))row.classList.remove("pw-ex-drop-over");
+  });
+  root.addEventListener("drop",async e=>{
+    const targetRow=e.target.closest(".pw-ex-drag");
+    if(!targetRow||!dragDate||targetRow.dataset.date!==dragDate)return;
+    e.preventDefault();
+    const dateIso=dragDate;
+    const fromEid=dragEid;
+    const toEid=targetRow.dataset.eid;
+    targetRow.classList.remove("pw-ex-drop-over");
+    if(!fromEid||!toEid||fromEid===toEid)return;
+    const plan=rollingPlanForDate(dateIso);
+    const order=(plan.exs||[]).map(ex=>ex.eid);
+    const i=order.indexOf(fromEid),j=order.indexOf(toEid);
+    if(i<0||j<0)return;
+    order.splice(i,1);
+    order.splice(j,0,fromEid);
+    if(!S.exerciseOrderByDate)S.exerciseOrderByDate={};
+    S.exerciseOrderByDate[dateIso]=order;
+    await persist();
+    render();
+    toast("Exercise order updated for this session");
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
