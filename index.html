@@ -56,6 +56,17 @@ window.__HYBRID_FIREBASE_CONFIG__ = window.__HYBRID_FIREBASE_CONFIG__ || {
 <button type="button" class="fab-quick-log" id="fabQuickLog" hidden aria-hidden="true" aria-label="Log walk, ride, or other activity" title="Quick log activity">+</button>
 <div class="toast" id="toast"></div>
 <div class="rest-bar" id="restBar" aria-live="polite"><div class="rest-bar-inner"><div class="rest-bar-label" id="restBarLabel">Rest</div><div class="rest-bar-time" id="restBarTime">0:00</div><div class="rest-bar-actions"><button type="button" class="btn btn-sm btn-ghost" id="restAdd30">+30s</button><button type="button" class="btn btn-sm btn-secondary-solid" id="restSkip30">−30s</button><button type="button" class="btn btn-sm btn-cta" id="restDone">Done</button></div></div></div>
+<div class="global-search-overlay" id="global-search-overlay" hidden aria-hidden="true">
+  <div class="global-search-backdrop" id="global-search-backdrop"></div>
+  <div class="global-search-panel" role="dialog" aria-modal="true" aria-labelledby="global-search-title">
+    <div class="global-search-head">
+      <h2 id="global-search-title" class="sr-only">Search</h2>
+      <input type="search" id="global-search-input" class="global-search-input" autocomplete="off" placeholder="Exercises, logs, settings…" aria-label="Search app">
+      <button type="button" class="global-search-close" id="global-search-close" aria-label="Close search">×</button>
+    </div>
+    <div id="global-search-results" class="global-search-results"></div>
+  </div>
+</div>
 <div id="confetti-layer" aria-hidden="true"></div>
 <div id="ex-swap-overlay" class="ex-swap-overlay" aria-hidden="true"><div class="ex-swap-sheet" role="dialog" aria-modal="true" aria-labelledby="ex-swap-title"><div id="ex-swap-title" style="font-size:15px;font-weight:600;margin-bottom:4px">Swap for a similar move</div><p style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.45">Suggestions share muscle emphasis with your programmed lift. Loads prefer your last log for that movement when available.</p><div id="ex-swap-list"></div><button type="button" class="btn btn-ghost btn-block" id="ex-swap-close" style="margin-top:14px">Cancel</button></div></div>
 <div class="dash-modal-overlay" id="dash-warrior-modal" hidden aria-hidden="true">
@@ -72,6 +83,6 @@ window.__HYBRID_FIREBASE_CONFIG__ = window.__HYBRID_FIREBASE_CONFIG__ || {
   </div>
 </div>
 <script type="application/json" id="embedded-firebase-config"></script>
-<script type="module" src="./js/app.js?v=20260409r1"></script>
+<script type="module" src="./js/app.js?v=20260409r2"></script>
 </body>
 </html>
