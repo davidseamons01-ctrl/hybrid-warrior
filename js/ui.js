@@ -312,6 +312,7 @@ function womenBaselineTier(){
   return "beginner";
 }
 let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;
+const DASH_RANGES=[["1w","1W"],["1m","1M"],["3m","3M"],["6m","6M"],["all","All-Time"]];
 let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;
 function tabFromHash(){
   const h=(location.hash||"").replace(/^#/,"").toLowerCase();
@@ -1480,6 +1481,10 @@ function renderDash(){
       <button type="button" class="dash-info-btn" id="dash-warrior-info" aria-label="How Hybrid Warrior Score is calculated" title="How is this calculated?">i</button></div>
       <span class="badge badge-ice">${calcStrengthScore()}</span></div>
     <div style="font-size:11px;color:var(--text3);margin-top:6px">Blend of strength PRs, running pace, and consistency.</div>
+    <div class="dash-inline-help" id="dash-warrior-explain" hidden>
+      <b>Exact math:</b> <code>(bench1RM + squat1RM + dead1RM) + max(0, 2400 - run4mi_seconds) + min(400, streak*20 + logs_last30*2)</code>.<br>
+      Current terms: lifts = <b>${(Number(p.bench1RM)||0)+(Number(p.squat1RM)||0)+(Number(p.dead1RM)||0)}</b>, run bonus = <b>${Math.max(0,2400-(Number(p.run4mi)||0))}</b>, consistency = <b>${Math.min(400,getStreak()*20+(S.logs||[]).slice(-30).length*2)}</b>.
+    </div>
     <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${warriorBadges().length?warriorBadges().map(x=>`<span class="badge badge-mint">${x}</span>`).join(""):`<span style="font-size:11px;color:var(--text3)">Log sessions to unlock badges.</span>`}</div>
   </div>
   <div class="card section" id="dash-extra-act">
@@ -1502,12 +1507,12 @@ function renderDash(){
     <button type="button" class="details-toggle" id="dash-details-toggle">${openDet?"Hide":"Show"} details — measurements, heatmap, health</button>
     <div class="details-panel ${openDet?"open":""}" id="dash-details-body">
   <div class="grid-auto">
-    ${g.bench?`<div class="card"><div class="card-h"><h2>Bench → ${g.bench}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(bP*100)}%</div>
-      <div class="row">${gaugeHTML(bP,p.bench1RM+"","est 1RM","#7d9eb4")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.bench} lb</div><div style="font-size:11px" class="${bT.c}">${bT.i} ${bT.t}</div></div></div></div>`:""}
-    ${g.squat?`<div class="card"><div class="card-h"><h2>Squat → ${g.squat}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(clamp(p.squat1RM/g.squat,0,1)*100)}%</div>
-      <div class="row">${gaugeHTML(clamp(p.squat1RM/g.squat,0,1),p.squat1RM+"","est 1RM","#c4735c")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.squat} lb</div><div style="font-size:11px" class="${sT.c}">${sT.i} ${sT.t}</div></div></div></div>`:""}
-    ${g.deadlift?`<div class="card"><div class="card-h"><h2>Dead → ${g.deadlift}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Goal progress ${Math.round(clamp(p.dead1RM/g.deadlift,0,1)*100)}%</div>
-      <div class="row">${gaugeHTML(clamp(p.dead1RM/g.deadlift,0,1),p.dead1RM+"","est 1RM","#7aab96")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.deadlift} lb</div><div style="font-size:11px" class="${dT.c}">${dT.i} ${dT.t}</div></div></div></div>`:""}
+    ${g.bench?`<div class="card"><div class="card-h"><h2>Bench → ${g.bench}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Estimated 1RM in center · goal % below</div>
+      <div class="row">${gaugeHTML(bP,p.bench1RM+"",`${Math.round(bP*100)}% goal`,"#7d9eb4")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.bench} lb</div><div style="font-size:11px" class="${bT.c}">${bT.i} ${bT.t}</div></div></div></div>`:""}
+    ${g.squat?`<div class="card"><div class="card-h"><h2>Squat → ${g.squat}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Estimated 1RM in center · goal % below</div>
+      <div class="row">${gaugeHTML(clamp(p.squat1RM/g.squat,0,1),p.squat1RM+"",`${Math.round(clamp(p.squat1RM/g.squat,0,1)*100)}% goal`,"#c4735c")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.squat} lb</div><div style="font-size:11px" class="${sT.c}">${sT.i} ${sT.t}</div></div></div></div>`:""}
+    ${g.deadlift?`<div class="card"><div class="card-h"><h2>Dead → ${g.deadlift}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Estimated 1RM in center · goal % below</div>
+      <div class="row">${gaugeHTML(clamp(p.dead1RM/g.deadlift,0,1),p.dead1RM+"",`${Math.round(clamp(p.dead1RM/g.deadlift,0,1)*100)}% goal`,"#7aab96")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.deadlift} lb</div><div style="font-size:11px" class="${dT.c}">${dT.i} ${dT.t}</div></div></div></div>`:""}
     ${g.fiveK&&fiveKUi?`<div class="card"><div class="card-h"><h2>Sub-${mmss(g.fiveK)} 5K</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px;line-height:1.45">${fiveKUi.line}</div>
       <div class="row">${gaugeHTML(fiveKUi.pct,fiveKUi.bestLabel==="—"?"—":fiveKUi.bestLabel,fiveKUi.sub,"var(--ice)")}<div><div style="font-size:12px;color:var(--text2)">Ring = progress toward goal pace (from your 4-mile estimate).</div><div style="font-size:11px" class="${rT.c}">${rT.i} ${rT.t}</div></div></div></div>`:""}
   </div>
@@ -1518,7 +1523,7 @@ function renderDash(){
       <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase">Body fat %</div><div style="font-size:22px;font-weight:600">${p.bodyFat?`${p.bodyFat.toFixed(1)}%`:"--"}</div></div>
     </div>
   </div></div>
-  <div class="section"><div class="card"><div class="card-h"><h2>Expected emphasis (heatmap)</h2></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Expected emphasis (heatmap)</h2><button type="button" class="dash-info-btn" id="dash-heatmap-info" aria-label="How expected emphasis is calculated" title="How this is calculated?">i</button></div><div class="dash-inline-help" id="dash-heatmap-help" hidden>These percentages are a <b>relative weekly emphasis score</b> from your plan template slot weights (not fatigue and not exact tonnage). 100% is the highest-scoring area for this plan week; other areas are scaled against it.</div>
     <div class="grid2">
       <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Glutes</span><span class="heatmap-pill">${heatmapBandLabel(hm.glutes)} · ${hm.glutes}%</span></div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.glutes}%;background:var(--mint)"></div></div></div>
       <div><div style="font-size:11px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>Core</span><span class="heatmap-pill">${heatmapBandLabel(hm.core)} · ${hm.core}%</span></div><div style="height:10px;background:var(--border);border-radius:99px;overflow:hidden"><div style="height:100%;width:${hm.core}%;background:var(--mint)"></div></div></div>
@@ -1543,11 +1548,16 @@ function renderDash(){
         <div><label>4-mile (mm:ss)</label><input id="d-run" value="${p.run4mi?mmss(p.run4mi):""}"></div>
       </div>
       <button class="btn btn-cta btn-block" id="d-save" style="margin-top:8px">Save weight & run pace</button>
-      ${wl.length?`<div class="wt-bar">${wtBars}</div><div style="font-size:10px;color:var(--text3);margin-top:4px">Last ${wl.length} entries</div>`:""}
+      <div class="dash-chart-wrap"><canvas id="dash-weight-chart" class="dash-canvas" height="220" aria-label="Body weight trend chart"></canvas><div class="dash-chart-caption">Body weight over selected range.</div></div>
       </div>
     </div>
   </div></div>
-  <div class="section"><div class="card"><div class="card-h"><h2>Strength trend (30 days)</h2></div><canvas id="dash-strength-chart" height="200" style="width:100%;border:1px solid var(--border);border-radius:10px;background:var(--surface)"></canvas><div class="dash-chart-caption" style="font-size:11px;color:var(--text3);margin-top:8px">Estimated 1RM from logs (Epley). Axes show lb and calendar dates.</div></div></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Strength trend</h2></div>
+    <div class="dash-range-row">${DASH_RANGES.map(([id,lb])=>`<button type="button" class="btn btn-sm ${getDashRangeKey()===id?"btn-secondary-solid":"btn-ghost"} dash-range-btn" data-r="${id}">${lb}</button>`).join("")}</div>
+    <div class="dash-strength-legend"><span><i style="background:var(--ice)"></i>Bench</span><span><i style="background:var(--fire)"></i>Squat</span><span><i style="background:var(--mint)"></i>Deadlift</span></div>
+    <div class="dash-chart-wrap"><canvas id="dash-strength-chart" class="dash-canvas" height="220" aria-label="Strength trend chart"></canvas><div class="dash-chart-caption">Tap or hover a point for exact date, lift, and estimated 1RM.</div></div>
+  </div></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Total volume by week</h2></div><div class="dash-chart-wrap"><canvas id="dash-volume-chart" class="dash-canvas" height="220" aria-label="Total weekly volume chart"></canvas><div class="dash-chart-caption">Total pounds lifted each week (set × reps × load) for progressive overload visibility.</div></div></div></div>
   <div class="section"><div class="card"><div class="card-h"><h2>Health metrics (manual)</h2></div>
     <div class="grid3">
       <div><label>Active calories</label><input id="d-cal" type="number" placeholder="540"></div>
@@ -1601,11 +1611,11 @@ function bindDash(){
     if(cal<220&&steps<4000)S.adapt.run=clamp(S.adapt.run-0.01,.85,1.2);
     await persist();render();toast("Health metrics saved",{undo:()=>{S.healthLog=snap;S.adapt.run=ar;persist();render()}});
   };
-  const wInfo=document.getElementById("dash-warrior-info"),wModal=document.getElementById("dash-warrior-modal"),wClose=document.getElementById("dash-warrior-modal-close");
-  const closeWarriorModal=()=>{if(wModal){wModal.hidden=true;wModal.setAttribute("aria-hidden","true")}};
-  if(wInfo&&wModal)wInfo.onclick=()=>{wModal.hidden=false;wModal.setAttribute("aria-hidden","false")};
-  if(wClose)wClose.onclick=closeWarriorModal;
-  if(wModal)wModal.onclick=e=>{if(e.target===wModal)closeWarriorModal()};
+  const wInfo=document.getElementById("dash-warrior-info"),wExp=document.getElementById("dash-warrior-explain");
+  if(wInfo&&wExp)wInfo.onclick=()=>{wExp.hidden=!wExp.hidden};
+  const hInfo=document.getElementById("dash-heatmap-info"),hExp=document.getElementById("dash-heatmap-help");
+  if(hInfo&&hExp)hInfo.onclick=()=>{hExp.hidden=!hExp.hidden};
+  document.querySelectorAll(".dash-range-btn").forEach(b=>b.onclick=()=>{setDashRangeKey(b.dataset.r);render()});
   const eas=document.getElementById("ex-act-save");
   if(eas)eas.onclick=async()=>{
     const date=(document.getElementById("ex-act-date")?.value||"").trim();
@@ -1621,66 +1631,182 @@ function bindDash(){
     S.extraActivities=S.extraActivities.slice(-200);
     await persist();render();toast("Activity saved");
   };
-  drawStrengthTrendChart();
+  drawDashCharts();
 }
-function oneRmSeriesFor(exName){
-  const byDay=new Map();
-  const cutoff=Date.now()-30*864e5;
+function getDashRangeKey(){const k=(sessionStorage.getItem("hw-dash-range")||"1m").toLowerCase();return DASH_RANGES.some(([id])=>id===k)?k:"1m"}
+function setDashRangeKey(k){if(!DASH_RANGES.some(([id])=>id===k))return;sessionStorage.setItem("hw-dash-range",k)}
+function dashRangeMs(k){if(k==="1w")return 7*864e5;if(k==="1m")return 30*864e5;if(k==="3m")return 90*864e5;if(k==="6m")return 180*864e5;return Infinity}
+function inDashRange(isoDate,k){
+  if(k==="all")return true;
+  const t=new Date(String(isoDate)+"T12:00:00").getTime();
+  if(Number.isNaN(t))return false;
+  return t>=Date.now()-dashRangeMs(k);
+}
+function isoWeekStart(isoDate){
+  const d=parseIsoNoon(isoDate);
+  const dow=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-dow);
+  return isoFromDate(d);
+}
+function formatDashDateShort(isoDate){return parseIsoNoon(isoDate).toLocaleDateString(undefined,{month:"short",day:"numeric"})}
+function formatDashDateLong(isoDate){return parseIsoNoon(isoDate).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric",year:"numeric"})}
+function strengthTrendSeries(rangeKey){
+  const defs=[["Barbell Bench Press","Bench","var(--ice)"],["Back Squat","Squat","var(--fire)"],["Deadlift","Deadlift","var(--mint)"]];
+  return defs.map(([exercise,label,color])=>{
+    const byDay=new Map();
+    for(const l of S.logs||[]){
+      if(l.exercise!==exercise||!inDashRange(l.date,rangeKey))continue;
+      const est=epley(Number(l.aW)||0,Number(l.aR)||0);
+      if(!isFinite(est)||est<=0)continue;
+      const k=l.date;
+      byDay.set(k,Math.max(byDay.get(k)||0,est));
+    }
+    const points=[...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([date,value])=>({date,value,label,exercise}));
+    return{key:exercise,label,color,points};
+  });
+}
+function totalVolumeWeeklySeries(rangeKey){
+  const byWeek=new Map();
   for(const l of S.logs||[]){
-    if(l.exercise!==exName)continue;
-    const d=new Date(l.date+"T12:00:00").getTime();
-    if(Number.isNaN(d)||d<cutoff)continue;
-    const est=epley(Number(l.aW)||0,Number(l.aR)||0);
-    if(!est)continue;
-    const k=l.date;
-    byDay.set(k,Math.max(byDay.get(k)||0,est));
+    if(!inDashRange(l.date,rangeKey))continue;
+    const vol=(Number(l.aS)||0)*(Number(l.aR)||0)*(Number(l.aW)||0);
+    if(!isFinite(vol)||vol<=0)continue;
+    const wk=isoWeekStart(l.date);
+    byWeek.set(wk,(byWeek.get(wk)||0)+vol);
   }
-  return [...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  const points=[...byWeek.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([date,value])=>({date,value,label:"Weekly volume"}));
+  return[{key:"weekly-volume",label:"Total Volume",color:"var(--gold)",points}];
 }
-function drawStrengthTrendChart(){
-  const cv=document.getElementById("dash-strength-chart");
-  if(!cv)return;
-  const ctx=cv.getContext("2d");
+function bodyWeightSeries(rangeKey){
+  const byDay=new Map();
+  for(const r of S.weightLog||[]){
+    if(!r||!r.date||!inDashRange(r.date,rangeKey))continue;
+    const wt=Number(r.wt)||0;
+    if(!isFinite(wt)||wt<=0)continue;
+    byDay.set(r.date,wt);
+  }
+  const points=[...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([date,value])=>({date,value,label:"Body weight"}));
+  return[{key:"body-weight",label:"Weight",color:"var(--ice)",points}];
+}
+function ensureChartTip(host,tipId){
+  if(!host)return null;
+  let tip=host.querySelector(`#${tipId}`);
+  if(!tip){
+    tip=document.createElement("div");
+    tip.id=tipId;
+    tip.className="dash-chart-tip";
+    tip.hidden=true;
+    host.appendChild(tip);
+  }
+  return tip;
+}
+function drawLineChart(canvas,series,{emptyText,ySuffix="",xNote="",tipPrefix=""}={}){
+  if(!canvas)return;
+  const host=canvas.closest(".dash-chart-wrap")||canvas.parentElement;
+  if(host&&getComputedStyle(host).position==="static")host.style.position="relative";
+  const tip=ensureChartTip(host,`tip-${canvas.id}`);
+  const dpr=Math.max(1,Math.min(2,window.devicePixelRatio||1));
+  const cssW=canvas.clientWidth||700,cssH=canvas.clientHeight||220;
+  canvas.width=Math.floor(cssW*dpr);
+  canvas.height=Math.floor(cssH*dpr);
+  const ctx=canvas.getContext("2d");
   if(!ctx)return;
-  const series=[
-    {c:"#7d9eb4",d:oneRmSeriesFor("Barbell Bench Press")},
-    {c:"#c4735c",d:oneRmSeriesFor("Back Squat")},
-    {c:"#7aab96",d:oneRmSeriesFor("Deadlift")}
-  ];
-  const w=cv.width=cv.clientWidth||700,h=cv.height=200;
-  const padL=46,padR=14,padT=16,padB=40;
-  const plotW=w-padL-padR,plotH=h-padT-padB;
-  ctx.clearRect(0,0,w,h);
-  const days=[...new Set(series.flatMap(s=>s.d.map(x=>x[0])))].sort();
-  if(!days.length){ctx.fillStyle="rgba(184,184,196,.8)";ctx.font="12px DM Sans, sans-serif";ctx.fillText("No lift logs in last 30 days yet.",16,32);return;}
-  const values=series.flatMap(s=>s.d.map(x=>x[1]));
-  const lo=Math.floor(Math.min(...values)),hi=Math.ceil(Math.max(...values)),span=Math.max(1,hi-lo);
-  const xAt=(i)=>padL+(i/(days.length-1||1))*plotW;
-  const yAt=(v)=>padT+plotH-((v-lo)/span)*plotH;
-  ctx.strokeStyle="rgba(120,120,130,.35)";
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  const pad={l:46,r:14,t:14,b:34};
+  const plotW=cssW-pad.l-pad.r,plotH=cssH-pad.t-pad.b;
+  const allPoints=series.flatMap(s=>s.points.map(p=>({...p,color:s.color,series:s.label})));
+  const days=[...new Set(allPoints.map(p=>p.date))].sort();
+  if(!days.length){
+    ctx.fillStyle="var(--text3)";
+    ctx.font="12px DM Sans, sans-serif";
+    ctx.fillText(emptyText||"No data yet.",16,30);
+    canvas.onmousemove=canvas.onmouseleave=canvas.onclick=canvas.ontouchstart=null;
+    if(tip)tip.hidden=true;
+    return;
+  }
+  const vals=allPoints.map(p=>p.value);
+  let lo=Math.min(...vals),hi=Math.max(...vals);
+  if(lo===hi){lo=Math.max(0,lo-1);hi=hi+1}
+  const span=Math.max(1,hi-lo);
+  const xAt=i=>pad.l+((days.length===1?0.5:(i/(days.length-1)))*plotW);
+  const yAt=v=>pad.t+plotH-((v-lo)/span)*plotH;
+  ctx.strokeStyle="color-mix(in srgb,var(--border) 65%,transparent)";
   ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(padL,h-padB);ctx.lineTo(w-padR,h-padB);ctx.moveTo(padL,padT);ctx.lineTo(padL,h-padB);ctx.stroke();
-  ctx.fillStyle="rgba(140,140,150,.9)";
+  for(let t=0;t<=3;t++){
+    const yy=pad.t+(plotH*(t/3));
+    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
+  }
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,cssH-pad.b);ctx.lineTo(cssW-pad.r,cssH-pad.b);ctx.stroke();
+  ctx.fillStyle="var(--text3)";
   ctx.font="10px DM Sans, sans-serif";
   ctx.textAlign="right";
-  for(let t=0;t<=2;t++){const val=lo+(span*t)/2;const yy=yAt(val);ctx.fillText(`${Math.round(val)} lb`,padL-6,yy+3)}
-  ctx.textAlign="center";
-  const fmtX=iso=>{const d=parseIsoNoon(iso);return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})};
-  if(days.length===1){ctx.fillText(fmtX(days[0]),padL+plotW/2,h-12)}
-  else if(days.length>1){
-    ctx.fillText(fmtX(days[0]),xAt(0),h-12);
-    if(days.length>2)ctx.fillText(fmtX(days[Math.floor(days.length/2)]),xAt(Math.floor(days.length/2)),h-12);
-    ctx.fillText(fmtX(days[days.length-1]),xAt(days.length-1),h-12);
+  for(let t=0;t<=3;t++){
+    const val=hi-((hi-lo)*(t/3));
+    const yy=pad.t+(plotH*(t/3));
+    ctx.fillText(`${Math.round(val)}${ySuffix}`,pad.l-6,yy+3);
   }
-  ctx.fillStyle="rgba(120,120,130,.75)";
-  ctx.font="9px DM Sans, sans-serif";
-  ctx.fillText("Last 30 days",w-padR-2,h-4);
+  ctx.textAlign="center";
+  if(days.length===1)ctx.fillText(formatDashDateShort(days[0]),xAt(0),cssH-10);
+  else{
+    ctx.fillText(formatDashDateShort(days[0]),xAt(0),cssH-10);
+    ctx.fillText(formatDashDateShort(days[Math.floor(days.length/2)]),xAt(Math.floor(days.length/2)),cssH-10);
+    ctx.fillText(formatDashDateShort(days[days.length-1]),xAt(days.length-1),cssH-10);
+  }
+  if(xNote){
+    ctx.textAlign="right";
+    ctx.fillText(xNote,cssW-pad.r,cssH-4);
+  }
+  const rendered=[];
   for(const s of series){
-    if(!s.d.length)continue;
-    ctx.strokeStyle=s.c;ctx.lineWidth=2;ctx.beginPath();
-    s.d.forEach((pt,idx)=>{const xi=xAt(days.indexOf(pt[0])),yi=yAt(pt[1]);if(idx===0)ctx.moveTo(xi,yi);else ctx.lineTo(xi,yi);});
+    if(!s.points.length)continue;
+    ctx.strokeStyle=s.color;
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    s.points.forEach((p,idx)=>{
+      const xi=xAt(days.indexOf(p.date)),yi=yAt(p.value);
+      if(idx===0)ctx.moveTo(xi,yi);else ctx.lineTo(xi,yi);
+      rendered.push({...p,series:s.label,color:s.color,x:xi,y:yi});
+    });
     ctx.stroke();
   }
+  rendered.forEach(p=>{
+    ctx.beginPath();
+    ctx.fillStyle=p.color;
+    ctx.arc(p.x,p.y,3.2,0,Math.PI*2);
+    ctx.fill();
+  });
+  const showTip=(pt,evt)=>{
+    if(!tip||!host)return;
+    tip.hidden=false;
+    tip.innerHTML=`<b>${pt.series}</b><br>${formatDashDateLong(pt.date)}<br>${tipPrefix?tipPrefix+" ":""}${Math.round(pt.value)}${ySuffix}`;
+    const box=host.getBoundingClientRect();
+    const x=((evt.clientX||box.left+pt.x)-box.left)+10;
+    const y=((evt.clientY||box.top+pt.y)-box.top)-8;
+    tip.style.left=`${Math.max(8,Math.min(x,box.width-160))}px`;
+    tip.style.top=`${Math.max(8,y)}px`;
+  };
+  const hideTip=()=>{if(tip)tip.hidden=true};
+  const nearest=evt=>{
+    const r=canvas.getBoundingClientRect();
+    const x=evt.clientX-r.left,y=evt.clientY-r.top;
+    let best=null,bestD=18;
+    for(const p of rendered){
+      const d=Math.hypot(p.x-x,p.y-y);
+      if(d<bestD){best=p;bestD=d}
+    }
+    return best;
+  };
+  canvas.onmousemove=e=>{const pt=nearest(e);if(pt)showTip(pt,e);else hideTip()};
+  canvas.onclick=e=>{const pt=nearest(e);if(pt)showTip(pt,e);};
+  canvas.onmouseleave=hideTip;
+  canvas.ontouchstart=e=>{const t=e.touches&&e.touches[0];if(!t)return;const pt=nearest(t);if(pt)showTip(pt,t);};
+}
+function drawDashCharts(){
+  const rk=getDashRangeKey();
+  drawLineChart(document.getElementById("dash-strength-chart"),strengthTrendSeries(rk),{emptyText:"No strength logs for this range yet.",ySuffix:" lb",xNote:rk==="all"?"All-time":"Selected range",tipPrefix:"Est 1RM"});
+  drawLineChart(document.getElementById("dash-volume-chart"),totalVolumeWeeklySeries(rk),{emptyText:"No weekly volume in this range yet.",ySuffix:" lb",xNote:"Weekly totals",tipPrefix:"Volume"});
+  drawLineChart(document.getElementById("dash-weight-chart"),bodyWeightSeries(rk),{emptyText:"No body-weight logs for this range yet.",ySuffix:" lb",xNote:"Body weight trend",tipPrefix:"Weight"});
 }
 
 // ═══════════════════════════════════════════════════════════
