@@ -1732,7 +1732,10 @@ function renderExerciseCardHtml(ex,i){
   const qEmb=qUrl?embedVideoUrl(qUrl):"";
   const qOpen=qUrl?openVideoUrl(qUrl):"";
   const quickVideoHtml=qUrl?`<div class="ex-quick-video-wrap"><button type="button" class="btn btn-sm btn-ghost ex-quick-video-toggle" data-i="${i}" aria-expanded="false">Show quick video</button><div class="ex-quick-video-panel" id="exq-${i}" hidden><p style="font-size:10px;color:var(--text3);margin-bottom:6px">Short demo (~2 min)</p><iframe src="${qEmb}" title="Quick demo: ${exNm}" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div class="fallback"><span style="font-size:11px;color:var(--text3)">Quick clip:</span><a href="${qOpen}" target="_blank" rel="noopener noreferrer">Open in YouTube</a></div></div></div>`:"";
-  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${exNm}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${cueRow}</div><div class="ex-actions ex-actions-stack"><div class="ex-actions-primary"><button type="button" class="btn btn-sm btn-secondary-solid ex-rest" data-i="${i}" title="Rest timer (${restTitle})">Rest · ${restHuman}</button><button type="button" class="btn btn-sm btn-cta ex-toggle" data-i="${i}">Details &amp; video</button></div><div class="ex-actions-secondary"><button type="button" class="ex-link-btn ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><span class="ex-actions-sep" aria-hidden="true">·</span><button type="button" class="ex-link-btn ex-swap" data-orig="${ex.originalEid||ex.eid}" title="Replace with a similar movement">Swap</button></div></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${mainVideoHtml}${quickVideoHtml}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>This lift felt:</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard</button></div><div class="quick-log-row"><span style="font-size:11px;color:var(--text3);align-self:center">Current set</span><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="1">+</button></div></div><div><label>Load</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="-5">−</button><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="5">+</button></div></div><div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-cta btn-block q-save" data-i="${i}">Complete set & start rest</button></div>${lastLineHtml}<div class="ex-log-grid"><div><label>Sets</label><div class="stepper"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="1">+</button></div></div><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="1">+</button></div></div><div><label>Load</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="-5">−</button><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="5">+</button></div></div><div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-sm btn-secondary-solid ex-copyprev" data-i="${i}">Copy previous set</button><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
+  const dayIso=activeTrainIso();
+  const completedSets=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===exNm).length;
+  const activeSet=Math.min(ex.sets,completedSets+1);
+  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${exNm}</div><div class="ex-rx-lg">${ex.sets} × ${ex.reps} @ ${ex.target||"BW"} ${ex.unit}</div><div class="ex-reason">${ex.reason}</div>${cueRow}</div><div class="ex-actions ex-actions-stack"><div class="ex-actions-primary"><button type="button" class="btn btn-sm btn-secondary-solid ex-rest" data-i="${i}" title="Rest timer (${restTitle})">Rest · ${restHuman}</button><button type="button" class="btn btn-sm btn-cta ex-toggle" data-i="${i}">Details &amp; video</button></div><div class="ex-actions-secondary"><button type="button" class="ex-link-btn ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><span class="ex-actions-sep" aria-hidden="true">·</span><button type="button" class="ex-link-btn ex-swap" data-orig="${ex.originalEid||ex.eid}" title="Replace with a similar movement">Swap</button></div></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${mainVideoHtml}${quickVideoHtml}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>This lift felt:</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy (RPE &lt; 7)</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right (RPE 7-8)</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard (RPE 9+)</button></div><div class="quick-log-row"><span class="quick-set-indicator" id="tq-set-lbl${i}" style="font-size:11px;color:var(--text3);align-self:center">Set ${activeSet} of ${ex.sets}</span><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="1">+</button></div></div><div><label>Load</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="-5">−</button><input type="number" class="input-sm" id="tq-w${i}" value="${lw}" min="0"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="5">+</button><button type="button" class="icon-btn q-load-helper" data-i="${i}" title="Open bar load helper" aria-label="Open bar load helper for load">🏋️</button></div></div><div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-cta btn-block q-save" data-i="${i}">Complete set & start rest</button></div>${lastLineHtml}<div class="ex-log-grid"><div><label>Sets</label><div class="stepper"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="1">+</button></div></div><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="1">+</button></div></div><div><label>Load</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="-5">−</button><input type="number" class="input-sm" id="t-w${i}" value="${ex.target||0}" min="0"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="5">+</button></div></div><div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-sm btn-secondary-solid ex-copyprev" data-i="${i}">Copy previous set</button><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
 }
 function renderToday(){
   const dayIso=activeTrainIso();
@@ -1768,7 +1771,7 @@ function renderToday(){
   }
   if(trainFocusIdx!==null&&plan.exs.length){
     const n=plan.exs.length,idx=trainFocusIdx,tx=-(idx*100)/n;
-    const focusDots=plan.exs.map((_,i)=>`<span class="${i===idx?"on":""}"></span>`).join("");
+    const focusDots=plan.exs.map((_,i)=>`<span class="${i===idx?"on":""}" title="Exercise ${i+1} of ${n}"></span>`).join("");
     const slides=plan.exs.map((ex,i)=>`<div class="focus-session-slide" style="width:${100/n}%;flex-shrink:0">${renderExerciseCardHtml(ex,i)}</div>`).join("");
     return`<div id="p-today" class="train-focus-mode train-session-active">
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
@@ -1776,10 +1779,7 @@ function renderToday(){
   <div class="focus-session-bar">
     <button type="button" class="btn btn-ghost btn-sm" id="focus-exit">← Full session</button>
     <span class="focus-session-title">Focused workout</span>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span class="focus-session-progress" aria-live="polite">${idx+1} / ${n}</span>
-      <div class="focus-session-dots" aria-hidden="true">${focusDots}</div>
-    </div>
+    <div class="focus-session-dots-wrap" aria-label="Exercise pagination" role="status"><div class="focus-session-dots">${focusDots}</div></div>
   </div>
   <div class="hero-title" style="font-size:17px;margin-bottom:2px">${DAYS[d.getDay()]}</div>
   <div class="breadcrumb" style="font-size:12px;margin-bottom:8px">${bc}</div>
@@ -1794,6 +1794,7 @@ function renderToday(){
   </div>
   <p class="focus-hint">Use <b style="color:var(--text)">‹ ›</b> to change lifts. Tap <b style="color:var(--text)">Save all</b> to log this exercise.</p>
   <div class="train-session-footer"><button type="button" class="btn btn-mint btn-block session-finalize-sync">${finalized?"Session complete":"Complete session"}</button></div>
+  <div class="set-load-overlay" id="set-load-overlay" aria-hidden="true"><div class="set-load-sheet" role="dialog" aria-modal="true" aria-labelledby="set-load-title"><div id="set-load-title" style="font-size:15px;font-weight:600;margin-bottom:4px">Bar load helper</div><p style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.45">Check per-side plates without leaving your set.</p><div class="grid2" style="gap:8px"><div><label>Total load (lb)</label><input type="number" id="set-load-total" min="0" step="0.5" placeholder="e.g. 225"></div><div><label>Bar weight</label><select id="set-load-bar"><option value="45" selected>45 lb</option><option value="35">35 lb</option><option value="20">20 lb technique</option><option value="0">No bar</option></select></div></div><div id="set-load-out" style="font-size:12px;color:var(--text2);margin-top:10px;line-height:1.45"></div><div class="row" style="gap:8px;margin-top:12px"><button type="button" class="btn btn-secondary-solid btn-sm" id="set-load-calc">Calculate</button><button type="button" class="btn btn-cta btn-sm" id="set-load-use">Use load</button><button type="button" class="btn btn-ghost btn-sm" id="set-load-close">Close</button></div></div></div>
   </div>`;
   }
   return`<div id="p-today" class="${plan.exs.length?"train-session-active":""}">
@@ -1839,7 +1840,7 @@ function renderToday(){
   ${plan.exs.length?`<div class="card section" id="session-after-card"><div style="font-size:13px;font-weight:600;margin-bottom:4px">Rate intensity</div><p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45">Rough session RPE — pairs with <b style="color:var(--text)">Complete session</b> below so tomorrow's targets stay honest.</p>${sf?`<div style="font-size:12px;color:var(--mint);margin-bottom:6px">Saved: <b>${sfSavedLbl}</b></div>`:""}<div class="row" style="flex-wrap:wrap;gap:8px"><button type="button" class="btn btn-sm ${sf==="easy"?"btn-fire":"btn-secondary-solid"}" data-sfeel="easy">Light · ~RPE 6</button><button type="button" class="btn btn-sm ${sf==="ok"?"btn-fire":"btn-secondary-solid"}" data-sfeel="ok">Solid · ~RPE 7–8</button><button type="button" class="btn btn-sm ${sf==="hard"?"btn-fire":"btn-secondary-solid"}" data-sfeel="hard">Hard · ~RPE 9+</button>${sf?`<button type="button" class="btn btn-sm btn-ghost" id="sfeel-clear">Clear</button>`:""}</div>${finalized?`<p style="font-size:11px;color:var(--mint);margin-top:10px;margin-bottom:0">Adaptation applied for ${dayIso}.</p>`:`<p style="font-size:11px;color:var(--text3);margin-top:10px;margin-bottom:0">When you're done lifting, tap Complete session in the bar below.</p>`}</div>`:""}
   ${plan.exs.length?`<div class="card section" id="train-ease-panel"><div style="font-size:13px;font-weight:600;margin-bottom:4px">Program feels too heavy?</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Nudge all lift/run adaptation down ~5% and add 5 minutes to your session budget (max 75 min) — right from here, no Settings detour.</p><button type="button" class="btn btn-secondary-solid btn-sm" id="train-ease-toggle">Show ease options</button><div class="ease-wizard" id="train-ease-wiz"><p style="font-size:12px;color:var(--text2);margin-bottom:8px">Targets ease until your logs show you're ahead of prescription again.</p><button type="button" class="btn btn-cta btn-sm" id="train-ease-go">Ease my program</button></div></div>`:""}
   ${plan.finisher?`<div class="finisher finisher-block"><h3>Finisher${plan.quickNote?" (optional)":""}</h3><p>${plan.finisher}</p></div>`:""}
-  ${plan.exs.length?`<div class="train-session-footer"><button type="button" class="btn btn-mint btn-block session-finalize-sync">${finalized?"Session complete":"Complete session"}</button></div>`:""}
+  ${plan.exs.length?`<div class="train-session-footer"><button type="button" class="btn btn-mint btn-block session-finalize-sync">${finalized?"Session complete":"Complete session"}</button></div><div class="set-load-overlay" id="set-load-overlay" aria-hidden="true"><div class="set-load-sheet" role="dialog" aria-modal="true" aria-labelledby="set-load-title"><div id="set-load-title" style="font-size:15px;font-weight:600;margin-bottom:4px">Bar load helper</div><p style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.45">Check per-side plates without leaving your set.</p><div class="grid2" style="gap:8px"><div><label>Total load (lb)</label><input type="number" id="set-load-total" min="0" step="0.5" placeholder="e.g. 225"></div><div><label>Bar weight</label><select id="set-load-bar"><option value="45" selected>45 lb</option><option value="35">35 lb</option><option value="20">20 lb technique</option><option value="0">No bar</option></select></div></div><div id="set-load-out" style="font-size:12px;color:var(--text2);margin-top:10px;line-height:1.45"></div><div class="row" style="gap:8px;margin-top:12px"><button type="button" class="btn btn-secondary-solid btn-sm" id="set-load-calc">Calculate</button><button type="button" class="btn btn-cta btn-sm" id="set-load-use">Use load</button><button type="button" class="btn btn-ghost btn-sm" id="set-load-close">Close</button></div></div></div>`:""}
   </div>`;
 }
 async function loadExercisePdfPreview(i){
@@ -1865,6 +1866,34 @@ async function loadExercisePdfPreview(i){
   }catch{pdf.innerHTML=`<p style="color:var(--red);font-size:11px">Could not load PDF preview.</p>`}
 }
 function readLiftFeel(i){const on=document.querySelector(`#p-today .feel-chip.on[data-i="${i}"]`);return(on&&on.dataset.feel)||"ok"}
+async function logSingleSetForExercise(i){
+  const plan=todayPlanFiltered();
+  const ex=plan.exs[i];
+  if(!ex)return{ok:false};
+  const e=exById(ex.eid);
+  const name=e?e.name:ex.eid;
+  const dayIso=activeTrainIso();
+  const existing=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===name).length;
+  const setNo=Math.max(1,existing+1);
+  const maxSets=Math.max(1,Number(ex.sets)||1);
+  if(setNo>maxSets){toast(`All ${maxSets} sets already logged for ${name}.`);return{ok:false,atCap:true,maxSets,name};}
+  const aR=Number(document.getElementById("tq-r"+i)?.value)||0;
+  const aW=Number(document.getElementById("tq-w"+i)?.value)||0;
+  const out=(document.getElementById("tq-o"+i)||{value:"ok"}).value;
+  if(aR<=0){toast("Enter reps for this set.");return{ok:false};}
+  const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));
+  const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);
+  const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:1,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};
+  log.score=calcLogScore(log);
+  S.logs.push(log);
+  S.logs=S.logs.slice(-1000);
+  S.lastLiftByEid[ex.eid]=aW;
+  if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};
+  delete S.sessionAdaptedByDate[dayIso];
+  resolveCatchUpQueueAfterLog(dayIso);
+  await persist();
+  return{ok:true,name,setNo,maxSets,aR,aW,outcome:out,ex};
+}
 async function ensureWorkoutWakeLock(){
   try{
     if(typeof navigator==="undefined"||!navigator.wakeLock||workoutWakeLock)return;
@@ -1902,6 +1931,23 @@ function bindToday(){
   if(sessionStorage.getItem("hw-open-plates")==="1"){sessionStorage.removeItem("hw-open-plates");if(tpb)tpb.classList.add("open");requestAnimationFrame(()=>document.getElementById("train-plates-card")?.scrollIntoView({behavior:"smooth",block:"start"}))}
   const tpCalc=document.getElementById("tw-pl-calc"),tpOut=document.getElementById("tw-pl-out");
   if(tpCalc&&tpOut)tpCalc.onclick=()=>{const total=Number(document.getElementById("tw-pl-total").value)||0,bar=Number(document.getElementById("tw-pl-bar").value)||45;if(total<=0){tpOut.textContent="Enter a target weight.";return}const r=calcPlatesPerSide(total,bar);tpOut.textContent=formatPlateResult(r,bar)};
+  const slo=document.getElementById("set-load-overlay"),slt=document.getElementById("set-load-total"),slb=document.getElementById("set-load-bar"),sloTxt=document.getElementById("set-load-out"),slCalc=document.getElementById("set-load-calc"),slUse=document.getElementById("set-load-use"),slClose=document.getElementById("set-load-close");
+  let slTargetIdx=null;
+  const closeSetLoad=()=>{if(!slo)return;slo.classList.remove("open");slo.setAttribute("aria-hidden","true")};
+  const openSetLoad=idx=>{
+    if(!slo)return;
+    slTargetIdx=idx;
+    const curr=Number(document.getElementById("tq-w"+idx)?.value)||0;
+    if(slt)slt.value=curr>0?String(curr):"";
+    if(sloTxt)sloTxt.textContent="";
+    slo.classList.add("open");
+    slo.setAttribute("aria-hidden","false");
+  };
+  document.querySelectorAll(".q-load-helper").forEach(b=>b.onclick=()=>openSetLoad(+b.dataset.i));
+  if(slCalc&&slt&&slb&&sloTxt)slCalc.onclick=()=>{const total=Number(slt.value)||0,bar=Number(slb.value)||45;if(total<=0){sloTxt.textContent="Enter a target weight.";return}const r=calcPlatesPerSide(total,bar);sloTxt.textContent=formatPlateResult(r,bar)};
+  if(slUse&&slt)slUse.onclick=()=>{if(slTargetIdx===null)return;const total=Number(slt.value)||0;if(total<=0){toast("Enter a target load first.");return}const w=document.getElementById("tq-w"+slTargetIdx),w2=document.getElementById("t-w"+slTargetIdx);if(w)w.value=String(total);if(w2)w2.value=String(total);closeSetLoad();toast("Load applied to current set.")};
+  if(slClose)slClose.onclick=closeSetLoad;
+  if(slo)slo.onclick=e=>{if(e.target===slo)closeSetLoad()};
   const th=document.getElementById("train-open-health");if(th)th.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-health");render()};
   const te=document.getElementById("train-open-ease");if(te)te.onclick=()=>{document.getElementById("train-ease-panel")?.scrollIntoView({behavior:"smooth",block:"center"});document.getElementById("train-ease-wiz")?.classList.add("show")};
   const tet=document.getElementById("train-ease-toggle"),tew=document.getElementById("train-ease-wiz");
@@ -1939,19 +1985,25 @@ function bindToday(){
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const opening=!body.classList.contains("open");body.classList.toggle("open");if(opening)await loadExercisePdfPreview(i)});
   document.querySelectorAll(".ex-quick-video-toggle").forEach(btn=>{btn.onclick=()=>{const i=btn.dataset.i;const p=document.getElementById("exq-"+i);if(!p)return;const show=p.hidden;p.hidden=!show;btn.setAttribute("aria-expanded",show?"true":"false");btn.textContent=show?"Hide quick video":"Show quick video"}});
   document.querySelectorAll(".step-btn").forEach(b=>b.onclick=()=>{const t=document.getElementById(b.dataset.target);if(!t)return;const d=Number(b.dataset.delta)||0;const min=(t.min!==""?Number(t.min):-Infinity);const step=(t.step&&t.step!=="any")?Number(t.step):1;const cur=Number(t.value)||0;const next=Math.max(min,cur+d);t.value=String(step>=1?Math.round(next):+next.toFixed(2));hapticPulse(8)});
-  document.querySelectorAll(".q-save").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".q-save").forEach(b=>b.onclick=async()=>{
     hapticKey();
     const i=+b.dataset.i;
-    const plan=todayPlanFiltered();
-    const ex=plan.exs[i];
-    const e=ex?exById(ex.eid):null;
-    if(e)startRestTimer(parseRestSec(e.rest),e.name||ex.eid);
-    document.getElementById("t-s"+i).value=1;
-    document.getElementById("t-r"+i).value=document.getElementById("tq-r"+i).value;
-    document.getElementById("t-w"+i).value=document.getElementById("tq-w"+i).value;
-    const qo=document.getElementById("tq-o"+i),o=document.getElementById("t-o"+i);
-    if(qo&&o)o.value=qo.value;
-    document.querySelector(`.ex-save[data-i="${i}"]`).click();
+    const result=await logSingleSetForExercise(i);
+    if(!result.ok)return;
+    const e=exById(result.ex.eid);
+    startRestTimer(parseRestSec(e&&e.rest),result.name);
+    const nextSet=Math.min(result.maxSets,result.setNo+1);
+    const setLbl=document.getElementById("tq-set-lbl"+i);
+    if(setLbl)setLbl.textContent=`Set ${nextSet} of ${result.maxSets}`;
+    const tS=document.getElementById("t-s"+i),tR=document.getElementById("t-r"+i),tW=document.getElementById("t-w"+i),tqR=document.getElementById("tq-r"+i),tqW=document.getElementById("tq-w"+i),tqO=document.getElementById("tq-o"+i),tO=document.getElementById("t-o"+i);
+    if(tS)tS.value="1";
+    if(tR)tR.value=String(result.aR);
+    if(tW)tW.value=String(result.aW);
+    if(tqR)tqR.value=String(result.aR);
+    if(tqW)tqW.value=String(result.aW);
+    if(tO&&tqO)tO.value=tqO.value;
+    if(result.setNo>=result.maxSets)toast(`${result.name}: all sets logged for today.`);
+    else toast(`${result.name} saved — ready for set ${nextSet}.`);
   });
   document.querySelectorAll(".ex-copyprev").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const name=e?e.name:ex.eid;const row=[...S.logs].reverse().find(l=>l.exercise===name);if(!row){toast("No previous set yet for this exercise.");return}document.getElementById("t-s"+i).value=Number(row.aS)||1;document.getElementById("t-r"+i).value=Number(row.aR)||ex.reps||1;document.getElementById("t-w"+i).value=Number(row.aW)||0;const o=document.getElementById("t-o"+i);if(o&&row.outcome)o.value=row.outcome;hapticPulse(12);toast("Copied previous set")});
   document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=Number(document.getElementById("t-w"+i).value)||0;const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}hapticKey();toast(toastMsg,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
