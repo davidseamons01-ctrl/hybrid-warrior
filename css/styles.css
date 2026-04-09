@@ -470,10 +470,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px soli
   .timeline{flex-wrap:wrap}.tl-wk{min-width:40px}.auth-card,.ob-card{padding:20px 16px}
   input,select,textarea{font-size:16px}
   .toast{right:10px;left:10px;bottom:calc(80px + env(safe-area-inset-bottom));max-width:none}
-  .train-session-footer{bottom:0}
   .ex-actions-primary{grid-template-columns:1fr}
-  #p-today.train-session-active:not(.train-focus-mode){padding-bottom:calc(112px + env(safe-area-inset-bottom))}
-  #p-today.train-focus-mode{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
   .plan-context-inner .btn{width:100%}
   .plan-context-inner{align-items:stretch}
 }
@@ -713,6 +710,18 @@ label,.fig-title{
   .nav .nav-btn[data-t].active .nav-lb{color:var(--ice);font-weight:800}
   .nav .nav-btn[data-t].active .nav-ic{color:var(--ice);font-weight:900;transform:scale(1.08)}
   .page{padding:16px 16px calc(120px + env(safe-area-inset-bottom))}
+  .train-session-footer{
+    bottom:calc(72px + env(safe-area-inset-bottom));
+    z-index:95;
+  }
+  #p-today.train-session-active:not(.train-focus-mode),
+  #p-today.train-focus-mode{
+    padding-bottom:calc(150px + env(safe-area-inset-bottom));
+  }
+  .rest-bar{
+    bottom:calc(72px + env(safe-area-inset-bottom));
+    z-index:105;
+  }
 }
 
 /* Floating quick-log (ad-hoc activity) */
@@ -865,7 +874,7 @@ body:not(.appearance-light) .ob-card{background:var(--elev-2)}
 .dash-strength-legend span{display:inline-flex;align-items:center;gap:6px}
 .dash-strength-legend i{display:inline-block;width:10px;height:10px;border-radius:50%}
 .dash-chart-wrap{position:relative}
-.dash-canvas{width:100%;border:1px solid var(--border);border-radius:10px;background:var(--surface);display:block}
+.dash-canvas{width:100%;min-height:220px;border:1px solid var(--border);border-radius:10px;background:var(--surface);display:block}
 .dash-chart-caption{font-size:11px;color:var(--text3);margin-top:8px;line-height:1.45}
 .dash-chart-tip{position:absolute;z-index:5;min-width:140px;max-width:190px;padding:8px 10px;border-radius:8px;border:1px solid var(--border-lit);background:var(--card);color:var(--text2);font-size:11px;line-height:1.4;pointer-events:none;box-shadow:var(--elev-soft)}
 .dash-inline-help{font-size:11px;color:var(--text2);line-height:1.5;margin-top:8px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:color-mix(in srgb,var(--surface) 85%,transparent)}

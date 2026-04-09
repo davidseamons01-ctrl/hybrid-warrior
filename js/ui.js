@@ -962,7 +962,7 @@ function fillGlobalSearchResults(raw){
     }
   }
   if(logHits.length){
-    const rows=logHits.map(l=>`<button type="button" class="global-search-hit" data-kind="log" data-date="${escSearch(l.date)}" data-ex="${escSearch(l.exercise||"")}"><span class="global-search-hit-title">${escSearch(l.exercise||"Log")}</span><span class="global-search-hit-sub">${escSearch(l.date)} · ${escSearch(formatLoadLbText(l.aW))}</span></button>`).join("");
+    const rows=logHits.map(l=>`<button type="button" class="global-search-hit" data-kind="log" data-date="${escSearch(l.date)}" data-ex="${escSearch(l.exercise||"")}"><span class="global-search-hit-title">${escSearch(l.exercise||"Log")}</span><span class="global-search-hit-sub">${escSearch(l.date)} · ${escSearch(formatLogPerfSummary(l))}</span></button>`).join("");
     sections.push(`<div class="global-search-section"><div class="global-search-sec-title">Workout logs</div>${rows}</div>`);
   }
   const setHits=GLOBAL_SEARCH_SETTINGS_ROWS.filter(r=>!q||(`${r.label} ${r.sub} ${r.blob}`).toLowerCase().includes(q));
@@ -1035,7 +1035,7 @@ function lastLogSummaryForEid(eid){
   const e=exById(eid);const name=e?e.name:eid;
   const row=[...S.logs].reverse().find(l=>l.exercise===name);
   if(!row)return"";
-  return`Last: ${row.aS}×${row.aR} @ ${formatLoadLbText(row.aW)}`;
+  return`Last: ${formatLogPerfSummary(row)}`;
 }
 function exerciseVideoThumbUrl(videoUrl){
   const u=String(videoUrl||"");
@@ -1121,6 +1121,43 @@ function runPlateCalc(totalInput,barInput){
 function normalizeTabs(){if(tab==="dash"){tab=TAB_YOU;youSub="home"}else if(tab==="today"){tab=TAB_TRAIN;trainSub="workout"}else if(tab==="log"){tab=TAB_TRAIN;trainSub="log"}else if(tab==="program")tab=TAB_PLAN;else if(tab==="settings"){tab=TAB_YOU;youSub="settings"}else if(tab==="ref"){tab=TAB_YOU;youSub="home"}}
 function isExLoggedToday(eid){const e=exById(eid),name=e?e.name:eid;const d=activeTrainIso();return S.logs.some(l=>l.date===d&&l.exercise===name)}
 function inferType(n){n=(n||"").toLowerCase();if(n.includes("bench")||n.includes("incline")||n.includes("close")||n.includes("dip"))return"bench";if((n.includes("squat")&&!n.includes("air"))||n.includes("bulgarian"))return"squat";if(n.includes("deadlift")||n.includes("rdl"))return"dead";if(n.includes("run")||n.includes("800")||n.includes("tempo"))return"run";return"acc"}
+/** True for programmed run/cardio moves that use pace (sec/mi) in tW/aW, not bar load. */
+function isRunExerciseName(name){return inferType(name)==="run"}
+/** Tempo-style prescription: reps hold duration in minutes. Otherwise (e.g. 800s) reps are intervals. */
+function isRunTempoStyle(ex){return ex&&Number(ex.reps)>3}
+/** Parse pace field: mm:ss or plain seconds → sec/mi. */
+function paceSecPerMiFromInput(raw){
+  const v=String(raw||"").trim();
+  if(!v)return 0;
+  if(/:/.test(v)){const s=parseMM(v);return s>0?s:0}
+  const n=Number(v);
+  return isFinite(n)&&n>30&&n<3600?n:0;
+}
+function paceSecPerMiDisplay(sec){
+  const n=Math.round(Number(sec)||0);
+  if(n<=0)return"";
+  return mmss(n);
+}
+function formatRunPaceLabel(secPerMi){
+  const n=Number(secPerMi)||0;
+  if(n<=0)return"—";
+  return`${mmss(Math.round(n))}/mi`;
+}
+/** One-line performance text for logs (lifts vs runs). */
+function formatLogPerfSummary(log){
+  if(!log)return"";
+  if(isRunExerciseName(log.exercise)){
+    const sets=Number(log.aS)||1;
+    const dur=Number(log.aR)||0;
+    const pace=Number(log.aW)||0;
+    const nm=String(log.exercise||"").toLowerCase();
+    const tempoLike=nm.includes("tempo")||dur>=4;
+    const pacePart=pace>0?` @ ${formatRunPaceLabel(pace)}`:"";
+    if(tempoLike)return`${sets}×${dur} min${pacePart}`;
+    return`${sets}×${dur}${pacePart}`;
+  }
+  return`${log.aS}×${log.aR} @ ${formatLoadLbText(log.aW)}`;
+}
 function getStreak(){const dates=new Set(S.logs.map(l=>l.date));let s=0;const d=new Date();for(let i=0;i<30;i++){const dd=new Date(d);dd.setDate(dd.getDate()-i);if(dates.has(isoFromDate(dd)))s++;else if(i>0)break;}return s}
 function weekHasLogs(w){const dates=trainingDatesInBlockWeek(w);return dates.some(ds=>S.logs.some(l=>l.date===ds))}
 function trendArrow(type){const r=S.logs.filter(l=>inferType(l.exercise)===type).slice(-6);if(r.length<2)return{i:"→",c:"trend-flat",t:"Gathering data"};const f=r.slice(0,3).reduce((s,l)=>s+(l.score||1),0)/Math.min(3,r.length);const l=r.slice(-3).reduce((s,x)=>s+(x.score||1),0)/Math.min(3,r.length);if(l>f*1.03)return{i:"↑",c:"trend-up",t:"Improving"};if(l<f*.97)return{i:"↓",c:"trend-down",t:"Consider deload"};return{i:"→",c:"trend-flat",t:"Steady"}}
@@ -1818,9 +1855,9 @@ function renderDash(){
     <div class="dash-strength-legend"><span><i style="background:var(--ice)"></i>Bench</span><span><i style="background:var(--fire)"></i>Squat</span><span><i style="background:var(--mint)"></i>Deadlift</span></div>
     <div class="dash-chart-wrap"><canvas id="dash-strength-chart" class="dash-canvas" height="220" aria-label="Strength trend chart"></canvas><div class="dash-chart-caption">Tap or hover a point for exact date, lift, and estimated 1RM.</div></div>
   </div></div>
-  <div class="section"><div class="card"><div class="card-h"><h2>Total volume by week</h2></div>    <div class="dash-chart-wrap"><canvas id="dash-volume-chart" class="dash-canvas" height="220" aria-label="Total weekly volume chart"></canvas><div class="dash-chart-caption">${useMetric()?"Weekly volume (kg-equivalent from logged loads).":"Total pounds lifted each week (set × reps × load)."} Progressive overload visibility.</div></div></div></div>
+  <div class="section"><div class="card"><div class="card-h"><h2>Total volume by week</h2></div>    <div class="dash-chart-wrap"><canvas id="dash-volume-chart" class="dash-canvas" height="220" aria-label="Total weekly volume chart"></canvas><div class="dash-chart-caption">${useMetric()?"Weekly barbell volume (kg-equivalent); running work is excluded.":"Total pounds lifted per week (set × reps × load); runs excluded."} Progressive overload visibility.</div></div></div></div>
   ${recentDates.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent logs</h2></div>
-    ${recentDates.map(ds=>`<div class="dash-log-day-group"><div class="dash-log-day-head">${dashLogDayHeader(ds)}</div>${recentByDate[ds].map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry dash-log-entry-compact"><div class="log-entry-head"><span class="log-date">${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${l.aS}×${l.aR} @ ${formatLoadLbText(l.aW)}</div></div>`}).join("")}</div>`).join("")}</div></div>`:""}
+    ${recentDates.map(ds=>`<div class="dash-log-day-group"><div class="dash-log-day-head">${dashLogDayHeader(ds)}</div>${recentByDate[ds].map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry dash-log-entry-compact"><div class="log-entry-head"><span class="log-date">${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${formatLogPerfSummary(l)}</div></div>`}).join("")}</div>`).join("")}</div></div>`:""}
     </div>
   </div>`;
 }
@@ -1909,6 +1946,7 @@ function totalVolumeWeeklySeries(rangeKey){
   const byWeek=new Map();
   for(const l of S.logs||[]){
     if(!inDashRange(l.date,rangeKey))continue;
+    if(isRunExerciseName(l.exercise))continue;
     const vol=(Number(l.aS)||0)*(Number(l.aR)||0)*(Number(l.aW)||0);
     if(!isFinite(vol)||vol<=0)continue;
     const wk=isoWeekStart(l.date);
@@ -1940,6 +1978,16 @@ function ensureChartTip(host,tipId){
   }
   return tip;
 }
+function resolveCanvasColor(spec){
+  if(spec==null||spec==="")return"#6b6b78";
+  const s=String(spec).trim();
+  const m=s.match(/^var\(\s*(--[\w-]+)\s*\)$/);
+  if(m){
+    const v=getComputedStyle(document.documentElement).getPropertyValue(m[1]).trim();
+    return v||"#6b6b78";
+  }
+  return s;
+}
 function drawLineChart(canvas,series,{emptyText,ySuffix="",xNote="",tipPrefix=""}={}){
   if(!canvas)return;
   const host=canvas.closest(".dash-chart-wrap")||canvas.parentElement;
@@ -1953,13 +2001,13 @@ function drawLineChart(canvas,series,{emptyText,ySuffix="",xNote="",tipPrefix=""
   if(!ctx)return;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssW,cssH);
-  const pad={l:46,r:14,t:14,b:34};
+  const pad={l:54,r:14,t:16,b:36};
   const plotW=cssW-pad.l-pad.r,plotH=cssH-pad.t-pad.b;
   const allPoints=series.flatMap(s=>s.points.map(p=>({...p,color:s.color,series:s.label})));
   const days=[...new Set(allPoints.map(p=>p.date))].sort();
   if(!days.length){
-    ctx.fillStyle="var(--text3)";
-    ctx.font="12px DM Sans, sans-serif";
+    ctx.fillStyle=resolveCanvasColor("var(--text3)");
+    ctx.font="12px DM Sans, system-ui, sans-serif";
     ctx.fillText(emptyText||"No data yet.",16,30);
     canvas.onmousemove=canvas.onmouseleave=canvas.onclick=canvas.ontouchstart=null;
     if(tip)tip.hidden=true;
@@ -1971,20 +2019,23 @@ function drawLineChart(canvas,series,{emptyText,ySuffix="",xNote="",tipPrefix=""
   const span=Math.max(1,hi-lo);
   const xAt=i=>pad.l+((days.length===1?0.5:(i/(days.length-1)))*plotW);
   const yAt=v=>pad.t+plotH-((v-lo)/span)*plotH;
-  ctx.strokeStyle="color-mix(in srgb,var(--border) 65%,transparent)";
+  ctx.strokeStyle=resolveCanvasColor("var(--border)");
+  ctx.globalAlpha=0.5;
   ctx.lineWidth=1;
   for(let t=0;t<=3;t++){
     const yy=pad.t+(plotH*(t/3));
     ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
   }
+  ctx.globalAlpha=0.85;
   ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,cssH-pad.b);ctx.lineTo(cssW-pad.r,cssH-pad.b);ctx.stroke();
-  ctx.fillStyle="var(--text3)";
-  ctx.font="10px DM Sans, sans-serif";
+  ctx.globalAlpha=1;
+  ctx.fillStyle=resolveCanvasColor("var(--text3)");
+  ctx.font="11px DM Sans, system-ui, sans-serif";
   ctx.textAlign="right";
   for(let t=0;t<=3;t++){
     const val=hi-((hi-lo)*(t/3));
     const yy=pad.t+(plotH*(t/3));
-    ctx.fillText(`${Math.round(val)}${ySuffix}`,pad.l-6,yy+3);
+    ctx.fillText(`${Math.round(val)}${ySuffix}`,pad.l-8,yy+4);
   }
   ctx.textAlign="center";
   if(days.length===1)ctx.fillText(formatDashDateShort(days[0]),xAt(0),cssH-10);
@@ -2000,8 +2051,10 @@ function drawLineChart(canvas,series,{emptyText,ySuffix="",xNote="",tipPrefix=""
   const rendered=[];
   for(const s of series){
     if(!s.points.length)continue;
-    ctx.strokeStyle=s.color;
-    ctx.lineWidth=2;
+    ctx.strokeStyle=resolveCanvasColor(s.color);
+    ctx.lineWidth=2.75;
+    ctx.lineJoin="round";
+    ctx.lineCap="round";
     ctx.beginPath();
     s.points.forEach((p,idx)=>{
       const xi=xAt(days.indexOf(p.date)),yi=yAt(p.value);
@@ -2012,9 +2065,14 @@ function drawLineChart(canvas,series,{emptyText,ySuffix="",xNote="",tipPrefix=""
   }
   rendered.forEach(p=>{
     ctx.beginPath();
-    ctx.fillStyle=p.color;
-    ctx.arc(p.x,p.y,3.2,0,Math.PI*2);
+    ctx.fillStyle=resolveCanvasColor(p.color);
+    ctx.arc(p.x,p.y,4.2,0,Math.PI*2);
     ctx.fill();
+    ctx.beginPath();
+    ctx.strokeStyle=resolveCanvasColor("var(--card)");
+    ctx.lineWidth=1.35;
+    ctx.arc(p.x,p.y,4.2,0,Math.PI*2);
+    ctx.stroke();
   });
   const showTip=(pt,evt)=>{
     if(!tip||!host)return;
@@ -2107,7 +2165,17 @@ function renderExerciseCardHtml(ex,i){
   const dayIso=activeTrainIso();
   const completedSets=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===exNm).length;
   const activeSet=Math.min(ex.sets,completedSets+1);
-  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}" data-eid="${ex.eid}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${exNm}</div><div class="ex-rx-lg">${formatPrescribedRx(ex)}</div><div class="ex-reason">${ex.reason}</div>${cueRow}</div><div class="ex-actions ex-actions-stack"><div class="ex-actions-primary"><button type="button" class="btn btn-sm btn-secondary-solid ex-rest" data-i="${i}" title="Rest timer (${restTitle})">Rest · ${restHuman}</button><button type="button" class="btn btn-sm btn-cta ex-toggle" data-i="${i}">Details &amp; video</button></div><div class="ex-actions-secondary"><button type="button" class="ex-link-btn ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><span class="ex-actions-sep" aria-hidden="true">·</span><button type="button" class="ex-link-btn ex-swap" data-orig="${ex.originalEid||ex.eid}" title="Replace with a similar movement">Swap</button></div></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${mainVideoHtml}${quickVideoHtml}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>This lift felt:</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy (RPE &lt; 7)</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right (RPE 7-8)</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard (RPE 9+)</button></div><div class="quick-log-row"><span class="quick-set-indicator" id="tq-set-lbl${i}" style="font-size:11px;color:var(--text3);align-self:center">Set ${activeSet} of ${ex.sets}</span><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="1">+</button></div></div><div><label>Load (${massUnitLabel()})</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="${-wStep}">−</button><input type="number" class="input-sm" id="tq-w${i}" value="${loadInputDisplayFromLb(lwLb)}" min="0" step="any"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="${wStep}">+</button><button type="button" class="icon-btn q-load-helper" data-i="${i}" title="Open bar load helper" aria-label="Open bar load helper for load">🏋️</button></div></div><div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-cta btn-block q-save" data-i="${i}">Complete set & start rest</button></div>${lastLineHtml}<div class="ex-log-grid"><div><label>Sets</label><div class="stepper"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="1">+</button></div></div><div><label>Reps</label><div class="stepper"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="1">+</button></div></div><div><label>Load (${massUnitLabel()})</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${-wStep}">−</button><input type="number" class="input-sm" id="t-w${i}" value="${loadInputDisplayFromLb(Number(ex.target)||0)}" min="0" step="any"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${wStep}">+</button></div></div><div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-sm btn-secondary-solid ex-copyprev" data-i="${i}">Copy previous set</button><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
+  const runEx=isRunExerciseName(exNm);
+  const runTempo=isRunTempoStyle(ex);
+  const repLab=runTempo?"Minutes":runEx?"Intervals":"Reps";
+  const paceQuick=paceSecPerMiDisplay(Number(lwLb)||Number(ex.target)||0);
+  const paceGrid=paceSecPerMiDisplay(Number(ex.target)||0);
+  const feelLead=runEx?"This run felt:":"This lift felt:";
+  const quickPaceCol=`<div><label>Pace (mm:ss/mi)</label><input type="text" class="input-sm input-mmss" id="tq-w${i}" value="${paceQuick}" placeholder="8:42" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Pace per mile"></div>`;
+  const quickLiftCol=`<div><label>Load (${massUnitLabel()})</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="${-wStep}">−</button><input type="number" class="input-sm" id="tq-w${i}" value="${loadInputDisplayFromLb(lwLb)}" min="0" step="any"><button type="button" class="step-btn" data-target="tq-w${i}" data-delta="${wStep}">+</button><button type="button" class="icon-btn q-load-helper" data-i="${i}" title="Open bar load helper" aria-label="Open bar load helper for load">🏋️</button></div></div>`;
+  const gridPaceCol=`<div><label>Pace (mm:ss/mi)</label><input type="text" class="input-sm input-mmss" id="t-w${i}" value="${paceGrid}" placeholder="8:42" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Pace per mile"></div>`;
+  const gridLiftCol=`<div><label>Load (${massUnitLabel()})</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${-wStep}">−</button><input type="number" class="input-sm" id="t-w${i}" value="${loadInputDisplayFromLb(Number(ex.target)||0)}" min="0" step="any"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${wStep}">+</button></div></div>`;
+  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}" data-eid="${ex.eid}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${exNm}</div><div class="ex-rx-lg">${formatPrescribedRx(ex)}</div><div class="ex-reason">${ex.reason}</div>${cueRow}</div><div class="ex-actions ex-actions-stack"><div class="ex-actions-primary"><button type="button" class="btn btn-sm btn-secondary-solid ex-rest" data-i="${i}" title="Rest timer (${restTitle})">Rest · ${restHuman}</button><button type="button" class="btn btn-sm btn-cta ex-toggle" data-i="${i}">Details &amp; video</button></div><div class="ex-actions-secondary"><button type="button" class="ex-link-btn ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><span class="ex-actions-sep" aria-hidden="true">·</span><button type="button" class="ex-link-btn ex-swap" data-orig="${ex.originalEid||ex.eid}" title="Replace with a similar movement">Swap</button></div></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${mainVideoHtml}${quickVideoHtml}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>${feelLead}</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy (RPE &lt; 7)</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right (RPE 7-8)</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard (RPE 9+)</button></div><div class="quick-log-row"><span class="quick-set-indicator" id="tq-set-lbl${i}" style="font-size:11px;color:var(--text3);align-self:center">Set ${activeSet} of ${ex.sets}</span><div><label>${repLab}</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="1">+</button></div></div>${runEx?quickPaceCol:quickLiftCol}<div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-cta btn-block q-save" data-i="${i}">Complete set & start rest</button></div>${lastLineHtml}<div class="ex-log-grid"><div><label>Sets</label><div class="stepper"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="1">+</button></div></div><div><label>${repLab}</label><div class="stepper"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="1">+</button></div></div>${runEx?gridPaceCol:gridLiftCol}<div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-sm btn-secondary-solid ex-copyprev" data-i="${i}">Copy previous set</button><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
 }
 function renderToday(){
   const dayIso=activeTrainIso();
@@ -2244,10 +2312,18 @@ async function logSingleSetForExercise(i){
   const setNo=Math.max(1,existing+1);
   const maxSets=Math.max(1,Number(ex.sets)||1);
   if(setNo>maxSets){toast(`All ${maxSets} sets already logged for ${name}.`);return{ok:false,atCap:true,maxSets,name};}
-  const aR=Number(document.getElementById("tq-r"+i)?.value)||0;
-  const aW=loadInputToLb(Number(document.getElementById("tq-w"+i)?.value)||0);
   const out=(document.getElementById("tq-o"+i)||{value:"ok"}).value;
-  if(aR<=0){toast("Enter reps for this set.");return{ok:false};}
+  let aR,aW;
+  if(isRunExerciseName(name)){
+    aR=Number(document.getElementById("tq-r"+i)?.value)||0;
+    aW=paceSecPerMiFromInput(document.getElementById("tq-w"+i)?.value);
+    if(aR<=0){toast(isRunTempoStyle(ex)?"Enter minutes for this run.":"Enter intervals/reps for this set.");return{ok:false}}
+    if(aW<=0){toast("Enter pace as mm:ss per mile (example: 8:42).");return{ok:false}}
+  }else{
+    aR=Number(document.getElementById("tq-r"+i)?.value)||0;
+    aW=loadInputToLb(Number(document.getElementById("tq-w"+i)?.value)||0);
+    if(aR<=0){toast("Enter reps for this set.");return{ok:false}}
+  }
   const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));
   const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);
   const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:1,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};
@@ -2303,6 +2379,8 @@ function bindToday(){
   const closeSetLoad=()=>{if(!slo)return;slo.classList.remove("open");slo.setAttribute("aria-hidden","true")};
   const openSetLoad=idx=>{
     if(!slo)return;
+    const plan0=todayPlanFiltered();const ex0=plan0.exs[idx];const e0=exById(ex0?.eid);const nm0=e0?e0.name:ex0?.eid;
+    if(nm0&&isRunExerciseName(nm0)){toast("Bar load helper is for barbell lifts — runs use pace (mm:ss/mi).");return}
     slTargetIdx=idx;
     const currDisp=Number(document.getElementById("tq-w"+idx)?.value)||0;
     if(slt)slt.value=currDisp>0?String(currDisp):"";
@@ -2351,7 +2429,8 @@ function bindToday(){
   });
   document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const opening=!body.classList.contains("open");body.classList.toggle("open");if(opening)await loadExercisePdfPreview(i)});
   document.querySelectorAll(".ex-quick-video-toggle").forEach(btn=>{btn.onclick=()=>{const i=btn.dataset.i;const p=document.getElementById("exq-"+i);if(!p)return;const show=p.hidden;p.hidden=!show;btn.setAttribute("aria-expanded",show?"true":"false");btn.textContent=show?"Hide quick video":"Show quick video"}});
-  document.querySelectorAll(".step-btn").forEach(b=>b.onclick=()=>{const t=document.getElementById(b.dataset.target);if(!t)return;const d=Number(b.dataset.delta)||0;const min=(t.min!==""?Number(t.min):-Infinity);const step=(t.step&&t.step!=="any")?Number(t.step):1;const cur=Number(t.value)||0;const next=Math.max(min,cur+d);t.value=String(step>=1?Math.round(next):+next.toFixed(2));hapticPulse(8)});
+  document.querySelectorAll("#p-today .input-mmss").forEach(el=>bindMmssPaceInput(el));
+  document.querySelectorAll(".step-btn").forEach(b=>b.onclick=()=>{const t=document.getElementById(b.dataset.target);if(!t)return;if(t.classList&&t.classList.contains("input-mmss"))return;const d=Number(b.dataset.delta)||0;const min=(t.min!==""?Number(t.min):-Infinity);const step=(t.step&&t.step!=="any")?Number(t.step):1;const cur=Number(t.value)||0;const next=Math.max(min,cur+d);t.value=String(step>=1?Math.round(next):+next.toFixed(2));hapticPulse(8)});
   document.querySelectorAll(".q-save").forEach(b=>b.onclick=async()=>{
     hapticKey();
     const i=+b.dataset.i;
@@ -2365,15 +2444,16 @@ function bindToday(){
     const tS=document.getElementById("t-s"+i),tR=document.getElementById("t-r"+i),tW=document.getElementById("t-w"+i),tqR=document.getElementById("tq-r"+i),tqW=document.getElementById("tq-w"+i),tqO=document.getElementById("tq-o"+i),tO=document.getElementById("t-o"+i);
     if(tS)tS.value="1";
     if(tR)tR.value=String(result.aR);
-    if(tW)tW.value=String(loadInputDisplayFromLb(result.aW));
     if(tqR)tqR.value=String(result.aR);
-    if(tqW)tqW.value=String(loadInputDisplayFromLb(result.aW));
+    const wSync=isRunExerciseName(result.name)?paceSecPerMiDisplay(result.aW):String(loadInputDisplayFromLb(result.aW));
+    if(tW)tW.value=wSync;
+    if(tqW)tqW.value=wSync;
     if(tO&&tqO)tO.value=tqO.value;
     if(result.setNo>=result.maxSets)toast(`${result.name}: all sets logged for today.`);
     else toast(`${result.name} saved — ready for set ${nextSet}.`);
   });
-  document.querySelectorAll(".ex-copyprev").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const name=e?e.name:ex.eid;const row=[...S.logs].reverse().find(l=>l.exercise===name);if(!row){toast("No previous set yet for this exercise.");return}document.getElementById("t-s"+i).value=Number(row.aS)||1;document.getElementById("t-r"+i).value=Number(row.aR)||ex.reps||1;document.getElementById("t-w"+i).value=String(loadInputDisplayFromLb(Number(row.aW)||0));const tqW=document.getElementById("tq-w"+i);if(tqW)tqW.value=String(loadInputDisplayFromLb(Number(row.aW)||0));const o=document.getElementById("t-o"+i);if(o&&row.outcome)o.value=row.outcome;hapticPulse(12);toast("Copied previous set")});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0,aW=loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}hapticKey();toast(toastMsg,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
+  document.querySelectorAll(".ex-copyprev").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const name=e?e.name:ex.eid;const row=[...S.logs].reverse().find(l=>l.exercise===name);if(!row){toast("No previous set yet for this exercise.");return}const run=isRunExerciseName(name);const wVal=run?paceSecPerMiDisplay(Number(row.aW)||0):String(loadInputDisplayFromLb(Number(row.aW)||0));document.getElementById("t-s"+i).value=Number(row.aS)||1;document.getElementById("t-r"+i).value=Number(row.aR)||ex.reps||1;document.getElementById("t-w"+i).value=wVal;const tqW=document.getElementById("tq-w"+i);if(tqW)tqW.value=wVal;const o=document.getElementById("t-o"+i);if(o&&row.outcome)o.value=row.outcome;hapticPulse(12);toast("Copied previous set")});
+  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}hapticKey();toast(toastMsg,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});render()});
   const mm=document.getElementById("miss-move"),ms=document.getElementById("miss-skip"),mp=document.getElementById("miss-pick"),ml=document.getElementById("miss-later"),cu=document.getElementById("catchup-add-today"),tas=document.getElementById("train-adjust-schedule");
   if(mm)mm.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const pl=rollingPlanForDate(m.date);const due=nextTrainingIso(m.date);if(!due){toast("Could not find a next training day.");return}const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:due});a.missChoices[m.date]={choice:"move"};await persist();render();toast(`Queued for ${DAYS[parseIsoNoon(due).getDay()]} (${due}).`)};
   if(ms)ms.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();render();toast("Session skipped for this block week.")};
@@ -2452,7 +2532,7 @@ function renderLog(){
   const filteredDates=allDates.filter(d=>filterDay(d,S.logs.filter(l=>l.date===d)));
   const showDates=filteredDates.slice(0,80);
   const avgScoreTitle="Average log score vs plan for this day (volume and estimated strength vs prescription). 1.0 ≈ on target; higher = you outperformed; lower = lighter loads or a tough day.";
-  const lineHtml=l=>{const txt=`${l.exercise}: ${l.aS}×${l.aR} @ ${formatLoadLbText(l.aW)}${l.note?" — "+l.note:""}${l.outcome==="fail"?" · failed rep target":l.outcome==="time"?" · time-capped":""}`;return`<div class="log-detail log-detail-row"><span>${txt}</span><span class="row log-line-actions" style="gap:4px;flex-shrink:0"><button type="button" class="btn btn-sm btn-ghost log-move-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Move ${l.exercise} entry">Move</button><button type="button" class="btn btn-sm btn-ghost log-del-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Remove ${l.exercise} set">Remove</button></span></div>`};
+  const lineHtml=l=>{const txt=`${l.exercise}: ${formatLogPerfSummary(l)}${l.note?" — "+l.note:""}${l.outcome==="fail"?" · failed rep target":l.outcome==="time"?" · time-capped":""}`;return`<div class="log-detail log-detail-row"><span>${txt}</span><span class="row log-line-actions" style="gap:4px;flex-shrink:0"><button type="button" class="btn btn-sm btn-ghost log-move-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Move ${l.exercise} entry">Move</button><button type="button" class="btn btn-sm btn-ghost log-del-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Remove ${l.exercise} set">Remove</button></span></div>`};
   const historyBlocks=allDates.length?(showDates.length?showDates.map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<details class="log-entry" data-d="${d}"><summary class="log-entry-summary"><span class="log-sum-lead"><span class="log-sum-chev" aria-hidden="true">▸</span><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><span class="log-tap-hint">Tap for sets</span></span><span class="log-sum-meta"><span class="log-score ${cls}" title="${avgScoreTitle}"><span class="log-score-prefix">Avg</span> ${avg.toFixed(2)}</span><span class="log-avg-hint" title="${avgScoreTitle}">intensity vs plan</span></span><span class="row log-history-actions" style="gap:6px"><button type="button" class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Edit log for ${d}">Edit log</button><button type="button" class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Delete all logs for ${d}">✕</button></span></summary><div class="log-entry-expanded">${dl.map(lineHtml).join("")}</div></details>`}).join(""):`<p style="color:var(--text3);font-size:12px">No days match your search.</p>`):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`;
   const filterMeta=qRaw&&allDates.length?`<p class="log-history-meta">${showDates.length===filteredDates.length?`Showing ${showDates.length} day${showDates.length!==1?"s":""}`:`Showing ${showDates.length} of ${filteredDates.length} matching days`}${filteredDates.length<allDates.length?` (${allDates.length} total)`:""}</p>`:"";
   const editingOther=logDate!==iso();
@@ -2460,7 +2540,7 @@ function renderLog(){
   return`<div class="section">${editBanner}<div class="card"><div class="card-h"><h2>Session report</h2><span class="badge badge-ice">Updates loads</span></div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Log actual performance. The program recalculates all future workouts from your reports.</p>
     <div class="grid2" style="max-width:400px;margin-bottom:14px"><div><label>Date</label><input type="date" id="log-date" value="${logDate}"></div><div><label>Day / training week</label><input disabled value="${DAYS[dayIdx]} — Wk ${wk}${sessLbl}"></div></div>
-    ${plan.exs.length?`<div class="table-wrap"><table class="log-report-table"><thead><tr><th>Exercise</th><th>Target</th><th>Sets</th><th>Reps</th><th>Load (${massUnitLabel()})</th><th>Notes</th></tr></thead><tbody>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);const w0=typeof ex.target==="number"&&ex.target>0?loadInputDisplayFromLb(ex.target):0;return`<tr><td style="color:var(--text);font-weight:600">${e?e.name:ex.eid}</td><td style="white-space:nowrap">${formatPrescribedRx(ex)}</td><td><input type="number" class="input-sm" id="lg-s${i}" value="${ex.sets}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-r${i}" value="${ex.reps}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-w${i}" value="${w0}" min="0" step="any" style="width:70px"></td><td><input type="text" class="input-sm" id="lg-n${i}" placeholder="optional" style="width:100px"></td></tr>`}).join("")}</tbody></table></div>
+    ${plan.exs.length?`<div class="table-wrap"><table class="log-report-table"><thead><tr><th>Exercise</th><th>Target</th><th>Sets</th><th>Reps / min</th><th>Load / pace</th><th>Notes</th></tr></thead><tbody>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);const nm=e?e.name:ex.eid;const run=isRunExerciseName(nm);const w0=typeof ex.target==="number"&&ex.target>0?(run?paceSecPerMiDisplay(ex.target):loadInputDisplayFromLb(ex.target)):0;const wCell=run?`<input type="text" class="input-sm input-mmss" id="lg-w${i}" value="${w0}" placeholder="8:42" inputmode="numeric" autocomplete="off" style="width:88px">`:`<input type="number" class="input-sm" id="lg-w${i}" value="${w0}" min="0" step="any" style="width:70px">`;return`<tr><td style="color:var(--text);font-weight:600">${nm}</td><td style="white-space:nowrap">${formatPrescribedRx(ex)}</td><td><input type="number" class="input-sm" id="lg-s${i}" value="${ex.sets}" min="1" style="width:55px"></td><td><input type="number" class="input-sm" id="lg-r${i}" value="${ex.reps}" min="1" style="width:55px"></td><td>${wCell}</td><td><input type="text" class="input-sm" id="lg-n${i}" placeholder="optional" style="width:100px"></td></tr>`}).join("")}</tbody></table></div>
     <button class="btn btn-mint btn-block" id="log-save" style="margin-top:12px">Save report</button>`:`<div style="padding:16px;color:var(--text3);text-align:center">Recovery day.</div>`}
   </div></div>
   <div class="section"><details class="settings-fold log-history-fold" id="log-history-fold" open><summary class="log-history-summary"><span style="font-weight:600;font-size:14px">History</span><span class="badge badge-ice">${S.logs.length} entries</span></summary>
@@ -2480,7 +2560,8 @@ function bindLog(){
     }
   }
   document.querySelectorAll(".log-history-actions").forEach(el=>{el.addEventListener("click",e=>e.stopPropagation());el.addEventListener("mousedown",e=>e.stopPropagation())});
-  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{hapticKey();const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0,aW=loadInputToLb(Number(document.getElementById("lg-w"+i).value)||0);if(aS>0&&aR>0){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:plan.blockWeek!=null?plan.blockWeek:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(c>0)resolveCatchUpQueueAfterLog(logDate);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
+  document.querySelectorAll("#train-inner .input-mmss").forEach(el=>bindMmssPaceInput(el));
+  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{hapticKey();const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("lg-w"+i).value):loadInputToLb(Number(document.getElementById("lg-w"+i).value)||0);const ok=run?(aS>0&&aR>0&&aW>0):(aS>0&&aR>0);if(ok){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:plan.blockWeek!=null?plan.blockWeek:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(c>0)resolveCatchUpQueueAfterLog(logDate);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
   document.querySelectorAll(".log-edit").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();logDate=b.dataset.d;render();toast("Editing "+logDate+" — update the table, then Save report.")});
   document.querySelectorAll(".log-del").forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const ds=b.dataset.d;if(!confirm("Delete logs for "+ds+"?"))return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
   document.querySelectorAll(".log-move-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;const log=S.logs.find(x=>x.id===id);if(!log)return;const nd=prompt("Move this entry to date (YYYY-MM-DD):",log.date);if(nd==null)return;const nd2=nd.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Invalid date.");return}const oldDate=log.date;log.date=nd2;log.week=getWkForDate(nd2);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[oldDate];delete S.sessionAdaptedByDate[nd2];await persist();render();toast("Entry moved to "+nd2)});
