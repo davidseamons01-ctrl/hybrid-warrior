@@ -954,3 +954,75 @@ body.appearance-light .global-search-backdrop{background:rgba(26,28,36,.35)}
 .global-search-hit-title{font-size:14px;font-weight:600;color:var(--text)}
 .global-search-hit-sub{font-size:11px;color:var(--text3);line-height:1.4}
 .global-search-empty{font-size:13px;color:var(--text3);padding:16px 12px;line-height:1.5;text-align:center}
+
+/* Readiness toggle */
+.readiness-card{padding:14px var(--card-padding)!important}
+.readiness-row{display:flex;gap:8px;flex-wrap:wrap}
+.readiness-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);font-weight:600;border-radius:12px;padding:10px 14px;transition:border-color .2s,background .2s,color .2s}
+.readiness-btn:hover{border-color:var(--border-lit);color:var(--text)}
+.readiness-btn.readiness-on{border-color:var(--ice);color:var(--text);background:color-mix(in srgb,var(--ice) 14%,var(--surface))}
+
+/* Custom modal (replaces native confirm/prompt) */
+.hw-modal-overlay{
+  position:fixed;inset:0;z-index:290;
+  background:rgba(10,10,14,.55);
+  backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  animation:fadeUp .15s ease;
+}
+.hw-modal{
+  width:100%;max-width:400px;
+  background:var(--card);
+  border:1px solid var(--border-lit);
+  border-radius:var(--radius-card,16px);
+  padding:22px 24px;
+  box-shadow:var(--elev);
+}
+body:not(.appearance-light) .hw-modal{background:var(--elev-2)}
+.hw-modal-title{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--text);letter-spacing:-0.02em}
+.hw-modal-text{font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:16px}
+.hw-modal-input{
+  width:100%;box-sizing:border-box;
+  margin-bottom:16px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--surface);
+  color:var(--text);
+  font:500 14px/1.45 'DM Sans',sans-serif;
+}
+.hw-modal-input:focus{outline:none;border-color:var(--ice)}
+.hw-modal-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+
+/* Chart crosshair & polished tooltip */
+.chart-crosshair{
+  position:absolute;top:0;bottom:0;width:1px;
+  background:var(--ice);
+  opacity:.35;
+  pointer-events:none;
+  transition:left .06s ease;
+}
+.chart-crosshair[hidden]{display:none}
+.chart-tip-blur{
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  background:color-mix(in srgb,var(--card) 88%,transparent);
+  border:1px solid var(--border-lit);
+  box-shadow:0 4px 16px rgba(0,0,0,.15);
+}
+
+/* Smooth tab transitions */
+.pane.fade-enter{
+  opacity:0;
+  transform:translateY(8px);
+}
+.pane{
+  transition:opacity .15s ease,transform .15s ease;
+}
+.pane.fade-exit{
+  opacity:0;
+  transform:translateY(-6px);
+  transition:opacity .12s ease,transform .12s ease;
+  pointer-events:none;
+}

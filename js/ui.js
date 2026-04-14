@@ -63,7 +63,7 @@ const DEF={
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   scheduleAdjust:{catchUpQueue:[],missChoices:{},missSnoozed:{},extraTrainingIso:null,catchUpClearedDate:null},
   program:{week:1,start:iso()},
-  adapt:{bench:1,squat:1,dead:1,run:1},
+  adapt:{bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0},
   logs:[],weightLog:[],healthLog:[],
   planId:null,
   sync:{on:false,cfg:"",uid:""},
@@ -76,7 +76,8 @@ const DEF={
   trustBannerLastShown:0,
   extraActivities:[],
   warmupDoneByDate:{},
-  exerciseOrderByDate:{}
+  exerciseOrderByDate:{},
+  sessionReadinessByDate:{}
 };
 
 // Runtime state/auth/persistence extracted from inline script
@@ -845,13 +846,21 @@ function todayPlanFiltered(){
     return{...ex,eid:alt,originalEid,target,reason:ex.reason?`${ex.reason} · ${tag}`:tag};
   });
   exs=exs.filter(ex=>!skip.has(ex.eid));
+  const readiness=(S.sessionReadinessByDate||{})[todayIso]||"normal";
+  const readinessMul=readiness==="fatigued"?0.95:readiness==="strong"?1.03:1;
+  if(readinessMul!==1){
+    exs=exs.map(ex=>{
+      if(!ex.target||ex.target<=0)return ex;
+      return{...ex,target:r5(ex.target*readinessMul),reason:(ex.reason||"")+(readiness==="fatigued"?" · eased (fatigue)":readiness==="strong"?" · boosted":"")};
+    });
+  }
   const qm=Number((S.profile.prefs||{}).quickSessionMin)||0;
   const missedActive=!!(adj.catchUpQueue&&adj.catchUpQueue.length);
   const autoQuick=(getStreak()===0&&missedActive)?15:0;
   const effectiveQuick=Math.max(qm,autoQuick);
   const quickNote=effectiveQuick>0&&base.exs.length>2;
   if(effectiveQuick>0&&exs.length>2)exs=exs.slice(0,2);
-  return{...base,exs,quickNote};
+  return{...base,exs,quickNote,readiness};
 }
 function sessionIndexForEid(eid){
   const plan=todayPlanFiltered();
@@ -1173,6 +1182,29 @@ function toast(m,opt){
       el.querySelector(".toast-undo").onclick=()=>{opt.undo();el.classList.remove("show");toast("Undone")};
     }else el.innerHTML=`<span class="toast-msg">${m}</span>`;
     el.classList.add("show");toastTimer=setTimeout(()=>el.classList.remove("show"),dur);
+  });
+}
+function showCustomModal(title,text,{inputPlaceholder,inputDefault,confirmLabel,cancelLabel,onConfirm}={}){
+  return new Promise(resolve=>{
+    const wrap=document.createElement("div");
+    wrap.className="hw-modal-overlay";
+    wrap.setAttribute("role","dialog");
+    wrap.setAttribute("aria-modal","true");
+    const hasInput=!!inputPlaceholder;
+    wrap.innerHTML=`<div class="hw-modal"><h3 class="hw-modal-title">${title||""}</h3><p class="hw-modal-text">${text||""}</p>${hasInput?`<input type="text" class="hw-modal-input" placeholder="${inputPlaceholder}" value="${inputDefault||""}" autocomplete="off">`:""}
+<div class="hw-modal-actions"><button type="button" class="btn btn-cta btn-sm hw-modal-confirm">${confirmLabel||"Confirm"}</button><button type="button" class="btn btn-ghost btn-sm hw-modal-cancel">${cancelLabel||"Cancel"}</button></div></div>`;
+    document.body.appendChild(wrap);
+    const inp=wrap.querySelector(".hw-modal-input");
+    const close=val=>{wrap.remove();resolve(val)};
+    wrap.querySelector(".hw-modal-cancel").onclick=()=>close(null);
+    wrap.querySelector(".hw-modal-confirm").onclick=()=>{
+      const val=hasInput?(inp?inp.value:""):true;
+      if(onConfirm)onConfirm(val);
+      close(val);
+    };
+    wrap.addEventListener("click",e=>{if(e.target===wrap)close(null)});
+    if(inp){inp.focus();inp.addEventListener("keydown",e=>{if(e.key==="Enter"){wrap.querySelector(".hw-modal-confirm").click()}else if(e.key==="Escape")close(null)})}
+    wrap.addEventListener("keydown",e=>{if(e.key==="Escape")close(null)});
   });
 }
 function gaugeHTML(pct,val,sub,color){const c=282.74,off=c*(1-clamp(pct,0,1));return`<div class="gauge"><svg width="100" height="100" viewBox="0 0 100 100"><circle class="gauge-bg" cx="50" cy="50" r="45"/><circle class="gauge-fill" cx="50" cy="50" r="45" stroke="${color}" stroke-dasharray="${c}" stroke-dashoffset="${off}"/></svg><div class="gauge-center"><div class="gauge-val">${val}</div><div class="gauge-sub">${sub}</div></div></div>`}
@@ -1597,7 +1629,7 @@ function renderNav(){
     `<div class="nav-pill" id="navPill">Week ${w}/13 · ${phaseName(w)}</div>`+
     (currentUser?`<button class="nav-btn" id="nav-so" style="color:var(--text3);flex-shrink:0;font-size:11px" type="button" title="${(currentUser.email||"").replace(/"/g,"&quot;")}">Sign out</button>`:offlineMode?`<span style="font-size:10px;color:var(--text3)">Offline</span>`:``);
   el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{location.hash=b.dataset.t;});
-  const so=document.getElementById("nav-so");if(so)so.onclick=()=>{if(confirm("Sign out?"))doSignOut()};
+  const so=document.getElementById("nav-so");if(so)so.onclick=async()=>{const ok=await showCustomModal("Sign out?","Your data stays on this device until you clear it.",{confirmLabel:"Sign out"});if(ok)doSignOut()};
   const gs=document.getElementById("nav-global-search");if(gs)gs.onclick=()=>openGlobalSearch();
 }
 
@@ -2074,31 +2106,63 @@ function drawLineChart(canvas,series,{emptyText,ySuffix="",xNote="",tipPrefix=""
     ctx.arc(p.x,p.y,4.2,0,Math.PI*2);
     ctx.stroke();
   });
+  let crosshairEl=host.querySelector(".chart-crosshair");
+  if(!crosshairEl){crosshairEl=document.createElement("div");crosshairEl.className="chart-crosshair";host.appendChild(crosshairEl)}
+  crosshairEl.hidden=true;
+  const baseImgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const drawCrosshair=(pt)=>{
+    ctx.putImageData(baseImgData,0,0);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.save();
+    ctx.strokeStyle=resolveCanvasColor("var(--ice)");
+    ctx.globalAlpha=0.45;
+    ctx.lineWidth=1;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(pt.x,pad.t);ctx.lineTo(pt.x,cssH-pad.b);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha=1;
+    ctx.beginPath();
+    ctx.fillStyle=resolveCanvasColor(pt.color);
+    ctx.arc(pt.x,pt.y,6,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();
+    ctx.strokeStyle=resolveCanvasColor("var(--card)");
+    ctx.lineWidth=2;
+    ctx.arc(pt.x,pt.y,6,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  };
   const showTip=(pt,evt)=>{
     if(!tip||!host)return;
     tip.hidden=false;
+    tip.className="dash-chart-tip chart-tip-blur";
     tip.innerHTML=`<b>${pt.series}</b><br>${formatDashDateLong(pt.date)}<br>${tipPrefix?tipPrefix+" ":""}${Math.round(pt.value)}${ySuffix}`;
     const box=host.getBoundingClientRect();
     const x=((evt.clientX||box.left+pt.x)-box.left)+10;
     const y=((evt.clientY||box.top+pt.y)-box.top)-8;
     tip.style.left=`${Math.max(8,Math.min(x,box.width-160))}px`;
     tip.style.top=`${Math.max(8,y)}px`;
+    drawCrosshair(pt);
   };
-  const hideTip=()=>{if(tip)tip.hidden=true};
-  const nearest=evt=>{
+  const hideTip=()=>{
+    if(tip)tip.hidden=true;
+    ctx.putImageData(baseImgData,0,0);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  };
+  const nearestX=evt=>{
     const r=canvas.getBoundingClientRect();
-    const x=evt.clientX-r.left,y=evt.clientY-r.top;
-    let best=null,bestD=18;
+    const x=evt.clientX-r.left;
+    let best=null,bestD=Infinity;
     for(const p of rendered){
-      const d=Math.hypot(p.x-x,p.y-y);
+      const d=Math.abs(p.x-x);
       if(d<bestD){best=p;bestD=d}
     }
-    return best;
+    return bestD<plotW*0.15?best:null;
   };
-  canvas.onmousemove=e=>{const pt=nearest(e);if(pt)showTip(pt,e);else hideTip()};
-  canvas.onclick=e=>{const pt=nearest(e);if(pt)showTip(pt,e);};
+  canvas.onmousemove=e=>{const pt=nearestX(e);if(pt)showTip(pt,e);else hideTip()};
+  canvas.onclick=e=>{const pt=nearestX(e);if(pt)showTip(pt,e);};
   canvas.onmouseleave=hideTip;
-  canvas.ontouchstart=e=>{const t=e.touches&&e.touches[0];if(!t)return;const pt=nearest(t);if(pt)showTip(pt,t);};
+  canvas.ontouchmove=e=>{const t=e.touches&&e.touches[0];if(!t)return;e.preventDefault();const pt=nearestX(t);if(pt)showTip(pt,t);else hideTip()};
+  canvas.ontouchstart=e=>{const t=e.touches&&e.touches[0];if(!t)return;const pt=nearestX(t);if(pt)showTip(pt,t);};
+  canvas.ontouchend=()=>hideTip();
 }
 function chartSeriesLbToDisplay(series){
   if(!useMetric())return series;
@@ -2243,7 +2307,7 @@ function renderToday(){
   <div class="breadcrumb">${bc}</div>
   ${bpos?`<div style="font-size:11px;color:var(--text3);margin-bottom:6px">${bpos}</div>`:""}
   ${nextTrainingDotsHtml(6)}
-  ${plan.exs.length&&trainFocusIdx===null?`<div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
+  ${plan.exs.length&&trainFocusIdx===null?`<div class="card section readiness-card"><div style="font-size:13px;font-weight:600;margin-bottom:6px">How are you feeling?</div><div class="readiness-row"><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="strong"?"readiness-on":""}" data-ready="strong"><span style="font-size:15px">💪</span> Strong</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="normal"||!plan.readiness?"readiness-on":""}" data-ready="normal"><span style="font-size:15px">👍</span> Normal</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="fatigued"?"readiness-on":""}" data-ready="fatigued"><span style="font-size:15px">😴</span> Fatigued</button></div>${plan.readiness==="fatigued"?`<p style="font-size:11px;color:var(--gold);margin-top:8px;line-height:1.45">Loads eased ~5% for this session only — your program stays intact.</p>`:plan.readiness==="strong"?`<p style="font-size:11px;color:var(--mint);margin-top:8px;line-height:1.45">Targets nudged up ~3% — push it today.</p>`:""}</div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today">Add to today</button></div>`:""}
@@ -2353,6 +2417,11 @@ function bindToday(){
   enhanceNumericInputs(document.getElementById("p-today")||document);
   const tcd=document.getElementById("train-clear-date");
   if(tcd)tcd.onclick=()=>{trainSessionDate=null;render()};
+  document.querySelectorAll(".readiness-btn").forEach(b=>b.onclick=async()=>{
+    if(!S.sessionReadinessByDate)S.sessionReadinessByDate={};
+    S.sessionReadinessByDate[activeTrainIso()]=b.dataset.ready;
+    await persist();render();
+  });
   const tbs=document.getElementById("train-begin-session");
   if(tbs)tbs.onclick=()=>{trainFocusIdx=0;render()};
   const fex=document.getElementById("focus-exit");
@@ -2457,7 +2526,7 @@ function bindToday(){
   const mm=document.getElementById("miss-move"),ms=document.getElementById("miss-skip"),mp=document.getElementById("miss-pick"),ml=document.getElementById("miss-later"),cu=document.getElementById("catchup-add-today"),tas=document.getElementById("train-adjust-schedule");
   if(mm)mm.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const pl=rollingPlanForDate(m.date);const due=nextTrainingIso(m.date);if(!due){toast("Could not find a next training day.");return}const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:due});a.missChoices[m.date]={choice:"move"};await persist();render();toast(`Queued for ${DAYS[parseIsoNoon(due).getDay()]} (${due}).`)};
   if(ms)ms.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();render();toast("Session skipped for this block week.")};
-  if(mp)mp.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const def=nextTrainingIso(iso())||iso();const raw=prompt("Catch-up on which date? (YYYY-MM-DD)",def);if(raw==null)return;const nd=raw.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(parseIsoNoon(nd).getTime())){toast("Invalid date.");return}const pl=rollingPlanForDate(m.date);const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:nd});a.missChoices[m.date]={choice:"pick",pickIso:nd};await persist();render();toast("Catch-up scheduled for "+nd+".")};
+  if(mp)mp.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const def=nextTrainingIso(iso())||iso();const raw=await showCustomModal("Pick a catch-up date","Enter the date you'd like to reschedule this session to.",{inputPlaceholder:"YYYY-MM-DD",inputDefault:def,confirmLabel:"Schedule"});if(raw==null)return;const nd=raw.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(parseIsoNoon(nd).getTime())){toast("Invalid date.");return}const pl=rollingPlanForDate(m.date);const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:nd});a.missChoices[m.date]={choice:"pick",pickIso:nd};await persist();render();toast("Catch-up scheduled for "+nd+".")};
   if(ml)ml.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missSnoozed[m.date]=true;await persist();render();toast("Okay — we won't nag. Use Adjust schedule to revisit.")};
   if(cu)cu.onclick=async()=>{ensureScheduleAdjust().extraTrainingIso=iso();await persist();render();toast("Catch-up added to today.")};
   if(tas)tas.onclick=async()=>{const a=ensureScheduleAdjust();a.missSnoozed={};await persist();render();toast("Schedule choices unlocked for missed days.")};
@@ -2563,9 +2632,9 @@ function bindLog(){
   document.querySelectorAll("#train-inner .input-mmss").forEach(el=>bindMmssPaceInput(el));
   const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{hapticKey();const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("lg-w"+i).value):loadInputToLb(Number(document.getElementById("lg-w"+i).value)||0);const ok=run?(aS>0&&aR>0&&aW>0):(aS>0&&aR>0);if(ok){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:plan.blockWeek!=null?plan.blockWeek:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(c>0)resolveCatchUpQueueAfterLog(logDate);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
   document.querySelectorAll(".log-edit").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();logDate=b.dataset.d;render();toast("Editing "+logDate+" — update the table, then Save report.")});
-  document.querySelectorAll(".log-del").forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const ds=b.dataset.d;if(!confirm("Delete logs for "+ds+"?"))return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
-  document.querySelectorAll(".log-move-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;const log=S.logs.find(x=>x.id===id);if(!log)return;const nd=prompt("Move this entry to date (YYYY-MM-DD):",log.date);if(nd==null)return;const nd2=nd.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Invalid date.");return}const oldDate=log.date;log.date=nd2;log.week=getWkForDate(nd2);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[oldDate];delete S.sessionAdaptedByDate[nd2];await persist();render();toast("Entry moved to "+nd2)});
-  document.querySelectorAll(".log-del-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;if(!confirm("Remove this logged set?"))return;const prev=S.logs.slice();const rm=S.logs.find(x=>x.id===id);S.logs=S.logs.filter(x=>x.id!==id);if(rm&&S.sessionAdaptedByDate)delete S.sessionAdaptedByDate[rm.date];await persist();render();toast("Removed",{undo:()=>{S.logs=prev;persist();render()}})});
+  document.querySelectorAll(".log-del").forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const ds=b.dataset.d;const ok=await showCustomModal("Delete logs?",`Remove all logged sets for <b>${ds}</b>?`,{confirmLabel:"Delete"});if(!ok)return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
+  document.querySelectorAll(".log-move-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;const log=S.logs.find(x=>x.id===id);if(!log)return;const nd=await showCustomModal("Move log entry","Move this set to a different date.",{inputPlaceholder:"YYYY-MM-DD",inputDefault:log.date,confirmLabel:"Move"});if(nd==null)return;const nd2=nd.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Invalid date.");return}const oldDate=log.date;log.date=nd2;log.week=getWkForDate(nd2);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[oldDate];delete S.sessionAdaptedByDate[nd2];await persist();render();toast("Entry moved to "+nd2)});
+  document.querySelectorAll(".log-del-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;const ok=await showCustomModal("Remove set?","Delete this logged set? You can undo from the toast.",{confirmLabel:"Remove"});if(!ok)return;const prev=S.logs.slice();const rm=S.logs.find(x=>x.id===id);S.logs=S.logs.filter(x=>x.id!==id);if(rm&&S.sessionAdaptedByDate)delete S.sessionAdaptedByDate[rm.date];await persist();render();toast("Removed",{undo:()=>{S.logs=prev;persist();render()}})});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2797,11 +2866,11 @@ function bindSettings(){
   const sUnits=document.getElementById("s-units");
   if(sUnits)sUnits.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),units:sUnits.value==="metric"?"metric":"imperial"};await persist();render();toast("Units updated")};
   document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=massFieldToLb(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=massFieldToLb(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=massFieldToLb(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=massFieldToLb(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=massFieldToLb(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;S.profile.sex=document.getElementById("s-sex").value;const qm=Number(document.getElementById("s-quick")?.value)||0;const wmEl=document.getElementById("s-wm");const appearance=(document.getElementById("s-light")?.checked)?"light":"dark";const uEl=document.getElementById("s-units");const units=(uEl&&uEl.value)==="metric"?"metric":"imperial";const _prefs={...(S.profile.prefs||{}),lifeStage:document.getElementById("s-life").value,womenMode:wmEl?wmEl.value:((S.profile.prefs||{}).womenMode||"auto"),equipment:document.getElementById("s-eq").value,style:document.getElementById("s-style").value,appearance,units,quickSessionMin:qm};if(S.profile.sex==="female")_prefs.womenSimpleUi=!!(document.getElementById("s-women-ui")&&document.getElementById("s-women-ui").checked);else delete _prefs.womenSimpleUi;S.profile.prefs=_prefs;const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}await persist();applyVisualTheme(false);render();toast("Saved")};
-  document.getElementById("s-reset").onclick=async()=>{if(!confirm("Reset all adaptation multipliers to 1.000? Prescribed loads and run pace will change until your logs move them again."))return;const prev={...S.adapt};S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Adaptation reset",{undo:()=>{S.adapt=prev;persist();render()}})};
-  const so=document.getElementById("s-signout");if(so)so.onclick=()=>{if(confirm("Sign out? You can sign back in later; local data on this device stays until you clear it."))doSignOut()};
-       document.getElementById("s-plan-save").onclick=async()=>{const next=Number(document.getElementById("s-plan").value);const nm=PLANS[next].name;if(!confirm(`Switch to plan "${nm}"? Week alignment stays the same; review Plan when ready.`))return;S.planId=next;const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}await persist();render();toast("Switched to: "+nm)};
-  document.getElementById("s-reonboard").onclick=()=>{if(!confirm("Re-run the full onboarding wizard? Your logs stay saved, but you'll step through goals and schedule again."))return;S.profile.onboarded=false;save();showOnboarding()};
-  document.getElementById("s-clear").onclick=async()=>{if(!confirm("Clear all workout logs and weight history? This cannot be auto-restored except via undo in the next few seconds or an exported backup."))return;const logs=S.logs.slice(),wl=S.weightLog.slice(),ad={...S.adapt};S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1};await persist();render();toast("Logs cleared.",{undo:()=>{S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
+  document.getElementById("s-reset").onclick=async()=>{const ok=await showCustomModal("Reset adaptation?","Reset all multipliers to 1.000? Prescribed loads and run pace will change until your logs move them again.",{confirmLabel:"Reset"});if(!ok)return;const prev={...S.adapt};S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Adaptation reset",{undo:()=>{S.adapt=prev;persist();render()}})};
+  const so=document.getElementById("s-signout");if(so)so.onclick=async()=>{const ok=await showCustomModal("Sign out?","You can sign back in later. Local data on this device stays until you clear it.",{confirmLabel:"Sign out"});if(ok)doSignOut()};
+       document.getElementById("s-plan-save").onclick=async()=>{const next=Number(document.getElementById("s-plan").value);const nm=PLANS[next].name;const ok=await showCustomModal("Switch plan?",`Change to <b>${nm}</b>? Week alignment stays the same; review Plan when ready.`,{confirmLabel:"Switch"});if(!ok)return;S.planId=next;const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}await persist();render();toast("Switched to: "+nm)};
+  document.getElementById("s-reonboard").onclick=async()=>{const ok=await showCustomModal("Re-run onboarding?","Your logs stay saved, but you'll step through goals and schedule again.",{confirmLabel:"Re-run"});if(!ok)return;S.profile.onboarded=false;save();showOnboarding()};
+  document.getElementById("s-clear").onclick=async()=>{const ok=await showCustomModal("Clear all data?","Delete all workout logs and weight history? Use undo in the toast or a backup to restore.",{confirmLabel:"Clear everything"});if(!ok)return;const logs=S.logs.slice(),wl=S.weightLog.slice(),ad={...S.adapt};S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Logs cleared.",{undo:()=>{S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
   document.getElementById("s-export").onclick=()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="hybrid-warrior-backup.json";a.click()};
   const csvBtn=document.getElementById("s-export-csv");
   if(csvBtn)csvBtn.onclick=()=>{
@@ -2853,6 +2922,7 @@ function maybeShowWomenMissWelcome(){
   document.getElementById("mw-skip").onclick=async()=>{ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();done();render()};
   document.getElementById("mw-later").onclick=()=>done();
 }
+let _prevTab=null;
 function render(){
   try{
     autoWeek();
@@ -2860,6 +2930,8 @@ function render(){
     applyVisualTheme(document.getElementById("obScreen")&&document.getElementById("obScreen").classList.contains("show"));
     renderNav();
     const app=document.getElementById("app");
+    const tabChanged=_prevTab!==null&&_prevTab!==tab;
+    _prevTab=tab;
     let html,bindFn;
     if(tab===TAB_TRAIN){html=`<div class="pane show" id="p-train">${renderTrain()}</div>`;bindFn=bindTrain}
     else if(tab===TAB_PLAN){
@@ -2868,11 +2940,23 @@ function render(){
       bindFn=bindProgram;
     }
     else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
+    if(tabChanged){
+      const old=app.firstElementChild;
+      if(old){old.classList.add("fade-exit");old.addEventListener("transitionend",()=>old.remove(),{once:true})}
+    }
     const frag=document.createDocumentFragment();
     const tpl=document.createElement("template");
     tpl.innerHTML=html;
     frag.appendChild(tpl.content);
+    if(tabChanged){
+      const newPane=frag.querySelector(".pane");
+      if(newPane)newPane.classList.add("fade-enter");
+    }
     app.replaceChildren(frag);
+    if(tabChanged){
+      const entered=app.querySelector(".fade-enter");
+      if(entered)requestAnimationFrame(()=>requestAnimationFrame(()=>entered.classList.remove("fade-enter")));
+    }
     bindFn();
     const psw=sessionStorage.getItem("hw-plan-scroll-wk");
     if(psw&&tab===TAB_PLAN){sessionStorage.removeItem("hw-plan-scroll-wk");requestAnimationFrame(()=>{document.querySelector(`#p-plan .pw-head[data-w="${psw}"]`)?.scrollIntoView({behavior:"smooth",block:"start"})})}
@@ -3081,7 +3165,9 @@ function applyLog(log){
   applyFeelToLogAdapt(log);
   return log;
 }
+function ensureAdaptExtras(){if(!S.adapt.setsBonus)S.adapt.setsBonus={bench:0,squat:0,dead:0};if(S.adapt.runRestAdj==null)S.adapt.runRestAdj=0}
 function applyDayAdaptation(dateStr){
+  ensureAdaptExtras();
   const wk=getWkForDate(dateStr);
   const plan=rollingPlanForDate(dateStr);
   let touched=0;
@@ -3097,7 +3183,11 @@ function applyDayAdaptation(dateStr){
       let runScore=t>0?t/(samples.reduce((a,b)=>a+b,0)/samples.length):1;
       if(rows.some(r=>r.outcome==="time"))runScore=Math.max(runScore,1);
       if(rows.some(r=>r.outcome==="fail"))runScore*=0.97;
-      S.adapt.run=clamp(S.adapt.run+clamp((runScore-1)*.07,-.025,.025),.85,1.2);
+      if(runScore>1.02&&(ex.eid==="int800"||name.toLowerCase().includes("800"))){
+        S.adapt.runRestAdj=Math.max(-60,(S.adapt.runRestAdj||0)-5);
+      }else{
+        S.adapt.run=clamp(S.adapt.run+clamp((runScore-1)*.07,-.025,.025),.85,1.2);
+      }
       touched++;
       continue;
     }
@@ -3108,20 +3198,35 @@ function applyDayAdaptation(dateStr){
       bestEst=Math.max(bestEst,epley(Number(r.aW)||0,Number(r.aR)||0));
     }
     let liftScore=rows.reduce((s,r)=>s+(Number(r.score)||calcLogScore(r)),0)/rows.length;
-    if(actualReps<plannedReps*0.95)liftScore*=0.97;
+    const failedReps=actualReps<plannedReps*0.95;
+    if(failedReps)liftScore*=0.97;
     liftScore=clamp(liftScore,.6,1.4);
+    const hardSession=rows.some(r=>(r.liftFeel||"ok")==="hard");
     const tw=clamp((liftScore-1)*.08,-.025,.025);
-    if(type==="bench"){S.adapt.bench=clamp(S.adapt.bench+tw,.88,1.25);if(bestEst>S.profile.bench1RM*1.01)S.profile.bench1RM=Math.round(bestEst);touched++}
-    else if(type==="squat"){S.adapt.squat=clamp(S.adapt.squat+tw,.88,1.25);if(bestEst>S.profile.squat1RM*1.01)S.profile.squat1RM=Math.round(bestEst);touched++}
-    else if(type==="dead"){S.adapt.dead=clamp(S.adapt.dead+tw,.88,1.25);if(bestEst>S.profile.dead1RM*1.01)S.profile.dead1RM=Math.round(bestEst);touched++}
+    if(type==="bench"||type==="squat"||type==="dead"){
+      if(hardSession&&failedReps){
+        S.adapt[type]=clamp(S.adapt[type]-.05,.88,1.25);
+        S.adapt.setsBonus[type]=Math.min(2,(S.adapt.setsBonus[type]||0)+1);
+      }else{
+        S.adapt[type]=clamp(S.adapt[type]+tw,.88,1.25);
+        if(liftScore>=1.02&&S.adapt.setsBonus[type]>0)S.adapt.setsBonus[type]=Math.max(0,S.adapt.setsBonus[type]-1);
+      }
+      if(bestEst>S.profile[type==="dead"?"dead1RM":type+"1RM"]*1.01)S.profile[type==="dead"?"dead1RM":type+"1RM"]=Math.round(bestEst);
+      touched++;
+    }
   }
   return touched;
 }
 
 function mkDay(slot,w){
+  ensureAdaptExtras();
   const wf=wkFactor(w),p=S.profile,reps=phaseReps(w),sets=phaseSets(w);
+  const sb=S.adapt.setsBonus||{bench:0,squat:0,dead:0};
   const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5),pmi=paceMi(fk);
   const b=r5(p.bench1RM*wf*S.adapt.bench),sq=r5(p.squat1RM*wf*S.adapt.squat),dl=r5(p.dead1RM*wf*S.adapt.dead);
+  const bSets=sets+(sb.bench||0),sqSets=sets+(sb.squat||0),dlSets=sets+(sb.dead||0);
+  const intRestBase=90;
+  const intRest=Math.max(30,intRestBase+(S.adapt.runRestAdj||0));
   const isDeload=w===4||w===8,dn=isDeload?" (DELOAD)":"";
   const accP=w%2===0?"incline_db":"cgbench",accL=w%2===0?"lunge":"bss",accSh=w%3===0?"lat_raise":"ohp";
   const wt=weightTrend();let xf="";
@@ -3131,34 +3236,34 @@ function mkDay(slot,w){
 
   const S_={
     HP:{focus:"Heavy Push"+dn,warmup:"5 min cardio → band pull-aparts → bar×10, 95×8, 135×5",
-      exs:[{eid:"bench",sets,reps:reps[1],target:b,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.bench.toFixed(2)}`},
+      exs:[{eid:"bench",sets:bSets,reps:reps[1],target:b,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.bench.toFixed(2)}`+(sb.bench?` (+${sb.bench} vol set${sb.bench>1?"s":""})`:"")},
         {eid:accP,sets:3,reps:w<=4?10:8,target:r5(b*(accP==="incline_db"?.4:.65)),unit:"lb",reason:"Push accessory"},
         {eid:"row",sets:4,reps:w<=4?10:8,target:r5(b*.75),unit:"lb",reason:"Superset — stay at rack"},
         {eid:w%2?"pullup":"face_pull",sets:3,reps:w%2?8:15,target:0,unit:w%2?"BW":"band",reason:"Pull balance"},
         {eid:"pushup",sets:1,reps:100,target:0,unit:"BW",reason:"100 reps AFAP"}],
       finisher:"50 Burpees + 50 Sit-Ups for time"+xf},
     HPL:{focus:"Heavy Pull"+dn,warmup:"5 min row machine → band pull-aparts → light rows",
-      exs:[{eid:"row",sets,reps:reps[1],target:r5(b*.8),unit:"lb",reason:"Heavy barbell row"},
+      exs:[{eid:"row",sets:bSets,reps:reps[1],target:r5(b*.8),unit:"lb",reason:"Heavy barbell row"},
         {eid:"pullup",sets:4,reps:w<=4?8:6,target:0,unit:"BW",reason:"Vertical pull"},
         {eid:"face_pull",sets:3,reps:15,target:0,unit:"band",reason:"Rear delt health"},
         {eid:"farmer",sets:4,reps:40,target:r5(dl*.2),unit:"lb/hand",reason:"Grip + core"},
         {eid:"plank",sets:3,reps:60,target:0,unit:"sec",reason:"Anti-extension core"}],
       finisher:"4 rounds: 15 Burpees + 20 Sit-Ups"+xf},
     HL:{focus:"Heavy Lower"+dn,warmup:"5 min bike → BW squats → 95×10, 135×8, 185×5",
-      exs:[{eid:"squat",sets,reps:reps[1],target:sq,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.squat.toFixed(2)}`},
-        {eid:"deadlift",sets:isDeload?2:w<=4?3:4,reps:w<=8?5:3,target:dl,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.dead.toFixed(2)}`},
+      exs:[{eid:"squat",sets:sqSets,reps:reps[1],target:sq,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.squat.toFixed(2)}`+(sb.squat?` (+${sb.squat} vol set${sb.squat>1?"s":""})`:"")},
+        {eid:"deadlift",sets:Math.max(isDeload?2:w<=4?3:4,isDeload?2:(w<=4?3:4)+(sb.dead||0)),reps:w<=8?5:3,target:dl,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.dead.toFixed(2)}`+(sb.dead?` (+${sb.dead} vol)`:"")},
         {eid:accL,sets:3,reps:12,target:r5(sq*.2),unit:"lb/hand",reason:"Unilateral volume"},
         {eid:"rdl",sets:3,reps:10,target:r5(dl*.3),unit:"lb",reason:"Hamstring volume"}],
       finisher:"100 BW Squats for time"+xf},
     GL:{focus:"Glute & Hip"+dn,warmup:"5 min bike → hip circles → BW squats ×15",
-      exs:[{eid:"rdl",sets,reps:reps[0],target:r5(dl*.45),unit:"lb",reason:"Posterior chain"},
+      exs:[{eid:"rdl",sets:dlSets,reps:reps[0],target:r5(dl*.45),unit:"lb",reason:"Posterior chain"},
         {eid:"bss",sets:3,reps:10,target:r5(sq*.15),unit:"lb/hand",reason:"Single-leg strength"},
         {eid:"squat",sets:3,reps:w<=4?10:8,target:r5(sq*.7),unit:"lb",reason:"Squat volume"},
         {eid:"lunge",sets:3,reps:12,target:r5(sq*.15),unit:"lb/hand",reason:"Walking lunges"},
         {eid:"plank",sets:3,reps:45,target:0,unit:"sec",reason:"Core stability"}],
       finisher:"50 Air Squats + 50 Lunges for time"+xf},
     SR:{focus:"Speed Intervals"+dn,warmup:"10 min jog → leg swings → 2×100m strides",
-      exs:[{eid:"int800",sets:isDeload?3:w<=4?4:w<=8?5:6,reps:1,target:Math.round(pmi/2),unit:"sec ("+fmtPace(Math.round(pmi))+" pace)",reason:`800m at ${fmtPace(Math.round(pmi))} target`},
+      exs:[{eid:"int800",sets:isDeload?3:w<=4?4:w<=8?5:6,reps:1,target:Math.round(pmi/2),unit:"sec ("+fmtPace(Math.round(pmi))+" pace)",rest:intRest+"s",reason:`800m at ${fmtPace(Math.round(pmi))} target · ${intRest}s rest`},
         {eid:"plank",sets:3,reps:60,target:0,unit:"sec",reason:"Core for running economy"}],
       finisher:"2-min plank + 2×30s mountain climbers"+xf},
     TR:{focus:"Tempo Run"+dn,warmup:"10 min jog → dynamic stretches → strides",
