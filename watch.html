@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Hybrid — Watch</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d12;--surface:#1a1a24;--border:#2a2a3a;--text:#f0f0f4;--text2:#a0a0b4;--text3:#686880;--cta:#4e8cff;--mint:#00e676;--red:#ff5252;--gold:#ffd54f;--radius:10px}
+html{font-size:12px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro","Helvetica Neue",sans-serif;min-height:100vh;-webkit-user-select:none;user-select:none;overflow-x:hidden}
+.w-auth,.w-app{padding:8px;max-width:220px;margin:0 auto}
+.w-title{font-size:13px;font-weight:800;text-align:center;margin:6px 0 4px;letter-spacing:-.02em}
+.w-sub{font-size:9px;color:var(--text3);text-align:center;margin-bottom:8px;line-height:1.3}
+.w-input{width:100%;padding:6px 8px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;margin-bottom:6px;-webkit-appearance:none}
+.w-input::placeholder{color:var(--text3)}
+.w-btn{width:100%;padding:8px;border:none;border-radius:var(--radius);font-size:11px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.w-btn:active{opacity:.7}
+.w-btn-cta{background:var(--cta);color:#fff}
+.w-btn-mint{background:var(--mint);color:#111}
+.w-btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2);padding:6px}
+.w-err{font-size:9px;color:var(--red);text-align:center;min-height:14px;margin:4px 0}
+.w-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px;margin-bottom:6px}
+.w-ex-name{font-size:11px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-ex-rx{font-size:9px;color:var(--text2);margin-bottom:4px}
+.w-ex-done{opacity:.45}
+.w-row{display:flex;gap:4px;align-items:center}
+.w-field{flex:1;min-width:0}
+.w-field label{display:block;font-size:8px;color:var(--text3);margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+.w-field input{width:100%;padding:5px 4px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;text-align:center;-webkit-appearance:none}
+.w-log-btn{padding:6px;font-size:10px;margin-top:4px}
+.w-status{font-size:9px;color:var(--mint);text-align:center;margin:4px 0;min-height:12px}
+.w-session-title{font-size:10px;color:var(--text2);text-align:center;margin-bottom:4px}
+.w-hidden{display:none!important}
+.w-timer{font-size:16px;font-weight:800;text-align:center;color:var(--cta);font-variant-numeric:tabular-nums;margin:4px 0}
+.w-timer-label{font-size:8px;color:var(--text3);text-align:center;text-transform:uppercase}
+</style>
+<script>
+window.__HYBRID_FIREBASE_CONFIG__ = window.__HYBRID_FIREBASE_CONFIG__ || {
+  apiKey: "AIzaSyBA5C3hp1iscVxZMxNB7lAF-MUvUrH3UaA",
+  authDomain: "workout-dba27.firebaseapp.com",
+  projectId: "workout-dba27",
+  storageBucket: "workout-dba27.firebasestorage.app",
+  messagingSenderId: "692799207312",
+  appId: "1:692799207312:web:d39b8b8f1338c78f406515",
+  measurementId: "G-9CQ8F4H5SZ"
+};
+</script>
+</head>
+<body>
+<div class="w-auth" id="w-auth">
+  <div class="w-title">⚡ Hybrid</div>
+  <div class="w-sub">Watch quick-log</div>
+  <input type="email" class="w-input" id="w-email" placeholder="Email" autocomplete="email">
+  <input type="password" class="w-input" id="w-pass" placeholder="Password" autocomplete="current-password">
+  <div class="w-err" id="w-err"></div>
+  <button type="button" class="w-btn w-btn-cta" id="w-login">Sign in</button>
+</div>
+<div class="w-app w-hidden" id="w-app">
+  <div class="w-title" id="w-day-title">Today</div>
+  <div class="w-session-title" id="w-session-info"></div>
+  <div class="w-status" id="w-status"></div>
+  <div id="w-exercises"></div>
+  <div class="w-timer-label" id="w-rest-label" style="display:none">REST</div>
+  <div class="w-timer" id="w-rest-timer" style="display:none">0:00</div>
+  <button type="button" class="w-btn w-btn-ghost" id="w-refresh" style="margin-top:6px;font-size:9px">↻ Refresh</button>
+</div>
+<script>
+(async function(){
+  const cfg=window.__HYBRID_FIREBASE_CONFIG__;
+  const ld=src=>new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
+  await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js");
+  await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-auth-compat.js");
+  await ld("https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js");
+  const app=firebase.initializeApp(cfg,"hw-watch");
+  const auth=firebase.auth(app);
+  const db=firebase.firestore(app);
+  await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+  const $=id=>document.getElementById(id);
+  let S=null,user=null,restInt=null;
+
+  function iso(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+  function uid(){return(typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("wl_"+Date.now()+"_"+Math.random().toString(36).slice(2,8))}
+
+  function renderExercises(){
+    const el=$("w-exercises");
+    if(!S||!S.program){el.innerHTML="<p style='font-size:10px;color:var(--text3);text-align:center'>No program data</p>";return}
+    const dayIso=iso();
+    const logs=(S.logs||[]).filter(l=>l.date===dayIso);
+    const w=S.program.week||1;
+    const dow=new Date().getDay();
+    const sched=S.schedule||{};
+    const dayKey=["sun","mon","tue","wed","thu","fri","sat"][dow];
+    const dayPlan=sched[dayKey];
+    if(!dayPlan||!dayPlan.exs||!dayPlan.exs.length){
+      el.innerHTML="<div class='w-card' style='text-align:center'><div style='font-size:16px;margin-bottom:4px'>😴</div><div style='font-size:10px;color:var(--text2)'>Rest day</div></div>";
+      return;
+    }
+    $("w-session-info").textContent=`Week ${w} · ${dayPlan.exs.length} exercises`;
+    el.innerHTML=dayPlan.exs.map((ex,i)=>{
+      const name=ex.eid||"Exercise";
+      const logged=logs.filter(l=>l.exercise===name||l.exercise===(ex.name||"")).length;
+      const sets=Number(ex.sets)||3;
+      const reps=Number(ex.reps)||8;
+      const target=Number(ex.target)||0;
+      const done=logged>=sets;
+      return`<div class="w-card ${done?"w-ex-done":""}" data-i="${i}">
+        <div class="w-ex-name">${name}</div>
+        <div class="w-ex-rx">${sets}×${reps} @ ${target}${done?" ✓":""} (${logged}/${sets})</div>
+        ${done?"":`<div class="w-row">
+          <div class="w-field"><label>Reps</label><input type="number" value="${reps}" min="1" id="wr${i}"></div>
+          <div class="w-field"><label>Load</label><input type="number" value="${target}" min="0" id="ww${i}"></div>
+        </div>
+        <button type="button" class="w-btn w-btn-mint w-log-btn" data-i="${i}">Log set ${logged+1}</button>`}
+      </div>`;
+    }).join("");
+    el.querySelectorAll(".w-log-btn").forEach(btn=>{
+      btn.onclick=async()=>{
+        const i=Number(btn.dataset.i);
+        const ex=dayPlan.exs[i];
+        const name=ex.eid||"Exercise";
+        const aR=Number($("wr"+i)?.value)||0;
+        const aW=Number($("ww"+i)?.value)||0;
+        if(aR<=0){status("Enter reps");return}
+        const log={id:uid(),date:iso(),week:w,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:1,aR,aW,outcome:"ok",score:1,src:"watch"};
+        S.logs.push(log);
+        S.logs=S.logs.slice(-1000);
+        try{
+          await db.collection("hw").doc(user.uid).set({state:S,at:new Date().toISOString()},{merge:true});
+          status("✓ Logged!");
+          startRest(90);
+        }catch(e){status("Saved locally")}
+        renderExercises();
+      };
+    });
+  }
+
+  function status(msg){$("w-status").textContent=msg;setTimeout(()=>{if($("w-status").textContent===msg)$("w-status").textContent=""},3000)}
+
+  function startRest(sec){
+    if(restInt)clearInterval(restInt);
+    let left=sec;
+    $("w-rest-label").style.display="";
+    $("w-rest-timer").style.display="";
+    const tick=()=>{
+      const m=Math.floor(left/60),s=left%60;
+      $("w-rest-timer").textContent=m+":"+String(s).padStart(2,"0");
+      if(left<=0){clearInterval(restInt);restInt=null;$("w-rest-label").style.display="none";$("w-rest-timer").style.display="none";if(navigator.vibrate)navigator.vibrate([200,100,200])}
+      left--;
+    };
+    tick();
+    restInt=setInterval(tick,1000);
+  }
+
+  async function loadState(){
+    try{
+      const doc=await db.collection("hw").doc(user.uid).get();
+      if(doc.exists&&doc.data()&&doc.data().state){S=doc.data().state}
+      else{S={program:{week:1},schedule:{},logs:[],adapt:{bench:1,squat:1,dead:1,run:1}}}
+    }catch{S={program:{week:1},schedule:{},logs:[],adapt:{bench:1,squat:1,dead:1,run:1}}}
+    $("w-day-title").textContent=new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+    renderExercises();
+  }
+
+  auth.onAuthStateChanged(u=>{
+    if(u){user=u;$("w-auth").classList.add("w-hidden");$("w-app").classList.remove("w-hidden");loadState()}
+    else{$("w-auth").classList.remove("w-hidden");$("w-app").classList.add("w-hidden")}
+  });
+
+  $("w-login").onclick=async()=>{
+    const e=$("w-email").value.trim(),p=$("w-pass").value;
+    if(!e||!p){$("w-err").textContent="Enter email & password";return}
+    try{await auth.signInWithEmailAndPassword(e,p);$("w-err").textContent=""}
+    catch(err){$("w-err").textContent=err.message?.slice(0,60)||"Sign in failed"}
+  };
+
+  $("w-refresh").onclick=()=>{if(user)loadState()};
+})();
+</script>
+</body>
+</html>

@@ -1,11 +1,18 @@
-const CACHE_NAME = "hybrid-warrior-v41";
+const CACHE_NAME = "hybrid-warrior-v56";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./404.html",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./css/styles.css",
+  "./js/app.js",
+  "./js/ui.js",
+  "./js/state.js",
+  "./js/engine.js",
+  "./js/exercises.js",
+  "./watch.html"
 ];
 
 self.addEventListener("install", (event) => {
@@ -38,8 +45,9 @@ self.addEventListener("fetch", (event) => {
   const isScriptOrStyle =
     isSameOrigin &&
     (reqUrl.pathname.endsWith(".js") || reqUrl.pathname.endsWith(".css"));
+  const isIcon = isSameOrigin && reqUrl.pathname.includes("/icons/");
+  const isManifest = isSameOrigin && reqUrl.pathname.endsWith(".webmanifest");
 
-  // Cache-first HTML shell for reliable offline gym usage.
   if (isHtmlRequest) {
     event.respondWith(
       caches.match(event.request).then((cached) => {
@@ -56,8 +64,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for app code/assets so deploys are not pinned by old cache.
-  if (isScriptOrStyle) {
+  if (isScriptOrStyle || isIcon || isManifest) {
     event.respondWith(
       fetch(event.request)
         .then((resp) => {
@@ -75,8 +82,10 @@ self.addEventListener("fetch", (event) => {
       if (cached) return cached;
       return fetch(event.request)
         .then((resp) => {
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          if (resp.ok && isSameOrigin) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
           return resp;
         })
         .catch(() => caches.match("./index.html"));
