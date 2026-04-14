@@ -3697,18 +3697,8 @@ function renderToday(){
   if(trainFocusIdx!==null&&plan.exs.length){
     const n=plan.exs.length,idx=trainFocusIdx,tx=-(idx*100)/n;
     const focusDots=plan.exs.map((_,i)=>`<span class="${i===idx?"on":""}" title="Exercise ${i+1} of ${n}"></span>`).join("");
-    // #region agent log
-    const _dbgSlides=[];
-    const slides=plan.exs.map((ex,i)=>{
-      let cardHtml='';
-      try{cardHtml=renderExerciseCardHtml(ex,i);_dbgSlides.push({i,eid:ex.eid,ok:true,len:cardHtml.length})}
-      catch(err){cardHtml=`<div style="color:red;padding:16px;font-size:13px;word-break:break-all"><b>Render error [${i}] ${ex.eid}:</b> ${err&&err.message}<br><pre style="font-size:10px;white-space:pre-wrap">${err&&err.stack&&err.stack.slice(0,400)}</pre></div>`;_dbgSlides.push({i,eid:ex.eid,ok:false,err:err&&err.message})}
-      return`<div class="focus-session-slide" style="width:${100/n}%;flex-shrink:0">${cardHtml}</div>`;
-    }).join("");
-    const _dbgInfo=`<div id="hw-dbg" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:rgba(0,0,0,.92);color:#0f0;font-size:10px;padding:6px 8px;font-family:monospace;max-height:90px;overflow:auto;pointer-events:auto">[focus] n=${n} idx=${idx} tx=${tx}% slides=${_dbgSlides.map(s=>s.eid+':'+(s.ok?s.len+'ch':'ERR:'+s.err)).join(' | ')}</div>`;
-    // #endregion
+    const slides=plan.exs.map((ex,i)=>`<div class="focus-session-slide" style="width:${100/n}%;flex-shrink:0">${renderExerciseCardHtml(ex,i)}</div>`).join("");
     return`<div id="p-today" class="train-focus-mode train-session-active">
-  ${_dbgInfo}
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   <div class="focus-session-bar">
@@ -3945,9 +3935,6 @@ async function releaseWorkoutWakeLock(){
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   ensureWorkoutWakeLock();
-  // #region agent log
-  if(trainFocusIdx!==null){const _vp=document.querySelector('.focus-session-viewport');const _track=document.querySelector('.focus-session-track');const _slides=document.querySelectorAll('.focus-session-slide');const _exCards=document.querySelectorAll('.focus-session-slide .ex-card');const _dbgEl=document.getElementById('hw-dbg');if(_dbgEl){_dbgEl.innerHTML+=`<br>[bind] vp:${_vp?_vp.offsetWidth+'x'+_vp.offsetHeight:'NO'} track:${_track?_track.offsetWidth+'w':'NO'} slides:${_slides.length} cards:${_exCards.length} dims:[${Array.from(_slides).map((s,i)=>i+':'+s.offsetWidth+'x'+s.offsetHeight).join(',')}]`}}
-  // #endregion
   enhanceNumericInputs(document.getElementById("p-today")||document);
   const wSlot=document.getElementById("weather-slot");
   if(wSlot&&isOutdoorCardioToday()){
