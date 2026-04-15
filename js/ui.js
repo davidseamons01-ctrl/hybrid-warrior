@@ -4646,16 +4646,10 @@ async function getPdf(n,s){await ensurePdf();if(pdfCache.has(n))return pdfCache.
 //  MASTER RENDER
 // ═══════════════════════════════════════════════════════════
 function maybeShowWomenMissWelcome(){
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-run',hypothesisId:'H2,H4',location:'ui.js:maybeShowWomenMissWelcome:entry',message:'maybeShowWomenMissWelcome called',data:{onboarded:!!S.profile.onboarded,sex:S.profile.sex,useWomenSoftUi:useWomenSoftUi(),existingOverlays:document.querySelectorAll('.miss-welcome-overlay').length,tab,trainSub},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if(!useWomenSoftUi()||!S.profile.onboarded)return;
   const m=oldestUnresolvedMiss();
   if(!m)return;
   if(document.querySelector(".miss-welcome-overlay")){
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H4',location:'ui.js:maybeShowWomenMissWelcome:guard',message:'skipping mount because overlay already exists',data:{existingOverlays:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     return;
   }
   const key="hw-miss-welcome-"+iso();
@@ -4675,39 +4669,17 @@ function maybeShowWomenMissWelcome(){
   wrap.setAttribute("aria-labelledby","miss-welcome-title");
   wrap.innerHTML=`<div class="miss-welcome-card"><h3 id="miss-welcome-title">Missed ${m.dayName}</h3><p>Want to do the <b>${m.date}</b> session now, or skip it for this block?</p><p style="font-size:12px;color:var(--text3);margin-bottom:0;line-height:1.45">${focus}${pl.exs.length?` · ${pl.exs.length} exercise${pl.exs.length!==1?"s":""}`:""}</p><div class="miss-welcome-actions"><button type="button" class="btn btn-cta" id="mw-do">Do this workout</button><button type="button" class="btn btn-secondary-solid" id="mw-skip">Skip this session</button><button type="button" class="btn btn-ghost" id="mw-later">Not now</button></div></div>`;
   document.body.appendChild(wrap);
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-run',hypothesisId:'H1,H2,H4',location:'ui.js:maybeShowWomenMissWelcome:mounted',message:'miss welcome overlay mounted',data:{overlayCount:document.querySelectorAll('.miss-welcome-overlay').length,btnDo:!!document.getElementById('mw-do'),btnSkip:!!document.getElementById('mw-skip'),btnLater:!!document.getElementById('mw-later'),wrapZ:getComputedStyle(wrap).zIndex},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-  wrap.addEventListener("pointerdown",ev=>{
-    const x=ev.clientX,y=ev.clientY;
-    const topEl=document.elementFromPoint(x,y);
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-run',hypothesisId:'H1,H5',location:'ui.js:maybeShowWomenMissWelcome:pointerdown',message:'pointerdown inside modal region',data:{targetId:ev.target&&ev.target.id,targetClass:ev.target&&ev.target.className,topId:topEl&&topEl.id,topClass:topEl&&topEl.className,x,y},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  },{passive:true});
   const done=()=>{sessionStorage.setItem(key,"1");wrap.remove()};
   const btnDo=wrap.querySelector("#mw-do");
   const btnSkip=wrap.querySelector("#mw-skip");
   const btnLater=wrap.querySelector("#mw-later");
-  // #region agent log
-  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H2,H4',location:'ui.js:maybeShowWomenMissWelcome:bind',message:'binding modal-local handlers',data:{btnDo:!!btnDo,btnSkip:!!btnSkip,btnLater:!!btnLater,overlayCount:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if(btnDo)btnDo.onclick=()=>{
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H2,H3,H4',location:'ui.js:maybeShowWomenMissWelcome:mw-do',message:'mw-do handler fired',data:{missDate:m.date,overlayCount:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     done();trainSessionDate=m.date;tab=TAB_TRAIN;trainSub="workout";render()
   };
   if(btnSkip)btnSkip.onclick=async()=>{
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H2,H3,H4',location:'ui.js:maybeShowWomenMissWelcome:mw-skip',message:'mw-skip handler fired',data:{missDate:m.date,overlayCount:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();done();render()
   };
   if(btnLater)btnLater.onclick=()=>{
-    // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H2,H3,H4',location:'ui.js:maybeShowWomenMissWelcome:mw-later',message:'mw-later handler fired',data:{missDate:m.date,overlayCount:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     done()
   };
 }
