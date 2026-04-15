@@ -4652,6 +4652,12 @@ function maybeShowWomenMissWelcome(){
   if(!useWomenSoftUi()||!S.profile.onboarded)return;
   const m=oldestUnresolvedMiss();
   if(!m)return;
+  if(document.querySelector(".miss-welcome-overlay")){
+    // #region agent log
+    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H4',location:'ui.js:maybeShowWomenMissWelcome:guard',message:'skipping mount because overlay already exists',data:{existingOverlays:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    return;
+  }
   const key="hw-miss-welcome-"+iso();
   if(sessionStorage.getItem(key))return;
   const ob=document.getElementById("obScreen");
@@ -4680,21 +4686,27 @@ function maybeShowWomenMissWelcome(){
     // #endregion
   },{passive:true});
   const done=()=>{sessionStorage.setItem(key,"1");wrap.remove()};
-  document.getElementById("mw-do").onclick=()=>{
+  const btnDo=wrap.querySelector("#mw-do");
+  const btnSkip=wrap.querySelector("#mw-skip");
+  const btnLater=wrap.querySelector("#mw-later");
+  // #region agent log
+  fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H2,H4',location:'ui.js:maybeShowWomenMissWelcome:bind',message:'binding modal-local handlers',data:{btnDo:!!btnDo,btnSkip:!!btnSkip,btnLater:!!btnLater,overlayCount:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+  if(btnDo)btnDo.onclick=()=>{
     // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-run',hypothesisId:'H2,H3,H5',location:'ui.js:maybeShowWomenMissWelcome:mw-do',message:'mw-do handler fired',data:{missDate:m.date},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H2,H3,H4',location:'ui.js:maybeShowWomenMissWelcome:mw-do',message:'mw-do handler fired',data:{missDate:m.date,overlayCount:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     done();trainSessionDate=m.date;tab=TAB_TRAIN;trainSub="workout";render()
   };
-  document.getElementById("mw-skip").onclick=async()=>{
+  if(btnSkip)btnSkip.onclick=async()=>{
     // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-run',hypothesisId:'H2,H3,H5',location:'ui.js:maybeShowWomenMissWelcome:mw-skip',message:'mw-skip handler fired',data:{missDate:m.date},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H2,H3,H4',location:'ui.js:maybeShowWomenMissWelcome:mw-skip',message:'mw-skip handler fired',data:{missDate:m.date,overlayCount:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();done();render()
   };
-  document.getElementById("mw-later").onclick=()=>{
+  if(btnLater)btnLater.onclick=()=>{
     // #region agent log
-    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-run',hypothesisId:'H2,H3,H5',location:'ui.js:maybeShowWomenMissWelcome:mw-later',message:'mw-later handler fired',data:{missDate:m.date},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://127.0.0.1:7350/ingest/5a792972-80cc-4833-b3b9-85d19829cb21',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3e0776'},body:JSON.stringify({sessionId:'3e0776',runId:'miss-modal-postfix',hypothesisId:'H2,H3,H4',location:'ui.js:maybeShowWomenMissWelcome:mw-later',message:'mw-later handler fired',data:{missDate:m.date,overlayCount:document.querySelectorAll('.miss-welcome-overlay').length},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     done()
   };
