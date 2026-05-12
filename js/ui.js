@@ -396,6 +396,9 @@ async function cloudPush(){
     for(const q of queued){
       try{await fbDb.collection("hw").doc(currentUser.uid).set(q.payload,{merge:true});await idbDel("queue",q.id)}catch{break}
     }
+    if(typeof communityOptedIn==="function"&&communityOptedIn()){
+      try{await communityPublishProfile()}catch(_){}
+    }
   }catch(e){
     console.error(e);
     const qid=(typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("q_"+Date.now()+"_"+Math.random().toString(36).slice(2,8));await idbPut("queue",qid,{id:qid,ts:Date.now(),payload});
@@ -524,7 +527,7 @@ const DASH_RANGES=[["1w","1W"],["1m","1M"],["3m","3M"],["6m","6M"],["all","All-T
 let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;
 function tabFromHash(){
   const h=(location.hash||"").replace(/^#/,"").toLowerCase();
-  if(h===TAB_TRAIN||h===TAB_PLAN||h===TAB_YOU)return h;
+  if(h===TAB_TRAIN||h===TAB_PLAN||h===TAB_YOU||h===TAB_SOCIAL)return h;
   return null;
 }
 function syncTabToHash(){
@@ -2400,8 +2403,15 @@ function nextScheduledDayTeaser(){
 function calcLifetimeVolume(){
   let vol=0;
   for(const l of S.logs||[]){
+    if(!l||!l.exercise)continue;
     if(isRunExerciseName(l.exercise))continue;
-    vol+=(Number(l.aS)||1)*(Number(l.aR)||0)*(Number(l.aW)||0);
+    const sets=Number(l.aS)||1;
+    const reps=Number(l.aR)||0;
+    const weight=Number(l.aW)||0;
+    if(weight<=0||reps<=0)continue;
+    const nm=String(l.exercise).toLowerCase();
+    if(/plank|hold|carry|sec|stretch|mobility|breath|nap|sleep|walk|stand|mountain.?climb/.test(nm))continue;
+    vol+=sets*reps*weight;
   }
   return Math.round(vol);
 }
@@ -2493,31 +2503,375 @@ function dailyQuote(){
   const dayNum=Math.floor(Date.now()/(864e5));
   return DAILY_QUOTES[dayNum%DAILY_QUOTES.length];
 }
-function renderSocial(){
-  const monthNames=["January","February","March","April","May","June","July","August","September","October","November","December"];
+/* ═══════════════════════════════════════════════════════════════════
+   COMMUNITY / SOCIAL
+   - Opt-in community profile (anonymous handle, public stats)
+   - Live Firestore leaderboards (bench, squat, deadlift, volume, miles, level)
+   - Motivation wall: 280-char posts with hearts
+   - All cloud writes require explicit opt-in via S.profile.prefs.community
+   ═══════════════════════════════════════════════════════════════════ */
+let _socialCache={profiles:null,posts:null,fetchedAt:0,leaderTab:"hybrid"};
+let _socialUnsubProfiles=null,_socialUnsubPosts=null;
+function communityOptedIn(){return!!(((S.profile||{}).prefs||{}).community&&((S.profile||{}).prefs||{}).communityHandle)}
+function communityHandle(){return(((S.profile||{}).prefs||{}).communityHandle||"").trim()}
+function safeHandle(s){return String(s||"").trim().replace(/[^a-zA-Z0-9 _.-]/g,"").slice(0,24)}
+function bestEpleyForExercise(aliases){
+  const set=new Set(aliases.map(a=>a.toLowerCase()));
+  let best=0;
+  for(const l of S.logs||[]){
+    if(!l||!l.exercise||!set.has(String(l.exercise).toLowerCase()))continue;
+    const w=Number(l.aW)||0,r=Number(l.aR)||0;
+    if(w<=0||r<=0)continue;
+    const e=epley(w,r);
+    if(e>best)best=e;
+  }
+  return Math.round(best);
+}
+function monthVolume(){
   const now=new Date();
-  const curMonth=monthNames[now.getMonth()];
-  return`<div class="social-shell">
-  <div class="social-header"><h1 class="social-title">Challenges & Community</h1><p class="social-subtitle">Compete with other hybrid athletes. Leaderboards update weekly.</p></div>
-  <div class="card section social-challenge-card">
-    <div class="social-challenge-badge">🏆</div>
-    <div class="social-challenge-info"><div class="social-challenge-name">${curMonth} Bench Press Challenge</div><div class="social-challenge-desc">Log your heaviest bench press this month. Top lifters earn a permanent badge.</div></div>
-    <div class="social-challenge-status"><span class="badge badge-gold">Coming Soon</span></div>
-  </div>
-  <div class="card section social-challenge-card">
-    <div class="social-challenge-badge">🏃</div>
-    <div class="social-challenge-info"><div class="social-challenge-name">${curMonth} Run Volume Challenge</div><div class="social-challenge-desc">Total the most running miles this month. Distance is pulled from your logged runs.</div></div>
-    <div class="social-challenge-status"><span class="badge badge-ice">Coming Soon</span></div>
-  </div>
-  <div class="card section social-challenge-card">
-    <div class="social-challenge-badge">💪</div>
-    <div class="social-challenge-info"><div class="social-challenge-name">Hybrid Warrior Leaderboard</div><div class="social-challenge-desc">Combined Hybrid Warrior Score ranking. Strength + endurance + consistency.</div></div>
-    <div class="social-challenge-status"><span class="badge badge-mint">Coming Soon</span></div>
-  </div>
-  <div class="card section" style="text-align:center;padding:28px"><div style="font-size:32px;margin-bottom:10px">🚧</div><p style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Community features launching soon</p><p style="font-size:12px;color:var(--text2);line-height:1.5;max-width:340px;margin:0 auto">Global leaderboards, team challenges, and social feeds are in development. Your training data stays private until you choose to opt in.</p></div>
+  const y=now.getFullYear(),m=now.getMonth();
+  const monthStart=`${y}-${String(m+1).padStart(2,"0")}-01`;
+  const nextM=m===11?`${y+1}-01-01`:`${y}-${String(m+2).padStart(2,"0")}-01`;
+  let v=0;
+  for(const l of S.logs||[]){
+    if(!l||!l.exercise||l.date<monthStart||l.date>=nextM)continue;
+    if(isRunExerciseName(l.exercise))continue;
+    const sets=Number(l.aS)||1,reps=Number(l.aR)||0,wt=Number(l.aW)||0;
+    if(wt<=0||reps<=0)continue;
+    v+=sets*reps*wt;
+  }
+  return Math.round(v);
+}
+function monthRunMiles(){
+  const now=new Date();
+  const y=now.getFullYear(),m=now.getMonth();
+  const monthStart=`${y}-${String(m+1).padStart(2,"0")}-01`;
+  const nextM=m===11?`${y+1}-01-01`:`${y}-${String(m+2).padStart(2,"0")}-01`;
+  let miles=0;
+  for(const l of S.logs||[]){
+    if(!l||!l.exercise||l.date<monthStart||l.date>=nextM)continue;
+    if(!isRunExerciseName(l.exercise))continue;
+    const pace=Number(l.aW)||0,dur=Number(l.aR)||0;
+    if(pace<=0||dur<=0)continue;
+    miles+=isRunTempoStyle({reps:dur})?dur*(60/pace)/1.609344:dur*0.5;
+  }
+  return Math.round(miles*10)/10;
+}
+function buildCommunityProfileSnapshot(){
+  const handle=communityHandle();
+  const xp=calcTotalXP();
+  const level=calcWarriorLevel(xp);
+  const streak=typeof getStreak==="function"?getStreak():0;
+  const bench=bestEpleyForExercise(["Barbell Bench Press","Bench Press","Bench"]);
+  const squat=bestEpleyForExercise(["Back Squat","Squat"]);
+  const dead=bestEpleyForExercise(["Conventional Deadlift","Deadlift","Sumo Deadlift","Trap Bar Deadlift"]);
+  const monVol=monthVolume();
+  const monMi=monthRunMiles();
+  const sex=((S.profile||{}).sex)||"unspecified";
+  const totalHybrid=bench+squat+dead;
+  return{
+    handle:safeHandle(handle)||"Athlete",
+    sex:sex==="female"||sex==="male"?sex:"other",
+    level:Math.max(1,Math.min(99,level)),
+    xp:Math.max(0,xp),
+    streak:Math.max(0,streak),
+    bench1RM:bench,
+    squat1RM:squat,
+    deadlift1RM:dead,
+    hybridTotal:totalHybrid,
+    monthVolume:monVol,
+    monthMiles:monMi,
+    updatedAt:Date.now()
+  };
+}
+async function communityPublishProfile(){
+  if(!fbDb||!currentUser||!communityOptedIn())return false;
+  try{
+    const snap=buildCommunityProfileSnapshot();
+    snap.uid=currentUser.uid;
+    await fbDb.collection("community").doc(currentUser.uid).set(snap,{merge:true});
+    return true;
+  }catch(e){console.warn("communityPublishProfile",e&&e.message);return false}
+}
+async function communityRemoveProfile(){
+  if(!fbDb||!currentUser)return;
+  try{await fbDb.collection("community").doc(currentUser.uid).delete()}catch(e){console.warn("communityRemoveProfile",e&&e.message)}
+}
+async function communityPostMessage(text){
+  if(!fbDb||!currentUser||!communityOptedIn())return false;
+  const msg=String(text||"").trim().slice(0,280);
+  if(!msg)return false;
+  try{
+    const id=(typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("p_"+Date.now()+"_"+Math.random().toString(36).slice(2,8));
+    await fbDb.collection("community_posts").doc(id).set({
+      id,uid:currentUser.uid,handle:safeHandle(communityHandle())||"Athlete",
+      text:msg,hearts:0,heartedBy:[],createdAt:Date.now()
+    });
+    return true;
+  }catch(e){console.warn("communityPostMessage",e&&e.message);toast("Couldn't post — check connection.");return false}
+}
+async function communityHeartPost(postId){
+  if(!fbDb||!currentUser||!communityOptedIn())return;
+  try{
+    const ref=fbDb.collection("community_posts").doc(postId);
+    await fbDb.runTransaction(async t=>{
+      const doc=await t.get(ref);
+      if(!doc.exists)return;
+      const d=doc.data()||{};
+      const heartedBy=Array.isArray(d.heartedBy)?d.heartedBy:[];
+      const uid=currentUser.uid;
+      const idx=heartedBy.indexOf(uid);
+      if(idx>=0){heartedBy.splice(idx,1);t.update(ref,{heartedBy,hearts:Math.max(0,heartedBy.length)})}
+      else{heartedBy.push(uid);t.update(ref,{heartedBy,hearts:heartedBy.length})}
+    });
+  }catch(e){console.warn("communityHeartPost",e&&e.message)}
+}
+async function communityDeletePost(postId){
+  if(!fbDb||!currentUser)return;
+  try{
+    const ref=fbDb.collection("community_posts").doc(postId);
+    const doc=await ref.get();
+    if(!doc.exists)return;
+    if((doc.data()||{}).uid!==currentUser.uid){toast("You can only delete your own posts.");return}
+    await ref.delete();
+  }catch(e){console.warn("communityDeletePost",e&&e.message)}
+}
+function stopSocialSubs(){
+  if(_socialUnsubProfiles){try{_socialUnsubProfiles()}catch{}_socialUnsubProfiles=null}
+  if(_socialUnsubPosts){try{_socialUnsubPosts()}catch{}_socialUnsubPosts=null}
+}
+function startSocialSubs(){
+  stopSocialSubs();
+  if(!fbDb||offlineMode)return;
+  try{
+    _socialUnsubProfiles=fbDb.collection("community").limit(200).onSnapshot(snap=>{
+      const list=[];snap.forEach(d=>{const v=d.data()||{};if(v&&v.handle)list.push(v)});
+      _socialCache.profiles=list;_socialCache.fetchedAt=Date.now();
+      if(tab===TAB_SOCIAL)refreshSocialLeaderboards();
+    },err=>{console.warn("community sub",err&&err.message)});
+  }catch(e){console.warn("startSocialSubs profiles",e&&e.message)}
+  try{
+    _socialUnsubPosts=fbDb.collection("community_posts").orderBy("createdAt","desc").limit(50).onSnapshot(snap=>{
+      const list=[];snap.forEach(d=>list.push(d.data()||{}));
+      _socialCache.posts=list;
+      if(tab===TAB_SOCIAL)refreshSocialFeed();
+    },err=>{console.warn("community_posts sub",err&&err.message)});
+  }catch(e){console.warn("startSocialSubs posts",e&&e.message)}
+}
+function sortedLeaderboard(metric){
+  const profiles=(_socialCache.profiles||[]).slice();
+  profiles.sort((a,b)=>(Number(b[metric])||0)-(Number(a[metric])||0));
+  return profiles.slice(0,20);
+}
+function leaderboardRowsHtml(metric,unitLb){
+  const list=sortedLeaderboard(metric);
+  if(!list.length)return`<div class="social-empty">No community data yet — be the first to share your stats!</div>`;
+  const myUid=currentUser?currentUser.uid:"";
+  return list.map((p,i)=>{
+    const v=Number(p[metric])||0;
+    const display=unitLb?`${Math.round(v)} ${massUnitLabel()}`:metric==="monthMiles"?`${v} mi`:metric==="level"?`Lv ${v}`:metric==="streak"?`${v}d`:`${v}`;
+    const me=p.uid===myUid;
+    const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}`;
+    return`<div class="lb-row ${me?"lb-me":""}"><span class="lb-rank">${medal}</span><span class="lb-handle">${(p.handle||"Athlete").replace(/</g,"&lt;")}${me?' <span class="lb-me-tag">you</span>':""}</span><span class="lb-meta">Lv ${p.level||1}${p.sex==="female"?" · ♀":p.sex==="male"?" · ♂":""}</span><span class="lb-val">${display}</span></div>`;
+  }).join("");
+}
+function leaderboardCardHtml(){
+  const tabs=[
+    ["hybrid","Hybrid Total","hybridTotal",true],
+    ["bench","Bench 1RM","bench1RM",true],
+    ["squat","Squat 1RM","squat1RM",true],
+    ["deadlift","Deadlift 1RM","deadlift1RM",true],
+    ["volume","Month Volume","monthVolume",true],
+    ["miles","Month Miles","monthMiles",false],
+    ["level","Warrior Level","level",false],
+    ["streak","Current Streak","streak",false]
+  ];
+  const cur=tabs.find(t=>t[0]===_socialCache.leaderTab)||tabs[0];
+  return`<div class="card section social-leaderboard-card">
+    <div class="card-h"><h2>🏆 Live Leaderboards</h2></div>
+    <div class="lb-tabs">${tabs.map(([id,lb])=>`<button type="button" class="lb-tab ${_socialCache.leaderTab===id?"on":""}" data-lb="${id}">${lb}</button>`).join("")}</div>
+    <div class="lb-rows" id="lb-rows" data-metric="${cur[2]}" data-unit="${cur[3]?"1":"0"}">${leaderboardRowsHtml(cur[2],cur[3])}</div>
   </div>`;
 }
-function bindSocial(){}
+function feedPostsHtml(){
+  const posts=_socialCache.posts||[];
+  if(!posts.length)return`<div class="social-empty">No motivation messages yet — drop the first one!</div>`;
+  const myUid=currentUser?currentUser.uid:"";
+  return posts.map(p=>{
+    const heartedBy=Array.isArray(p.heartedBy)?p.heartedBy:[];
+    const liked=myUid&&heartedBy.indexOf(myUid)>=0;
+    const ago=postAgo(Number(p.createdAt)||Date.now());
+    const own=p.uid===myUid;
+    return`<div class="feed-post" data-pid="${p.id}">
+      <div class="feed-post-head"><span class="feed-handle">${(p.handle||"Athlete").replace(/</g,"&lt;")}</span><span class="feed-ago">${ago}</span>${own?`<button type="button" class="feed-del" data-pid="${p.id}" title="Delete">×</button>`:""}</div>
+      <div class="feed-body">${(p.text||"").replace(/</g,"&lt;").replace(/\n/g,"<br>")}</div>
+      <div class="feed-foot"><button type="button" class="feed-heart ${liked?"liked":""}" data-pid="${p.id}" aria-label="React">${liked?"❤️":"🤍"} ${heartedBy.length||0}</button></div>
+    </div>`;
+  }).join("");
+}
+function postAgo(ts){
+  const s=Math.max(0,Math.floor((Date.now()-ts)/1000));
+  if(s<60)return`${s}s ago`;
+  if(s<3600)return`${Math.floor(s/60)}m ago`;
+  if(s<86400)return`${Math.floor(s/3600)}h ago`;
+  return`${Math.floor(s/86400)}d ago`;
+}
+function refreshSocialLeaderboards(){
+  const rows=document.getElementById("lb-rows");
+  if(!rows)return;
+  const metric=rows.dataset.metric||"hybridTotal";
+  const unit=rows.dataset.unit==="1";
+  rows.innerHTML=leaderboardRowsHtml(metric,unit);
+}
+function refreshSocialFeed(){
+  const feed=document.getElementById("social-feed");
+  if(!feed)return;
+  feed.innerHTML=feedPostsHtml();
+  bindFeedRowHandlers();
+}
+function bindFeedRowHandlers(){
+  document.querySelectorAll(".feed-heart").forEach(b=>{
+    b.onclick=async()=>{
+      if(!communityOptedIn()){toast("Join the community below to react.");return}
+      triggerHaptic("light");
+      await communityHeartPost(b.dataset.pid);
+    };
+  });
+  document.querySelectorAll(".feed-del").forEach(b=>{
+    b.onclick=async()=>{
+      const ok=await showCustomModal("Delete post?","This will permanently remove your message from the community.",{confirmLabel:"Delete",cancelLabel:"Keep"});
+      if(!ok)return;
+      await communityDeletePost(b.dataset.pid);
+    };
+  });
+}
+function renderSocial(){
+  if(!currentUser&&!offlineMode){
+    return`<div class="social-shell"><div class="social-header"><h1 class="social-title">Community</h1><p class="social-subtitle">Sign in to connect with other hybrid athletes.</p></div></div>`;
+  }
+  if(offlineMode){
+    return`<div class="social-shell"><div class="social-header"><h1 class="social-title">Community</h1><p class="social-subtitle">Community features need an internet connection.</p></div><div class="card section" style="text-align:center;padding:24px"><div style="font-size:28px;margin-bottom:8px">📡</div><p style="font-size:13px;color:var(--text2)">You're working offline. Sign in with cloud sync to access the global community.</p></div></div>`;
+  }
+  const optedIn=communityOptedIn();
+  const handle=communityHandle();
+  const myProfile=optedIn?(_socialCache.profiles||[]).find(p=>p.uid===(currentUser&&currentUser.uid)):null;
+  const myStats=buildCommunityProfileSnapshot();
+  const totalAthletes=(_socialCache.profiles||[]).length;
+  return`<div class="social-shell">
+    <div class="social-header"><h1 class="social-title">Community</h1><p class="social-subtitle">Global hybrid athletes training together. ${totalAthletes>0?`<b>${totalAthletes}</b> athletes connected.`:"Be the first to join."}</p></div>
+
+    ${optedIn?`
+      <div class="card section community-me-card">
+        <div class="community-me-head">
+          <div><div class="community-me-handle">${handle.replace(/</g,"&lt;")}</div><div class="community-me-tag">Lv ${myStats.level} · ${myStats.streak}d streak</div></div>
+          <button type="button" class="btn btn-sm btn-ghost" id="community-edit">Edit handle</button>
+        </div>
+        <div class="community-me-stats">
+          <div><div class="cm-val">${myStats.bench1RM||"—"}</div><div class="cm-lab">Bench 1RM</div></div>
+          <div><div class="cm-val">${myStats.squat1RM||"—"}</div><div class="cm-lab">Squat 1RM</div></div>
+          <div><div class="cm-val">${myStats.deadlift1RM||"—"}</div><div class="cm-lab">Deadlift 1RM</div></div>
+          <div><div class="cm-val">${myStats.monthMiles||0}</div><div class="cm-lab">Mo Miles</div></div>
+        </div>
+        <div class="community-me-actions">
+          <button type="button" class="btn btn-sm btn-secondary-solid" id="community-refresh">↻ Push my stats</button>
+          <button type="button" class="btn btn-sm btn-ghost" id="community-leave">Leave community</button>
+        </div>
+      </div>
+    `:`
+      <div class="card section community-join-card">
+        <div class="community-join-icon">🤝</div>
+        <h3 class="community-join-title">Join the Hybrid Community</h3>
+        <p class="community-join-desc">Pick a handle and share your training stats anonymously. Compare on leaderboards, motivate other athletes, and earn community recognition.</p>
+        <div class="community-join-form">
+          <input type="text" id="community-handle-input" class="input-sm" placeholder="Your handle (e.g. SteelMike)" maxlength="24" autocomplete="off">
+          <button type="button" class="btn btn-cta btn-block" id="community-join">Join community</button>
+        </div>
+        <div class="community-privacy-note">Your handle and stats become visible to other users. Your email, real name, body weight, and notes stay private.</div>
+      </div>
+    `}
+
+    ${leaderboardCardHtml()}
+
+    <div class="card section social-feed-card">
+      <div class="card-h"><h2>💬 Motivation Wall</h2></div>
+      ${optedIn?`
+        <div class="feed-composer">
+          <textarea id="feed-input" maxlength="280" rows="2" placeholder="Drop motivation, share a PR, or hype the squad…"></textarea>
+          <div class="feed-composer-row"><span class="feed-charcount" id="feed-count">0/280</span><button type="button" class="btn btn-sm btn-cta" id="feed-post">Post</button></div>
+        </div>
+      `:`<div class="feed-locked">Join the community above to post & react.</div>`}
+      <div class="feed-list" id="social-feed">${feedPostsHtml()}</div>
+    </div>
+
+    <div class="card section social-challenge-card community-info-card">
+      <div class="social-challenge-badge">🏅</div>
+      <div class="social-challenge-info"><div class="social-challenge-name">How leaderboards work</div><div class="social-challenge-desc">Your best 1RM estimates and monthly running miles are updated automatically when you log workouts. Hit "Push my stats" to force-refresh. Hearts on motivation posts count as community recognition.</div></div>
+    </div>
+  </div>`;
+}
+function bindSocial(){
+  startSocialSubs();
+  if((_socialCache.profiles===null||_socialCache.posts===null)&&!offlineMode){}
+  const join=document.getElementById("community-join");
+  if(join)join.onclick=async()=>{
+    const input=document.getElementById("community-handle-input");
+    const handle=safeHandle(input&&input.value);
+    if(!handle||handle.length<3){toast("Pick a handle with 3-24 letters.");return}
+    S.profile.prefs={...(S.profile.prefs||{}),community:true,communityHandle:handle};
+    await persist();
+    const ok=await communityPublishProfile();
+    if(ok){triggerHaptic("heavy");toast(`Welcome to the community, ${handle}!`)}
+    render();
+  };
+  const edit=document.getElementById("community-edit");
+  if(edit)edit.onclick=async()=>{
+    const next=await showCustomModal("Edit handle","Pick a new public handle (3-24 chars).",{inputPlaceholder:"New handle",confirmLabel:"Save"});
+    if(!next)return;
+    const handle=safeHandle(next);
+    if(handle.length<3){toast("Handle must be at least 3 characters.");return}
+    S.profile.prefs={...(S.profile.prefs||{}),communityHandle:handle};
+    await persist();
+    await communityPublishProfile();
+    render();
+  };
+  const refresh=document.getElementById("community-refresh");
+  if(refresh)refresh.onclick=async()=>{
+    const ok=await communityPublishProfile();
+    if(ok)toast("Stats pushed to the community.");else toast("Couldn't push — check connection.");
+  };
+  const leave=document.getElementById("community-leave");
+  if(leave)leave.onclick=async()=>{
+    const ok=await showCustomModal("Leave community?","Your community profile and posts will be removed. You can rejoin anytime.",{confirmLabel:"Leave",cancelLabel:"Stay"});
+    if(!ok)return;
+    await communityRemoveProfile();
+    S.profile.prefs={...(S.profile.prefs||{}),community:false};
+    await persist();
+    toast("You've left the community.");
+    render();
+  };
+  document.querySelectorAll(".lb-tab").forEach(b=>{
+    b.onclick=()=>{
+      _socialCache.leaderTab=b.dataset.lb;
+      const map={hybrid:["hybridTotal",true],bench:["bench1RM",true],squat:["squat1RM",true],deadlift:["deadlift1RM",true],volume:["monthVolume",true],miles:["monthMiles",false],level:["level",false],streak:["streak",false]};
+      const [metric,unit]=map[b.dataset.lb]||["hybridTotal",true];
+      const rows=document.getElementById("lb-rows");
+      if(rows){rows.dataset.metric=metric;rows.dataset.unit=unit?"1":"0";refreshSocialLeaderboards()}
+      document.querySelectorAll(".lb-tab").forEach(x=>x.classList.toggle("on",x===b));
+    };
+  });
+  const fi=document.getElementById("feed-input"),fc=document.getElementById("feed-count");
+  if(fi&&fc){fi.oninput=()=>{fc.textContent=`${fi.value.length}/280`}}
+  const fp=document.getElementById("feed-post");
+  if(fp)fp.onclick=async()=>{
+    const text=(fi&&fi.value||"").trim();
+    if(!text){toast("Write something first.");return}
+    fp.disabled=true;
+    const ok=await communityPostMessage(text);
+    fp.disabled=false;
+    if(ok){fi.value="";fc.textContent="0/280";triggerHaptic("light")}
+  };
+  bindFeedRowHandlers();
+}
 const TRAINING_TIPS=[
   "Progressive overload doesn't always mean more weight — more reps, shorter rest, or better form all count.",
   "Sleep is the most anabolic thing you can do. Aim for 7-9 hours to maximize recovery.",
@@ -3072,19 +3426,26 @@ function projectedSeries(actual,label,color,weeksBack,weeksForward){
   return{key:label+"-proj",label:label+" (projected)",color,points:projPts,dashed:true};
 }
 function strengthTrendSeries(rangeKey){
-  const defs=[["Barbell Bench Press","Bench","var(--ice)"],["Back Squat","Squat","var(--fire)"],["Deadlift","Deadlift","var(--mint)"]];
+  const defs=[
+    [["Barbell Bench Press","Bench Press","Bench"],"Bench","var(--ice)"],
+    [["Back Squat","Squat"],"Squat","var(--fire)"],
+    [["Conventional Deadlift","Deadlift","Sumo Deadlift","Trap Bar Deadlift"],"Deadlift","var(--mint)"]
+  ];
   const result=[];
-  for(const [exercise,label,color] of defs){
+  for(const [aliases,label,color] of defs){
+    const aliasSet=new Set(aliases.map(a=>a.toLowerCase()));
     const byDay=new Map();
     for(const l of S.logs||[]){
-      if(l.exercise!==exercise||!inDashRange(l.date,rangeKey))continue;
+      if(!l||!l.exercise)continue;
+      if(!aliasSet.has(String(l.exercise).toLowerCase()))continue;
+      if(!inDashRange(l.date,rangeKey))continue;
       const est=epley(Number(l.aW)||0,Number(l.aR)||0);
       if(!isFinite(est)||est<=0)continue;
       const k=l.date;
       byDay.set(k,Math.max(byDay.get(k)||0,est));
     }
-    const points=[...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([date,value])=>({date,value,label,exercise}));
-    result.push({key:exercise,label,color,points});
+    const points=[...byDay.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([date,value])=>({date,value,label,exercise:aliases[0]}));
+    result.push({key:aliases[0],label,color,points});
     const proj=projectedSeries(points,label,color,4,4);
     if(proj)result.push(proj);
   }
@@ -3646,8 +4007,10 @@ function renderExerciseCardHtml(ex,i){
   const completedSets=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===exNm).length;
   const activeSet=Math.min(ex.sets,completedSets+1);
   const runEx=isRunExerciseName(exNm);
-  const runTempo=isRunTempoStyle(ex);
-  const repLab=runTempo?"Minutes":runEx?"Intervals":"Reps";
+  const runTempo=runEx&&isRunTempoStyle(ex);
+  const exUnit=String(ex.unit||"").toLowerCase();
+  const isTimedHold=!runEx&&(exUnit.includes("sec")||exUnit.includes("min"));
+  const repLab=runTempo?"Minutes":runEx?"Intervals":isTimedHold?(exUnit.includes("min")?"Minutes":"Seconds"):"Reps";
   const paceQuick=paceSecPerMiDisplay(Number(lwLb)||Number(ex.target)||0);
   const paceGrid=paceSecPerMiDisplay(Number(ex.target)||0);
   const feelLead=runEx?"This run felt:":"This lift felt:";
@@ -4694,6 +5057,7 @@ function render(){
     const tabChanged=_prevTab!==null&&_prevTab!==tab;
     _prevTab=tab;
     if(tab!==TAB_TRAIN&&powerFocusOn){powerFocusOn=false;document.body.classList.remove("power-focus")}
+    if(tab!==TAB_SOCIAL&&typeof stopSocialSubs==="function")stopSocialSubs();
     let html,bindFn;
     if(tab===TAB_TRAIN){html=`<div class="pane show" id="p-train">${renderTrain()}</div>`;bindFn=bindTrain}
     else if(tab===TAB_PLAN){

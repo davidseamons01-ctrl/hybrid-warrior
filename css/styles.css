@@ -782,7 +782,6 @@ label,.fig-title{
   box-shadow:var(--elev);
   transition:transform .2s ease,filter .2s ease,opacity .2s ease;
 }
-.fab-group .fab-quick-log{position:static;right:auto;bottom:auto;z-index:auto}
 .fab-quick-log:active{transform:scale(.94)}
 .fab-quick-log:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
 .fab-quick-log[hidden]{display:none!important}
@@ -1144,7 +1143,6 @@ body:not(.appearance-light) .hw-modal{background:var(--elev-2)}
 /* Power Focus Mode — hides everything except active exercise */
 body.power-focus .nav{display:none!important}
 body.power-focus .fab-quick-log{display:none!important}
-body.power-focus .fab-group{display:none!important}
 body.power-focus .page{padding-top:0}
 body.power-focus .train-tools,
 body.power-focus .wu-card,
@@ -1471,12 +1469,85 @@ body.power-focus .ex-card.power-focus-active{border:2px solid var(--ice);box-sha
 .social-challenge-desc{font-size:11px;color:var(--text2);line-height:1.45}
 .social-challenge-status{flex-shrink:0}
 .badge-gold{background:color-mix(in srgb,var(--gold) 15%,var(--surface));color:var(--gold);border:1px solid color-mix(in srgb,var(--gold) 30%,var(--border))}
+
+/* ═══ Community: join card ═══ */
+.community-join-card{padding:20px!important;text-align:center}
+.community-join-icon{font-size:36px;margin-bottom:8px}
+.community-join-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px}
+.community-join-desc{font-size:12px;color:var(--text2);line-height:1.5;max-width:340px;margin:0 auto 14px}
+.community-join-form{display:flex;flex-direction:column;gap:10px;max-width:280px;margin:0 auto}
+.community-join-form input{width:100%;text-align:center;font-size:14px;padding:10px 12px}
+.community-privacy-note{font-size:10px;color:var(--text3);margin-top:12px;line-height:1.4;max-width:320px;margin-left:auto;margin-right:auto}
+
+/* ═══ Community: my card ═══ */
+.community-me-card{padding:16px!important}
+.community-me-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px}
+.community-me-handle{font-size:16px;font-weight:800;color:var(--text)}
+.community-me-tag{font-size:11px;color:var(--text3);margin-top:2px}
+.community-me-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.community-me-stats>div{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 4px;text-align:center}
+.community-me-stats .cm-val{font-size:16px;font-weight:700;color:var(--text)}
+.community-me-stats .cm-lab{font-size:9px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:0.04em}
+.community-me-actions{display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+
+/* ═══ Community: leaderboards ═══ */
+.social-leaderboard-card{padding:14px!important}
+.lb-tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.lb-tabs::-webkit-scrollbar{display:none}
+.lb-tab{flex-shrink:0;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .2s ease}
+.lb-tab.on{background:var(--ice);color:var(--bg);border-color:var(--ice)}
+.lb-rows{display:flex;flex-direction:column;gap:4px}
+.lb-row{display:grid;grid-template-columns:36px 1fr auto auto;gap:10px;align-items:center;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px}
+.lb-row.lb-me{background:color-mix(in srgb,var(--ice) 12%,var(--surface));border-color:color-mix(in srgb,var(--ice) 30%,var(--border))}
+.lb-rank{font-size:14px;font-weight:700;text-align:center}
+.lb-handle{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-me-tag{font-size:9px;background:var(--ice);color:var(--bg);padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700;text-transform:uppercase}
+.lb-meta{font-size:10px;color:var(--text3);white-space:nowrap}
+.lb-val{font-size:12px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+/* ═══ Community: motivation wall ═══ */
+.social-feed-card{padding:14px!important}
+.feed-composer{margin-bottom:12px;padding:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.feed-composer textarea{width:100%;background:transparent;border:none;outline:none;resize:none;font-family:inherit;font-size:13px;color:var(--text);line-height:1.4}
+.feed-composer textarea::placeholder{color:var(--text3)}
+.feed-composer-row{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+.feed-charcount{font-size:10px;color:var(--text3)}
+.feed-locked{padding:14px;background:var(--surface);border:1px dashed var(--border);border-radius:var(--radius-sm);text-align:center;font-size:11px;color:var(--text3);margin-bottom:12px}
+.feed-list{display:flex;flex-direction:column;gap:10px}
+.feed-post{padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.feed-post-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.feed-handle{font-size:12px;font-weight:700;color:var(--ice)}
+.feed-ago{font-size:10px;color:var(--text3);margin-left:auto}
+.feed-del{background:transparent;border:none;color:var(--text3);font-size:18px;line-height:1;cursor:pointer;padding:0 4px}
+.feed-del:hover{color:var(--red)}
+.feed-body{font-size:13px;color:var(--text);line-height:1.45;white-space:pre-wrap;word-wrap:break-word}
+.feed-foot{margin-top:8px;display:flex;gap:8px}
+.feed-heart{background:transparent;border:1px solid var(--border);border-radius:999px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--text2);transition:all .15s ease}
+.feed-heart:hover{border-color:var(--red);color:var(--red)}
+.feed-heart.liked{background:color-mix(in srgb,var(--red) 12%,transparent);border-color:var(--red);color:var(--red)}
+.social-empty{padding:20px;text-align:center;font-size:12px;color:var(--text3);background:var(--surface);border-radius:var(--radius-sm);border:1px dashed var(--border)}
+.community-info-card{margin-top:14px;opacity:.85}
 .badge-ice{background:color-mix(in srgb,var(--ice) 15%,var(--surface));color:var(--ice);border:1px solid color-mix(in srgb,var(--ice) 30%,var(--border))}
 
-/* ═══ Voice-to-Text FAB ═══ */
-.fab-group{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(88px + env(safe-area-inset-bottom));z-index:125;display:flex;flex-direction:column;align-items:center;gap:10px}
-.fab-group .fab-quick-log{position:static;right:auto;bottom:auto}
-.fab-voice-log{width:42px;height:42px;border-radius:50%;border:none;background:var(--surface);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:var(--elev);transition:all .25s ease}
+/* ═══ Voice-to-Text FAB (bottom-left, independent from quick log) ═══ */
+.fab-voice-log{
+  position:fixed;
+  left:max(16px,env(safe-area-inset-left));
+  bottom:calc(88px + env(safe-area-inset-bottom));
+  z-index:125;
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  border:none;
+  background:var(--surface);
+  color:var(--text2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow:var(--elev);
+  transition:all .25s ease;
+}
 .fab-voice-log:active{transform:scale(.92)}
 .fab-voice-log.listening{background:var(--red);color:#fff;animation:pulse-mic 1.2s ease-in-out infinite}
 .fab-voice-log[hidden]{display:none!important}
@@ -1484,7 +1555,10 @@ body.power-focus .ex-card.power-focus-active{border:2px solid var(--ice);box-sha
 .voice-preview{position:fixed;bottom:calc(160px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:130;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:8px 16px;font-size:12px;max-width:320px;text-align:center;box-shadow:var(--elev);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .voice-preview[hidden]{display:none!important}
 @media(min-width:861px){
-  .fab-group{bottom:calc(24px + env(safe-area-inset-bottom));right:max(24px,env(safe-area-inset-right))}
+  .fab-voice-log{
+    left:max(24px,env(safe-area-inset-left));
+    bottom:calc(24px + env(safe-area-inset-bottom));
+  }
 }
 body.power-focus .fab-voice-log{display:none!important}
 
