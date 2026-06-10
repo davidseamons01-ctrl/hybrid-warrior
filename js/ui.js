@@ -5,7 +5,8 @@ import {
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
   warmupText, recentBestE1RM, workingMax,
   rankPlans, bestPlanId, whyPlan, toEmbedUrl,
-  e1rmSeries, detectPlateau, projectWeeksToGoal
+  e1rmSeries, detectPlateau, projectWeeksToGoal,
+  accessoryRx
 } from "./programming.js";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -5543,19 +5544,29 @@ function mkDay(slot,w){
   // Week-rotating, equipment-aware accessory pools → real variety across the
   // 13 weeks (and different day types pull from different pools).
   const _eqSet=equipSetOf(userEquip());
+  // Build a fully personalized accessory: equipment-filtered + week-rotated
+  // pick, then sets/reps/load from accessoryRx (phase + experience + the
+  // user's own logged history for that movement).
   const accFrom=(pool,base,salt)=>{
     const avail=pool.filter(o=>{const n=exerciseNeeds(o.eid);return n==="bodyweight"||_eqSet.has(n);});
     const arr=avail.length?avail:pool.filter(o=>exerciseNeeds(o.eid)==="bodyweight");
     const list=arr.length?arr:pool;
     const o=list[((Math.max(1,w)-1)+(salt||0))%list.length];
-    const e=exById(o.eid);
-    return {eid:o.eid,sets:o.sets||3,reps:o.reps||(w<=4?12:10),target:o.ratio>0?r5(base*o.ratio):0,unit:o.unit||(o.ratio>0?"lb":"BW"),reason:`${e?e.name:o.eid} — ${o.tag||"accessory"}`};
+    const e=exById(o.eid),name=e?e.name:o.eid;
+    const weighted=o.ratio>0;
+    const last=weighted?((S.lastLiftByEid&&Number(S.lastLiftByEid[o.eid]))||0):0;
+    const recent=weighted?(S.logs||[]).filter(l=>l.exercise===name).slice(-1)[0]:null;
+    const beatTarget=recent?((Number(recent.aR)||0)*(Number(recent.aS)||0))>((Number(recent.tR)||0)*(Number(recent.tS)||0)):false;
+    const rx=accessoryRx({goal:currentPlanGoal(),week:w,isolation:!o.comp,experienceMonths:(S.profile.prefs||{}).experienceMonths,estTarget:weighted?base*o.ratio:0,lastLogged:last,lastFeel:recent?recent.liftFeel:null,beatTarget});
+    let target=weighted?r5(rx.target):0;
+    if(weighted&&last>0&&/progressed/.test(rx.basis)&&target<=last)target=last+5; // ensure a real bump survives rounding
+    return {eid:o.eid,sets:rx.sets,reps:rx.reps,target,unit:o.unit||(weighted?"lb":"BW"),reason:`${name} — ${o.tag||"accessory"} · ${weighted?rx.basis:"bodyweight"}`};
   };
-  const PUSH_ACC=[{eid:"incline_db",ratio:.4,unit:"lb/hand",tag:"upper chest"},{eid:"cgbench",ratio:.65,tag:"triceps"},{eid:"machine_chest_press",ratio:.6,tag:"chest volume"},{eid:"dip",ratio:0,tag:"triceps"},{eid:"decline_pushup",ratio:0,tag:"chest"}];
-  const LEG_ACC=[{eid:"lunge",ratio:.2,unit:"lb/hand",reps:12,tag:"unilateral"},{eid:"bss",ratio:.18,unit:"lb/hand",reps:10,tag:"single-leg"},{eid:"step_up",ratio:.18,unit:"lb/hand",reps:10,tag:"step-up"},{eid:"leg_press",ratio:1.2,reps:12,tag:"quad volume"},{eid:"leg_ext",ratio:.35,reps:15,tag:"quad isolation"},{eid:"leg_curl",ratio:.3,reps:12,tag:"hamstring"},{eid:"glute_bridge",ratio:0,reps:15,tag:"glutes"},{eid:"air_squat",ratio:0,reps:20,tag:"bodyweight squat"}];
-  const SH_ACC=[{eid:"ohp",ratio:.3,reps:10,tag:"overhead press"},{eid:"lat_raise",ratio:.08,unit:"lb/hand",reps:15,tag:"side delt"},{eid:"arnold_press",ratio:.25,unit:"lb/hand",reps:10,tag:"shoulder press"},{eid:"rear_delt_fly",ratio:.06,unit:"lb/hand",reps:15,tag:"rear delt"},{eid:"pike_pushup",ratio:0,reps:10,tag:"bodyweight shoulders"}];
-  const ARM_ACC=[{eid:"bb_curl",ratio:.3,reps:10,tag:"biceps"},{eid:"db_curl",ratio:.15,unit:"lb/hand",reps:12,tag:"biceps"},{eid:"hammer_curl",ratio:.15,unit:"lb/hand",reps:12,tag:"biceps"},{eid:"tricep_pushdown",ratio:.3,reps:12,tag:"triceps"},{eid:"skullcrusher",ratio:.3,reps:10,tag:"triceps"},{eid:"overhead_ext",ratio:.2,unit:"lb/hand",reps:12,tag:"triceps"},{eid:"diamond_pushup",ratio:0,reps:12,tag:"bodyweight triceps"}];
-  const PULL_ACC=[{eid:"pullup",ratio:0,reps:8,tag:"vertical pull"},{eid:"lat_pulldown",ratio:.6,reps:10,tag:"lats"},{eid:"seated_cable_row",ratio:.6,reps:10,tag:"mid back"},{eid:"chest_supported_row",ratio:.3,unit:"lb/hand",reps:12,tag:"upper back"},{eid:"face_pull",ratio:0,unit:"band",reps:15,tag:"rear delt"},{eid:"inverted_row",ratio:0,reps:12,tag:"bodyweight row"}];
+  const PUSH_ACC=[{eid:"incline_db",ratio:.4,unit:"lb/hand",tag:"upper chest",comp:1},{eid:"cgbench",ratio:.65,tag:"triceps",comp:1},{eid:"machine_chest_press",ratio:.6,tag:"chest volume",comp:1},{eid:"dip",ratio:0,tag:"triceps",comp:1},{eid:"decline_pushup",ratio:0,tag:"chest",comp:1}];
+  const LEG_ACC=[{eid:"lunge",ratio:.2,unit:"lb/hand",tag:"unilateral",comp:1},{eid:"bss",ratio:.18,unit:"lb/hand",tag:"single-leg",comp:1},{eid:"step_up",ratio:.18,unit:"lb/hand",tag:"step-up",comp:1},{eid:"leg_press",ratio:1.2,tag:"quad volume",comp:1},{eid:"leg_ext",ratio:.35,tag:"quad isolation"},{eid:"leg_curl",ratio:.3,tag:"hamstring"},{eid:"glute_bridge",ratio:0,tag:"glutes"},{eid:"air_squat",ratio:0,tag:"bodyweight squat",comp:1}];
+  const SH_ACC=[{eid:"ohp",ratio:.3,tag:"overhead press",comp:1},{eid:"lat_raise",ratio:.08,unit:"lb/hand",tag:"side delt"},{eid:"arnold_press",ratio:.25,unit:"lb/hand",tag:"shoulder press",comp:1},{eid:"rear_delt_fly",ratio:.06,unit:"lb/hand",tag:"rear delt"},{eid:"pike_pushup",ratio:0,tag:"bodyweight shoulders",comp:1}];
+  const ARM_ACC=[{eid:"bb_curl",ratio:.3,tag:"biceps"},{eid:"db_curl",ratio:.15,unit:"lb/hand",tag:"biceps"},{eid:"hammer_curl",ratio:.15,unit:"lb/hand",tag:"biceps"},{eid:"tricep_pushdown",ratio:.3,tag:"triceps"},{eid:"skullcrusher",ratio:.3,tag:"triceps"},{eid:"overhead_ext",ratio:.2,unit:"lb/hand",tag:"triceps"},{eid:"diamond_pushup",ratio:0,tag:"bodyweight triceps"}];
+  const PULL_ACC=[{eid:"pullup",ratio:0,tag:"vertical pull",comp:1},{eid:"lat_pulldown",ratio:.6,tag:"lats",comp:1},{eid:"seated_cable_row",ratio:.6,tag:"mid back",comp:1},{eid:"chest_supported_row",ratio:.3,unit:"lb/hand",tag:"upper back",comp:1},{eid:"face_pull",ratio:0,unit:"band",tag:"rear delt"},{eid:"inverted_row",ratio:0,tag:"bodyweight row",comp:1}];
   const accPush=accFrom(PUSH_ACC,b,0),accLeg=accFrom(LEG_ACC,sq,0),accLeg2=accFrom(LEG_ACC,sq,2),accShoulder=accFrom(SH_ACC,b,0),accArm=accFrom(ARM_ACC,b,0),accPull=accFrom(PULL_ACC,b,1);
   // legacy aliases kept so any untouched reference still resolves
   const accP=accPush.eid,accL=accLeg.eid,accSh=accShoulder.eid;
@@ -5567,10 +5578,10 @@ function mkDay(slot,w){
   const S_={
     HP:{focus:"Heavy Push"+dn,warmup:"5 min cardio → band pull-aparts → bar×10, 95×8, 135×5",
       exs:[{eid:"bench",sets:bSets,reps:reps[1],target:b,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.bench.toFixed(2)}`+(sb.bench?` (+${sb.bench} vol set${sb.bench>1?"s":""})`:"")},
-        {...accPush,sets:3,reps:w<=4?10:8},
+        {...accPush},
         {eid:"row",sets:4,reps:w<=4?10:8,target:r5(b*.75),unit:"lb",reason:"Superset — stay at rack"},
-        {...accPull,sets:3},
-        {...accArm,sets:3,reason:"Arm pump — "+(exById(accArm.eid)||{}).name},
+        {...accPull},
+        {...accArm},
         {eid:"pushup",sets:1,reps:100,target:0,unit:"BW",reason:"100 reps AFAP"}],
       finisher:"50 Burpees + 50 Sit-Ups for time"+xf},
     HPL:{focus:"Heavy Pull"+dn,warmup:"5 min row machine → band pull-aparts → light rows",
@@ -5583,7 +5594,7 @@ function mkDay(slot,w){
     HL:{focus:"Heavy Lower"+dn,warmup:"5 min bike → BW squats → 95×10, 135×8, 185×5",
       exs:[{eid:"squat",sets:sqSets,reps:reps[1],target:sq,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.squat.toFixed(2)}`+(sb.squat?` (+${sb.squat} vol set${sb.squat>1?"s":""})`:"")},
         {eid:"deadlift",sets:Math.max(isDeload?2:w<=4?3:4,isDeload?2:(w<=4?3:4)+(sb.dead||0)),reps:w<=8?5:3,target:dl,unit:"lb",reason:`${Math.round(wf*100)}% 1RM × ${S.adapt.dead.toFixed(2)}`+(sb.dead?` (+${sb.dead} vol)`:"")},
-        {...accLeg,sets:3},
+        {...accLeg},
         {eid:"rdl",sets:3,reps:10,target:r5(dl*.3),unit:"lb",reason:"Hamstring volume",tempo:"3-0-1-0"}],
       finisher:"100 BW Squats for time"+xf},
     GL:{focus:"Glute & Hip"+dn,warmup:"5 min bike → hip circles → BW squats ×15",
@@ -5617,22 +5628,22 @@ function mkDay(slot,w){
     HYP:{focus:"Hypertrophy Push"+dn,warmup:"5 min cardio → arm circles → bar×10, 95×8",
       exs:[{eid:"bench",sets:4,reps:w<=4?10:8,target:r5(b*.8),unit:"lb",reason:"Volume bench"},
         {eid:"incline_db",sets:3,reps:12,target:r5(b*.3),unit:"lb/hand",reason:"Upper chest"},
-        {...accShoulder,sets:3},
-        {...accArm,sets:3,reason:"Tricep/arm volume — "+(exById(accArm.eid)||{}).name,setType:"Drop Set"},
+        {...accShoulder},
+        {...accArm,setType:"Drop Set"},
         {eid:"pushup",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep finisher",setType:"Myo-Rep"}],
       finisher:"50 Burpees for time"+xf},
     HYL:{focus:"Hypertrophy Pull"+dn,warmup:"5 min row machine → band pull-aparts",
       exs:[{eid:"row",sets:4,reps:w<=4?10:8,target:r5(b*.65),unit:"lb",reason:"Volume row"},
-        {...accPull,sets:4,reps:w<=4?8:6},
-        {...accArm,sets:3,reason:"Biceps/arm volume — "+(exById(accArm.eid)||{}).name},
+        {...accPull},
+        {...accArm},
         {eid:"face_pull",sets:4,reps:15,target:0,unit:"band",reason:"Rear delt / posture"},
         {eid:"farmer",sets:4,reps:40,target:r5(dl*.15),unit:"lb/hand",reason:"Grip + traps"}],
       finisher:"100 Push-Ups + 100 Sit-Ups for time"+xf},
     HYG:{focus:"Hypertrophy Legs"+dn,warmup:"5 min bike → BW squats ×20 → leg swings",
       exs:[{eid:"squat",sets:4,reps:w<=4?10:8,target:r5(sq*.75),unit:"lb",reason:"Volume squat"},
         {eid:"rdl",sets:3,reps:12,target:r5(dl*.3),unit:"lb",reason:"Hamstring volume",tempo:"3-1-1-0"},
-        {...accLeg,sets:3},
-        {...accLeg2,sets:3},
+        {...accLeg},
+        {...accLeg2},
         {eid:"air_squat",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep Beatdown"}],
       finisher:"3-min AMRAP burpees (or 5-min easy walk if legs are fried)"+xf},
     CT:{focus:"Conditioning Circuit"+dn,warmup:"5 min light jog → dynamic stretches",
@@ -5650,7 +5661,7 @@ function mkDay(slot,w){
       finisher:"5×100m all-out sprints"+xf},
     HB:{focus:"Hybrid Power + Conditioning"+dn,warmup:"5 min cardio → arm circles → bar×10, 95×8",
       exs:[{eid:"bench",sets:4,reps:w<=4?8:6,target:r5(b*.85),unit:"lb",reason:"85% of main target"},
-        {...accShoulder,sets:3},
+        {...accShoulder},
         {eid:"farmer",sets:isDeload?4:6,reps:40,target:r5(dl*.2),unit:"lb/hand",reason:"Grip + core"},
         {eid:"air_squat",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep Beatdown"}],
       finisher:"5-min AMRAP Burpees"+xf}

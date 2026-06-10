@@ -306,6 +306,46 @@ export function projectWeeksToGoal(current, target, perWeek) {
   return { weeks: Math.max(0, weeks) };
 }
 
+/* ---------- 5c. DATA-DRIVEN ACCESSORY PRESCRIPTION ---------- */
+// Accessory reps follow the goal/phase; isolation runs higher than compound.
+export function accessoryReps(goal, w, isolation) {
+  const strengthy = goal === "strength" || goal === "powerlifting" || goal === "hybrid";
+  const lean = goal === "fat_loss" || goal === "endurance";
+  if (isolation) {
+    if (strengthy) return w <= 8 ? 12 : 10;
+    if (lean) return 15;
+    return w <= 4 ? 15 : w <= 12 ? 12 : 15;          // hypertrophy / beginner
+  }
+  if (strengthy) return w <= 4 ? 10 : w <= 8 ? 8 : w <= 12 ? 6 : 8;
+  if (lean) return 12;
+  return w <= 4 ? 12 : w <= 12 ? 10 : 12;
+}
+
+// Sets, reps, and load for an accessory — personalized to phase, experience,
+// and the user's own logged history for that movement. Pure: caller passes the
+// estimate, last logged load, and recent feel/whether they beat the target.
+export function accessoryRx(opts) {
+  const o = opts || {};
+  const goal = o.goal || "strength";
+  const w = Math.max(1, Number(o.week) || 1);
+  const iso = !!o.isolation;
+  const exp = Number(o.experienceMonths) || 0;
+  const deload = isDeloadWeek(w);
+  const reps = accessoryReps(goal, w, iso);
+  let sets = exp >= 18 ? (iso ? 3 : 4) : exp >= 6 ? 3 : 2;   // experience-scaled volume
+  if (deload) sets = Math.max(2, sets - 1);
+  let target = Number(o.estTarget) || 0;
+  let basis = "scaled to your strength";
+  const last = Number(o.lastLogged) || 0;
+  if (last > 0) {
+    target = last;
+    basis = "from your last session";
+    if (o.lastFeel === "easy" || o.beatTarget) { target = last * 1.04; basis = "progressed from last time"; }
+    else if (o.lastFeel === "hard") { basis = "held (last time was hard)"; }
+  }
+  return { sets, reps, target: Math.max(0, target), basis };
+}
+
 /* ---------- 6. PLAN SCORING (the keystone) ---------- */
 // Score a generated plan object {id,name,goal,slots} against the user profile.
 // Higher = better fit. Pure: caller passes everything in.

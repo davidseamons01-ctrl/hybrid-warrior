@@ -5,7 +5,8 @@ import {
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel, isDeloadWeek,
   warmupSets, warmupText, epley, recentBestE1RM, workingMax,
   scorePlan, rankPlans, bestPlanId, whyPlan, toEmbedUrl,
-  e1rmSeries, detectPlateau, projectWeeksToGoal
+  e1rmSeries, detectPlateau, projectWeeksToGoal,
+  accessoryReps, accessoryRx
 } from "../js/programming.js";
 
 let pass = 0, fail = 0;
@@ -300,6 +301,43 @@ t("projectWeeksToGoal null when trending the wrong way", () => {
 });
 t("projectWeeksToGoal null on flat rate", () => {
   assert.equal(projectWeeksToGoal(225, 245, 0), null);
+});
+
+/* --- data-driven accessories (Wave 4) --- */
+t("isolation reps run higher than compound", () => {
+  assert.ok(accessoryReps("muscle", 2, true) >= accessoryReps("muscle", 2, false));
+});
+t("strength accessory reps drop in later weeks", () => {
+  assert.ok(accessoryReps("strength", 11, false) < accessoryReps("strength", 1, false));
+});
+t("sets scale with experience", () => {
+  const beg = accessoryRx({ goal: "muscle", week: 2, isolation: false, experienceMonths: 1, estTarget: 100 });
+  const adv = accessoryRx({ goal: "muscle", week: 2, isolation: false, experienceMonths: 36, estTarget: 100 });
+  assert.ok(adv.sets > beg.sets);
+});
+t("deload trims sets", () => {
+  const norm = accessoryRx({ goal: "muscle", week: 2, experienceMonths: 36, estTarget: 100 });
+  const del = accessoryRx({ goal: "muscle", week: 4, experienceMonths: 36, estTarget: 100 });
+  assert.ok(del.sets < norm.sets);
+});
+t("accessory load uses logged history over the estimate", () => {
+  const rx = accessoryRx({ goal: "muscle", week: 2, estTarget: 100, lastLogged: 130 });
+  assert.equal(rx.target, 130);
+  assert.match(rx.basis, /last session/);
+});
+t("accessory progresses when last set was easy", () => {
+  const rx = accessoryRx({ goal: "muscle", week: 2, estTarget: 100, lastLogged: 130, lastFeel: "easy" });
+  assert.ok(rx.target > 130);
+  assert.match(rx.basis, /progressed/);
+});
+t("accessory holds when last set was hard", () => {
+  const rx = accessoryRx({ goal: "muscle", week: 2, estTarget: 100, lastLogged: 130, lastFeel: "hard" });
+  assert.equal(rx.target, 130);
+});
+t("accessory falls back to strength estimate with no history", () => {
+  const rx = accessoryRx({ goal: "muscle", week: 2, estTarget: 95 });
+  assert.equal(rx.target, 95);
+  assert.match(rx.basis, /strength/);
 });
 
 /* --- media --- */
