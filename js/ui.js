@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610b";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610c";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -7,7 +7,7 @@ import {
   rankPlans, bestPlanId, whyPlan, toEmbedUrl,
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx
-} from "./programming.js?v=20260610b";
+} from "./programming.js?v=20260610c";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3208,8 +3208,8 @@ function renderDash(){
   ${showTrust?`<div class="trust-banner" id="trust-ban"><span>Signed-in data syncs to your Firebase project. Export a JSON backup anytime in Settings — your data belongs to you.</span><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button type="button" class="btn btn-sm btn-secondary-solid" id="trust-later">Remind in a week</button><button type="button" class="btn btn-sm btn-ghost" id="trust-hide">Don't show again</button></div></div>`:""}
   ${mile?`<div class="card section milestone-card"><div style="font-size:14px;font-weight:600">${mile.title}</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5">${mile.body}</p></div>`:""}
   ${ms?`<div class="card section missed-card"><div style="font-size:14px;font-weight:600">Still room for ${ms.dayName}</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.45">No log for <b style="color:var(--text)">${ms.date}</b> — that happens. When you're ready, backfill it or carry the session forward without guilt.</p><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px"><button type="button" class="btn btn-cta btn-sm" id="dash-miss-log" data-d="${ms.date}">Log ${ms.dayName}</button><button type="button" class="btn btn-secondary-solid btn-sm" id="dash-miss-plan">Open calendar</button></div></div>`:""}
-  ${dashPin?`<div class="pin-feed">`:""}
-  <div class="dash-hero-banner hero-card">
+  <div class="${dashPin?"pin-feed":"dash-overview-grid"}">
+  <div class="dash-hero-banner hero-card dash-span-full">
     <div class="dash-hero-banner-main">
       <div class="dash-hero-kicker">${dateLine} · Week ${w} of 13 · <span class="xp-level-badge">Lvl ${wLevel}</span></div>
       <div class="hero-title dash-hero-title-compact">${heroTitle}</div>
@@ -3333,18 +3333,13 @@ function renderDash(){
     ${extras.length?`<div style="margin-top:14px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px">Recent</div><div>${extraRows}</div>`:""}
   </div>
   ${weekLogEmpty?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:14px;font-weight:600;margin-bottom:4px">No entries yet this week</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px">A short log after training adjusts loads for the rest of the block.</p><button type="button" class="btn btn-fire" id="dash-go-log">Log today's session</button></div>`:""}
-  ${dashPin?`</div>`:""}
+  </div>
 
   <div class="section">
     <button type="button" class="details-toggle" id="dash-details-toggle">${openDet?"Hide":"Show"} more stats — goal gauges, body-fat calc, pain map &amp; charts</button>
     <div class="details-panel ${openDet?"open":""}" id="dash-details-body">
   <div class="grid-auto">
-    ${g.bench?`<div class="card"><div class="card-h"><h2>Bench → ${g.bench}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Estimated 1RM in center · goal % below</div>
-      <div class="row">${gaugeHTML(bP,p.bench1RM+"",`${Math.round(bP*100)}% goal`,"#7d9eb4")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.bench} lb</div><div style="font-size:11px" class="${bT.c}">${bT.i} ${bT.t}</div></div></div></div>`:""}
-    ${g.squat?`<div class="card"><div class="card-h"><h2>Squat → ${g.squat}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Estimated 1RM in center · goal % below</div>
-      <div class="row">${gaugeHTML(clamp(p.squat1RM/g.squat,0,1),p.squat1RM+"",`${Math.round(clamp(p.squat1RM/g.squat,0,1)*100)}% goal`,"#c4735c")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.squat} lb</div><div style="font-size:11px" class="${sT.c}">${sT.i} ${sT.t}</div></div></div></div>`:""}
-    ${g.deadlift?`<div class="card"><div class="card-h"><h2>Dead → ${g.deadlift}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Estimated 1RM in center · goal % below</div>
-      <div class="row">${gaugeHTML(clamp(p.dead1RM/g.deadlift,0,1),p.dead1RM+"",`${Math.round(clamp(p.dead1RM/g.deadlift,0,1)*100)}% goal`,"#7aab96")}<div><div style="font-size:12px;color:var(--text2)">Goal: ${g.deadlift} lb</div><div style="font-size:11px" class="${dT.c}">${dT.i} ${dT.t}</div></div></div></div>`:""}
+    ${(g.bench||g.squat||g.deadlift)?`<div class="card" style="grid-column:1/-1"><div style="font-size:12px;color:var(--text2);line-height:1.5">📈 Strength goal progress (bench / squat / deadlift) now lives in the <b style="color:var(--text)">Goal projections</b> card above, with weeks-to-goal ETAs.</div></div>`:""}
     ${g.fiveK&&fiveKUi?`<div class="card"><div class="card-h"><h2>Sub-${mmss(g.fiveK)} 5K</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px;line-height:1.45">${fiveKUi.line}</div>
       <div class="row">${gaugeHTML(fiveKUi.pct,fiveKUi.bestLabel==="—"?"—":fiveKUi.bestLabel,fiveKUi.sub,"var(--ice)")}<div><div style="font-size:12px;color:var(--text2)">Ring = progress toward goal pace (from your 4-mile estimate).</div><div style="font-size:11px" class="${rT.c}">${rT.i} ${rT.t}</div></div></div></div>`:""}
   </div>
@@ -3432,8 +3427,6 @@ function renderDash(){
     ${(()=>{const vol=calcLifetimeVolume();const nextM=VOLUME_MILESTONES.find(m=>vol<m.threshold);const pct=nextM?Math.min(100,Math.round(vol/nextM.threshold*100)):100;return`<div class="milestone-tracker-card"><div class="milestone-tracker-header"><span class="milestone-tracker-label">Lifetime volume</span><span class="milestone-tracker-value">${vol.toLocaleString()} lb</span></div><div class="milestone-bar"><div class="milestone-bar-fill" style="width:${pct}%"></div></div><div class="milestone-bar-targets">${VOLUME_MILESTONES.map(m=>`<span class="${vol>=m.threshold?"milestone-reached":"milestone-upcoming"}">${m.medal} ${m.label}</span>`).join("")}</div>${nextM?`<div class="milestone-next">Next: ${nextM.label} — ${(nextM.threshold-vol).toLocaleString()} lb to go</div>`:`<div class="milestone-next milestone-complete">All milestones achieved! 🎉</div>`}</div>`})()}
     ${(()=>{const bests=allTimeBests();const entries=Object.entries(bests).sort((a,b)=>b[1].est-a[1].est).slice(0,8);if(!entries.length)return`<p style="font-size:12px;color:var(--text2)">Log lifts to see your all-time bests here.</p>`;return`<div class="trophy-grid">${entries.map(([name,pr])=>`<div class="trophy-item"><div class="trophy-name">${name}</div><div class="trophy-val">${formatLoadLbText(Math.round(pr.est))} <span class="trophy-est">est. 1RM</span></div><div class="trophy-detail">${formatLoadLbText(pr.weight)} × ${pr.reps} · ${pr.date}</div></div>`).join("")}</div>`})()}
     ${(()=>{const cb=completedBlockBadges();if(!cb.length)return"";return`<div style="margin-top:14px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Program completion medals</div><div class="completed-block-badges">${cb.map(b=>`<div class="completed-block-badge"><span class="completed-block-svg">${b.svg}</span><span class="completed-block-label">${b.label}</span><span class="completed-block-date">${b.date}</span></div>`).join("")}</div>`})()}
-    <div style="margin-top:14px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Badges earned</div>
-    <div class="row" style="gap:6px;flex-wrap:wrap">${warriorBadges().length?warriorBadges().map(x=>`<span class="badge badge-mint trophy-badge">${x}</span>`).join(""):`<span style="font-size:11px;color:var(--text3)">Train consistently to earn badges.</span>`}</div>
   </div></div>
   ${recentDates.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent logs</h2></div>
     ${recentDates.map(ds=>`<div class="dash-log-day-group"><div class="dash-log-day-head">${dashLogDayHeader(ds)}</div>${recentByDate[ds].map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry dash-log-entry-compact"><div class="log-entry-head"><span class="log-date">${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${formatLogPerfSummary(l)}</div></div>`}).join("")}</div>`).join("")}</div></div>`:""}

@@ -1,11 +1,11 @@
-import "./exercises.js?v=20260610b";
-import { S, initFB } from "./state.js?v=20260610b";
-import { rollingPlanForDate } from "./engine.js?v=20260610b";
-import { bootstrapApp, render } from "./ui.js?v=20260610b";
+import "./exercises.js?v=20260610c";
+import { S, initFB } from "./state.js?v=20260610c";
+import { rollingPlanForDate } from "./engine.js?v=20260610c";
+import { bootstrapApp, render } from "./ui.js?v=20260610c";
 
 function ensurePremiumStylesheet() {
-  const href = "./css/styles.css";
-  if ([...document.querySelectorAll('link[rel="stylesheet"]')].some((l) => l.getAttribute("href") === href)) return;
+  const href = "./css/styles.css?v=20260610c";
+  if ([...document.querySelectorAll('link[rel="stylesheet"]')].some((l) => (l.getAttribute("href") || "").indexOf("css/styles.css") !== -1)) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = href;
