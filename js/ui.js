@@ -10,8 +10,8 @@ import {
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
 const PLANS=(function(){
-  const G=["strength","hybrid","fat_loss","muscle"];
-  const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy"];
+  const G=["strength","hybrid","fat_loss","muscle","beginner","powerlifting","endurance"];
+  const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy","Beginner Foundations","Powerlifting","Endurance"];
   const fN=["3-4 Day","5-6 Day"];
   const dN=["Express","Full"];
   const sN=["Men's","Women's"];
@@ -20,7 +20,13 @@ const PLANS=(function(){
     strength:{"00":["FB","SR","FB"],"01":["HP","SR","HL","TR"],"10":["HP","SR","HL","TR","HB"],"11":["HP","HPL","HL","SR","PW"]},
     hybrid:{"00":["FB","SR","FB"],"01":["HP","SR","HL","TR"],"10":["HP","SR","HL","TR","HB"],"11":["HP","SR","HL","TR","HB"]},
     fat_loss:{"00":["CT","SR","FBC"],"01":["HB","SR","CT","TR"],"10":["CT","SR","HB","TR","CT"],"11":["HB","SR","HL","TR","CT"]},
-    muscle:{"00":["FB","FB","FB"],"01":["HYP","HYG","HYL"],"10":["HYP","HYL","HYG","HB","CT"],"11":["HYP","HYL","HYG","HP","HL"]}
+    muscle:{"00":["FB","FB","FB"],"01":["HYP","HYG","HYL"],"10":["HYP","HYL","HYG","HB","CT"],"11":["HYP","HYL","HYG","HP","HL"]},
+    // Beginner: full-body, form-first, gentle ramp (no max test).
+    beginner:{"00":["FB","FB","FB"],"01":["FB","FBC","FB","FB"],"10":["FB","FBC","FB","FBC","FB"],"11":["FB","HP","HL","FBC","FB"]},
+    // Powerlifting: squat/bench/deadlift focus, low reps, peak to a test.
+    powerlifting:{"00":["HP","HL","HPL"],"01":["HP","HL","HPL","FB"],"10":["HP","HL","HPL","HL","HP"],"11":["HP","HL","HPL","HL","HP"]},
+    // Endurance: run-dominant base→build→taper with minimal supporting strength.
+    endurance:{"00":["TR","SR","TR"],"01":["TR","SR","TR","FB"],"10":["TR","SR","TR","SR","FB"],"11":["TR","SR","TR","SR","HL"]}
   };
   function feminizeSlots(goal,slots,isExpress){
     let out=slots.map(sl=>{
@@ -45,9 +51,9 @@ const PLANS=(function(){
     return out;
   }
   const plans=[];
-  for(let g=0;g<4;g++)for(let f=0;f<2;f++)for(let d=0;d<2;d++)for(let s=0;s<2;s++)for(let e=0;e<2;e++){
+  for(let g=0;g<G.length;g++)for(let f=0;f<2;f++)for(let d=0;d<2;d++)for(let s=0;s<2;s++)for(let e=0;e<2;e++){
     let sl=[...base[G[g]][""+f+d]];
-    if(s===1)sl=feminizeSlots(G[g],sl,d===0);
+    if(s===1&&g<4)sl=feminizeSlots(G[g],sl,d===0); // only the original 4 goals get the women's slot remap; archetypes keep their structure (e.g. endurance runs)
     if(e===0)sl=sl.map(x=>x==="PW"?"FB":x==="HPL"?"FB":x);
     plans.push({id:g*16+f*8+d*4+s*2+e,name:`${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`,goal:G[g],slots:sl});
   }
@@ -2236,7 +2242,7 @@ function renderOB(){
       obStep=1;renderOB();
     };
   } else if(obStep===1){
-    const areas=["Bench Press","Squat","Deadlift","5K Running","Lose Weight","Build Muscle","Improve Conditioning","General Fitness","Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone","Home-Friendly Workouts","Pregnancy Safe","Postpartum Recovery"];
+    const areas=["Brand New to Training","Bench Press","Squat","Deadlift","Powerlifting Total","5K Running","Run a Race (5K/10K/Half)","Lose Weight","Build Muscle","Improve Conditioning","General Fitness","Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone","Home-Friendly Workouts","Pregnancy Safe","Postpartum Recovery"];
     const sel=S.goals.focusAreas||[];
     card.innerHTML=`<div class="ob-progress">${dots}</div>
       <div class="ob-title">Your Goals</div><div class="ob-sub">Select everything you want to work on. We'll build your program around these.</div>
@@ -2250,27 +2256,33 @@ function renderOB(){
   } else if(obStep===2){
     const fa=S.goals.focusAreas||[];
     const curPrimary=(S.profile.prefs||{}).primaryGoal||"";
+    const isPL=fa.includes("Powerlifting Total");
+    const wantsBench=fa.includes("Bench Press")||isPL;
+    const wantsSquat=fa.includes("Squat")||isPL;
+    const wantsDead=fa.includes("Deadlift")||isPL;
+    const wantsRun=fa.includes("5K Running")||fa.includes("Run a Race (5K/10K/Half)");
     card.innerHTML=`<div class="ob-progress">${dots}</div>
       <div class="ob-title">Current Fitness</div><div class="ob-sub">Enter your current maxes / times. Leave blank if unknown — we'll estimate.</div>
       ${fa.length>1?`<div style="margin-bottom:14px"><label>Your #1 priority</label><select id="ob-primary"><option value="">Auto (balance all goals)</option>${fa.map(a=>`<option value="${a}" ${curPrimary===a?"selected":""}>${a}</option>`).join("")}</select><p style="font-size:11px;color:var(--text3);margin-top:4px">We'll bias your program toward this when goals compete.</p></div>`:""}
-      ${fa.includes("Bench Press")?`<div style="margin-bottom:10px"><label>Bench Press 1RM (lb)</label><input id="ob-b" type="number" value="${S.profile.bench1RM||""}" placeholder="e.g. 215"></div>
+      ${wantsBench?`<div style="margin-bottom:10px"><label>Bench Press 1RM (lb)</label><input id="ob-b" type="number" value="${S.profile.bench1RM||""}" placeholder="e.g. 215"></div>
         <div style="margin-bottom:10px"><label>Bench Goal (lb)</label><input id="ob-bg" type="number" value="${S.goals.bench||""}" placeholder="e.g. 225"></div>`:""}
-      ${fa.includes("Squat")?`<div style="margin-bottom:10px"><label>Squat 1RM (lb)</label><input id="ob-sq" type="number" value="${S.profile.squat1RM||""}" placeholder="e.g. 265"></div>
+      ${wantsSquat?`<div style="margin-bottom:10px"><label>Squat 1RM (lb)</label><input id="ob-sq" type="number" value="${S.profile.squat1RM||""}" placeholder="e.g. 265"></div>
         <div style="margin-bottom:10px"><label>Squat Goal (lb)</label><input id="ob-sqg" type="number" value="${S.goals.squat||""}" placeholder="e.g. 315"></div>`:""}
-      ${fa.includes("Deadlift")?`<div style="margin-bottom:10px"><label>Deadlift 1RM (lb)</label><input id="ob-dl" type="number" value="${S.profile.dead1RM||""}" placeholder="e.g. 386"></div>
+      ${wantsDead?`<div style="margin-bottom:10px"><label>Deadlift 1RM (lb)</label><input id="ob-dl" type="number" value="${S.profile.dead1RM||""}" placeholder="e.g. 386"></div>
         <div style="margin-bottom:10px"><label>Deadlift Goal (lb)</label><input id="ob-dlg" type="number" value="${S.goals.deadlift||""}" placeholder="e.g. 405"></div>`:""}
-      ${fa.includes("5K Running")?`<div style="margin-bottom:10px"><label>Current 4-Mile Time (mm:ss)</label><input id="ob-run" value="${S.profile.run4mi?mmss(S.profile.run4mi):""}" placeholder="e.g. 35:57"></div>
+      ${wantsRun?`<div style="margin-bottom:10px"><label>Current 4-Mile Time (mm:ss)</label><input id="ob-run" value="${S.profile.run4mi?mmss(S.profile.run4mi):""}" placeholder="e.g. 35:57"></div>
         <div style="margin-bottom:10px"><label>5K Goal Time (mm:ss)</label><input id="ob-5kg" value="${S.goals.fiveK?mmss(S.goals.fiveK):""}" placeholder="e.g. 20:00"></div>`:""}
-      ${!fa.includes("Bench Press")&&!fa.includes("Squat")&&!fa.includes("Deadlift")&&!fa.includes("5K Running")?`<p style="color:var(--text3);font-size:13px">No specific targets needed for your selected goals. We'll build a balanced program.</p>`:""}
+      ${!wantsBench&&!wantsSquat&&!wantsDead&&!wantsRun?`<p style="color:var(--text3);font-size:13px">No specific targets needed for your selected goals. We'll build a balanced program.</p>`:""}
       <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Continue</button></div>`;
     document.getElementById("ob-back").onclick=()=>{obStep=1;renderOB()};
     document.getElementById("ob-next").onclick=()=>{
       const fa=S.goals.focusAreas;const g=v=>Number((document.getElementById(v)||{}).value)||0;const gm=v=>parseMM((document.getElementById(v)||{}).value);
+      const isPL=fa.includes("Powerlifting Total");
       const primEl=document.getElementById("ob-primary");if(primEl)S.profile.prefs={...(S.profile.prefs||{}),primaryGoal:primEl.value||""};
-      if(fa.includes("Bench Press")){S.profile.bench1RM=g("ob-b")||135;S.goals.bench=g("ob-bg")||S.profile.bench1RM+20}
-      if(fa.includes("Squat")){S.profile.squat1RM=g("ob-sq")||185;S.goals.squat=g("ob-sqg")||S.profile.squat1RM+30}
-      if(fa.includes("Deadlift")){S.profile.dead1RM=g("ob-dl")||225;S.goals.deadlift=g("ob-dlg")||S.profile.dead1RM+30}
-      if(fa.includes("5K Running")){S.profile.run4mi=gm("ob-run")||2400;S.goals.fiveK=gm("ob-5kg")||1200}
+      if(fa.includes("Bench Press")||isPL){S.profile.bench1RM=g("ob-b")||135;S.goals.bench=g("ob-bg")||S.profile.bench1RM+20}
+      if(fa.includes("Squat")||isPL){S.profile.squat1RM=g("ob-sq")||185;S.goals.squat=g("ob-sqg")||S.profile.squat1RM+30}
+      if(fa.includes("Deadlift")||isPL){S.profile.dead1RM=g("ob-dl")||225;S.goals.deadlift=g("ob-dlg")||S.profile.dead1RM+30}
+      if(fa.includes("5K Running")||fa.includes("Run a Race (5K/10K/Half)")){S.profile.run4mi=gm("ob-run")||2400;S.goals.fiveK=gm("ob-5kg")||1200}
       if(!S.profile.bench1RM)S.profile.bench1RM=Math.round(S.profile.weight*.65);
       if(!S.profile.squat1RM)S.profile.squat1RM=Math.round(S.profile.weight*.85);
       if(!S.profile.dead1RM)S.profile.dead1RM=Math.round(S.profile.weight*1.2);

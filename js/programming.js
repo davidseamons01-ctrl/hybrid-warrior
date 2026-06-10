@@ -6,8 +6,10 @@
 
 /* ---------- 1. GOAL / ARCHETYPE MODEL ---------- */
 
-// Base goals match the 4 goals the 64-plan generator already builds.
+// Base goals match the 4 goals the original generator builds; ALL_GOALS adds
+// the Wave-2 archetypes (the generator appends them at plan ids 64+).
 export const BASE_GOALS = ["strength", "hybrid", "fat_loss", "muscle"];
+export const ALL_GOALS = ["strength", "hybrid", "fat_loss", "muscle", "beginner", "powerlifting", "endurance"];
 
 // Map each onboarding focus-area label to goal weights. Lets us pick the
 // dominant goal AND detect secondary intent (e.g. running + lifting = hybrid).
@@ -26,12 +28,16 @@ const FOCUS_GOAL_WEIGHTS = {
   "Pilates Plus Tone":    { fat_loss: 2, muscle: 1 },
   "Home-Friendly Workouts": { hybrid: 1, fat_loss: 1, muscle: 1 },
   "Pregnancy Safe":       { hybrid: 1 },
-  "Postpartum Recovery":  { hybrid: 1 }
+  "Postpartum Recovery":  { hybrid: 1 },
+  // Wave-2 archetype focus areas
+  "Brand New to Training": { beginner: 6 },
+  "Powerlifting Total":    { powerlifting: 6, strength: 1 },
+  "Run a Race (5K/10K/Half)": { endurance: 6, hybrid: 1 }
 };
 
-// Returns { goal, scores } — the dominant base goal plus the full weight map.
+// Returns { goal, scores } — the dominant goal plus the full weight map.
 export function goalFromFocus(focusAreas, primaryGoal) {
-  const scores = { strength: 0, hybrid: 0, fat_loss: 0, muscle: 0 };
+  const scores = {}; for (const g of ALL_GOALS) scores[g] = 0;
   for (const fa of (focusAreas || [])) {
     const w = FOCUS_GOAL_WEIGHTS[fa];
     if (!w) continue;
@@ -43,7 +49,7 @@ export function goalFromFocus(focusAreas, primaryGoal) {
     for (const g of Object.keys(w)) scores[g] += w[g] * 2;
   }
   let goal = "hybrid", best = -1;
-  for (const g of BASE_GOALS) if (scores[g] > best) { best = scores[g]; goal = g; }
+  for (const g of ALL_GOALS) if (scores[g] > best) { best = scores[g]; goal = g; }
   if (best <= 0) goal = "hybrid"; // sensible default when nothing selected
   return { goal, scores };
 }
@@ -128,13 +134,15 @@ export function substituteEid(eid, equip) {
 
 export function isDeloadWeek(w) { return w === 4 || w === 8; }
 
-// Only strength/hybrid peak toward a true max test at wk 13.
-export function peakIsMaxTest(goal) { return goal === "strength" || goal === "hybrid"; }
+// Strength / hybrid / powerlifting peak toward a true max test at wk 13.
+export function peakIsMaxTest(goal) { return goal === "strength" || goal === "hybrid" || goal === "powerlifting"; }
 
 export function phaseLabel(goal, w) {
   if (goal === "fat_loss") return w <= 4 ? "Base" : w <= 8 ? "Build" : w <= 12 ? "Burn" : "Benchmark";
   if (goal === "muscle")   return w <= 4 ? "Volume" : w <= 8 ? "Overload" : w <= 12 ? "Intensify" : "Pump Peak";
-  // strength / hybrid (legacy labels preserved)
+  if (goal === "beginner") return w <= 4 ? "Learn" : w <= 8 ? "Build" : w <= 12 ? "Grow" : "Check-In";
+  if (goal === "endurance")return w <= 4 ? "Base" : w <= 8 ? "Build" : w <= 12 ? "Peak" : "Taper";
+  // strength / hybrid / powerlifting
   return w <= 4 ? "Hypertrophy" : w <= 8 ? "Strength" : w <= 12 ? "Peak" : "Test";
 }
 
@@ -143,7 +151,13 @@ const WK_FACTOR = {
   strength: [.62, .65, .68, .60, .72, .76, .79, .65, .80, .84, .88, .92, .85],
   hybrid:   [.62, .65, .68, .60, .72, .76, .79, .65, .80, .84, .88, .92, .85],
   muscle:   [.65, .68, .70, .60, .70, .72, .74, .64, .72, .75, .77, .78, .70],
-  fat_loss: [.55, .58, .60, .52, .60, .62, .64, .56, .62, .64, .66, .66, .60]
+  fat_loss: [.55, .58, .60, .52, .60, .62, .64, .56, .62, .64, .66, .66, .60],
+  // Gentle, slow climb — never near a true max.
+  beginner:    [.50, .52, .55, .50, .58, .60, .62, .56, .64, .66, .68, .68, .65],
+  // Heaviest curve, true peak/test.
+  powerlifting:[.65, .68, .72, .62, .76, .80, .84, .68, .86, .90, .93, .95, .90],
+  // Low lifting intensity (running is the stimulus); tapers at the end.
+  endurance:   [.55, .58, .60, .52, .62, .64, .66, .58, .66, .66, .64, .58, .55]
 };
 export function wkFactorFor(goal, w) {
   const arr = WK_FACTOR[goal] || WK_FACTOR.strength;
@@ -155,6 +169,9 @@ export function wkFactorFor(goal, w) {
 export function phaseRepsFor(goal, w) {
   if (goal === "muscle")   return w <= 4 ? [12, 12, 10, 12] : w <= 8 ? [10, 10, 8, 10] : w <= 12 ? [8, 8, 6, 8] : [12, 15, 12, 15];
   if (goal === "fat_loss") return w <= 4 ? [15, 12, 15, 12] : w <= 8 ? [12, 12, 12, 15] : w <= 12 ? [12, 10, 12, 15] : [15, 20, 15, 20];
+  if (goal === "beginner") return w <= 4 ? [12, 12, 12, 12] : w <= 8 ? [10, 10, 10, 12] : w <= 12 ? [8, 10, 8, 10] : [10, 12, 10, 12];
+  if (goal === "powerlifting") return w <= 4 ? [6, 5, 5, 5] : w <= 8 ? [5, 4, 3, 4] : w <= 12 ? [3, 2, 2, 2] : [2, 1, 1, 1];
+  if (goal === "endurance") return w <= 4 ? [10, 10, 8, 10] : w <= 8 ? [8, 8, 8, 10] : w <= 12 ? [8, 6, 8, 8] : [10, 10, 10, 12];
   // strength / hybrid (legacy)
   return w <= 4 ? [10, 8, 8, 6] : w <= 8 ? [6, 5, 4, 3] : w <= 12 ? [4, 3, 2, 2] : [3, 2, 1, 1];
 }
@@ -163,6 +180,9 @@ export function phaseSetsFor(goal, w) {
   if (isDeloadWeek(w)) return goal === "fat_loss" ? 2 : 3;
   if (goal === "muscle")   return w <= 4 ? 4 : w <= 8 ? 4 : w <= 12 ? 5 : 4;
   if (goal === "fat_loss") return 3;
+  if (goal === "beginner") return 3;                 // keep volume modest while learning
+  if (goal === "endurance") return 3;                // preserve legs for running
+  if (goal === "powerlifting") return w <= 4 ? 4 : w <= 12 ? 5 : 3;
   return w <= 4 ? 4 : w <= 12 ? 5 : 3; // strength / hybrid
 }
 
@@ -298,7 +318,7 @@ export function bestPlanId(plans, ctx) {
 // One-line human rationale for a recommendation.
 export function whyPlan(plan, ctx) {
   const bits = [];
-  const goalName = { strength: "strength", hybrid: "hybrid", fat_loss: "fat loss", muscle: "muscle" }[plan.goal] || plan.goal;
+  const goalName = { strength: "strength", hybrid: "hybrid", fat_loss: "fat loss", muscle: "muscle", beginner: "beginner", powerlifting: "powerlifting", endurance: "endurance" }[plan.goal] || plan.goal;
   if (plan.goal === ctx.goal) bits.push(`matches your ${goalName} goal`);
   const days = (ctx.trainingDays || []).length || 5;
   const slots = (plan.slots || []).length;

@@ -194,6 +194,73 @@ t("rankPlans returns top-3 with rationale", () => {
   assert.ok(top[0].score >= top[1].score && top[1].score >= top[2].score);
 });
 
+/* --- archetypes (Wave 2b) --- */
+t("brand-new focus → beginner goal", () => {
+  assert.equal(goalFromFocus(["Brand New to Training"]).goal, "beginner");
+});
+t("powerlifting total → powerlifting goal", () => {
+  assert.equal(goalFromFocus(["Powerlifting Total"]).goal, "powerlifting");
+});
+t("run a race → endurance goal", () => {
+  assert.equal(goalFromFocus(["Run a Race (5K/10K/Half)"]).goal, "endurance");
+});
+t("beginner never max-tests; powerlifting does", () => {
+  assert.equal(peakIsMaxTest("beginner"), false);
+  assert.equal(peakIsMaxTest("powerlifting"), true);
+  assert.equal(peakIsMaxTest("endurance"), false);
+});
+t("beginner intensity stays gentle vs powerlifting peak", () => {
+  assert.ok(wkFactorFor("beginner", 11) < wkFactorFor("powerlifting", 11));
+  assert.ok(wkFactorFor("powerlifting", 12) > wkFactorFor("strength", 12));
+});
+t("endurance tapers down at the end", () => {
+  assert.ok(wkFactorFor("endurance", 13) < wkFactorFor("endurance", 11));
+});
+t("powerlifting uses low reps, beginner higher", () => {
+  assert.ok(phaseRepsFor("powerlifting", 11)[0] <= 3);
+  assert.ok(phaseRepsFor("beginner", 1)[0] >= 10);
+});
+// rebuild a full 112-plan catalog mirroring the generator (incl. archetypes)
+const PLANS2 = (function () {
+  const G = ["strength", "hybrid", "fat_loss", "muscle", "beginner", "powerlifting", "endurance"];
+  const gN = ["Strength", "Hybrid Athlete", "Fat Loss", "Hypertrophy", "Beginner Foundations", "Powerlifting", "Endurance"];
+  const fN = ["3-4 Day", "5-6 Day"], dN = ["Express", "Full"], sN = ["Men's", "Women's"], eN = ["Foundation", "Advanced"];
+  const base = {
+    strength: { "00": ["FB", "SR", "FB"], "01": ["HP", "SR", "HL", "TR"], "10": ["HP", "SR", "HL", "TR", "HB"], "11": ["HP", "HPL", "HL", "SR", "PW"] },
+    hybrid: { "00": ["FB", "SR", "FB"], "01": ["HP", "SR", "HL", "TR"], "10": ["HP", "SR", "HL", "TR", "HB"], "11": ["HP", "SR", "HL", "TR", "HB"] },
+    fat_loss: { "00": ["CT", "SR", "FBC"], "01": ["HB", "SR", "CT", "TR"], "10": ["CT", "SR", "HB", "TR", "CT"], "11": ["HB", "SR", "HL", "TR", "CT"] },
+    muscle: { "00": ["FB", "FB", "FB"], "01": ["HYP", "HYG", "HYL"], "10": ["HYP", "HYL", "HYG", "HB", "CT"], "11": ["HYP", "HYL", "HYG", "HP", "HL"] },
+    beginner: { "00": ["FB", "FB", "FB"], "01": ["FB", "FBC", "FB", "FB"], "10": ["FB", "FBC", "FB", "FBC", "FB"], "11": ["FB", "HP", "HL", "FBC", "FB"] },
+    powerlifting: { "00": ["HP", "HL", "HPL"], "01": ["HP", "HL", "HPL", "FB"], "10": ["HP", "HL", "HPL", "HL", "HP"], "11": ["HP", "HL", "HPL", "HL", "HP"] },
+    endurance: { "00": ["TR", "SR", "TR"], "01": ["TR", "SR", "TR", "FB"], "10": ["TR", "SR", "TR", "SR", "FB"], "11": ["TR", "SR", "TR", "SR", "HL"] }
+  };
+  const plans = [];
+  for (let g = 0; g < G.length; g++) for (let f = 0; f < 2; f++) for (let d = 0; d < 2; d++) for (let s = 0; s < 2; s++) for (let e = 0; e < 2; e++) {
+    let sl = [...base[G[g]]["" + f + d]];
+    plans.push({ id: g * 16 + f * 8 + d * 4 + s * 2 + e, name: `${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`, goal: G[g], slots: sl });
+  }
+  return plans;
+})();
+t("generator now yields 112 plans; legacy ids unchanged", () => {
+  assert.equal(PLANS2.length, 112);
+  assert.equal(PLANS2[0].id, 0);
+  assert.equal(PLANS2[0].goal, "strength");
+});
+t("beginner user routes to a beginner plan", () => {
+  const ctx = { goal: "beginner", sex: "male", trainingDays: [1, 3, 5], sessionMin: 45, experienceMonths: 0 };
+  assert.equal(PLANS2.find((p) => p.id === bestPlanId(PLANS2, ctx)).goal, "beginner");
+});
+t("race goal routes to an endurance plan that keeps runs", () => {
+  const ctx = { goal: "endurance", sex: "female", trainingDays: [1, 2, 3, 4], sessionMin: 60, experienceMonths: 12 };
+  const best = PLANS2.find((p) => p.id === bestPlanId(PLANS2, ctx));
+  assert.equal(best.goal, "endurance");
+  assert.ok(best.slots.includes("TR") || best.slots.includes("SR")); // women's endurance still has running
+});
+t("powerlifter routes to a powerlifting plan", () => {
+  const ctx = { goal: "powerlifting", sex: "male", trainingDays: [1, 2, 4, 5], sessionMin: 90, experienceMonths: 36 };
+  assert.equal(PLANS2.find((p) => p.id === bestPlanId(PLANS2, ctx)).goal, "powerlifting");
+});
+
 /* --- media --- */
 t("watch url → embed", () => {
   assert.equal(toEmbedUrl("https://www.youtube.com/watch?v=jQ1O7NeLmck"), "https://www.youtube.com/embed/jQ1O7NeLmck");
