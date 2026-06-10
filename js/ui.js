@@ -2376,7 +2376,15 @@ function renderNav(){
   const el=document.getElementById("navInner");const w=S.program.week;
   const NAV_ICONS={train:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5a2 2 0 0 0-3 0L2 8l4.5 4.5M17.5 6.5a2 2 0 0 1 3 0L22 8l-4.5 4.5"/><path d="M2 12h20"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4"/></svg>`,plan:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,you:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`,social:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`};
   const tabs=[[TAB_TRAIN,"Train","Today & log",NAV_ICONS.train],[TAB_PLAN,"Plan","13-week calendar",NAV_ICONS.plan],[TAB_YOU,"You","Progress & settings",NAV_ICONS.you],[TAB_SOCIAL,"Social","Challenges",NAV_ICONS.social]];
-  el.innerHTML=`<div class="logo">Hybrid<span class="logo-tag">Training</span></div><button type="button" class="nav-search-btn" id="nav-global-search" aria-label="Open search" title="Search"><svg class="nav-search-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>`+tabs.map(([id,lb,hint,ic])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""}><span class="nav-ic" aria-hidden="true">${ic}</span><span class="nav-lb">${lb}</span></button>`).join("")+
+  // One-glance training status on the Train tab: a reminder dot if today is a
+  // training day you haven't logged yet, a check once you've trained today.
+  let trainBadge="";
+  try{
+    const today=iso(),trains=globalSessionIndexForDate(today)!==null,loggedToday=(S.logs||[]).some(l=>l.date===today);
+    if(trains&&loggedToday)trainBadge=`<span class="nav-train-status" aria-hidden="true" style="position:absolute;top:4px;right:6px;font-size:10px;line-height:1;color:var(--mint)">✓</span>`;
+    else if(trains)trainBadge=`<span class="nav-train-status" aria-hidden="true" title="Training day — not logged yet" style="position:absolute;top:5px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--fire);box-shadow:0 0 0 2px var(--bg,#17171d)"></span>`;
+  }catch(e){}
+  el.innerHTML=`<div class="logo">Hybrid<span class="logo-tag">Training</span></div><button type="button" class="nav-search-btn" id="nav-global-search" aria-label="Open search" title="Search"><svg class="nav-search-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>`+tabs.map(([id,lb,hint,ic])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""} style="position:relative"><span class="nav-ic" aria-hidden="true">${ic}</span><span class="nav-lb">${lb}</span>${id===TAB_TRAIN?trainBadge:""}</button>`).join("")+
     `<div class="nav-pill" id="navPill">Week ${w}/13 · ${phaseName(w)}</div>`+
     `<span class="nav-sync-indicator ${typeof navigator!=="undefined"&&navigator.onLine?"online":"offline"}" id="navSyncInd" title="${typeof navigator!=="undefined"&&navigator.onLine?"Synced":"Offline"}">${typeof navigator!=="undefined"&&navigator.onLine?"●":"○"}</span>`+
     (currentUser?`<button class="nav-btn" id="nav-so" style="color:var(--text3);flex-shrink:0;font-size:11px" type="button" title="${(currentUser.email||"").replace(/"/g,"&quot;")}">Sign out</button>`:offlineMode?`<span style="font-size:10px;color:var(--text3)">Offline</span>`:``);
@@ -3165,7 +3173,9 @@ function renderDash(){
   const extras=(S.extraActivities||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,14);
   const extraRows=extras.map(a=>{const parts=[a.date];if(a.minutes)parts.push(`${a.minutes} min`);if(a.distanceMi)parts.push(`${a.distanceMi} mi`);if(a.note)parts.push(escDash(a.note));return`<div style="font-size:12px;color:var(--text2);padding:8px 0;border-bottom:1px solid var(--border)"><b style="color:var(--text)">${escDash(a.kind||"Activity")}</b> · ${parts.join(" · ")}</div>`;}).join("");
 
+  const dashPlateau=(()=>{try{for(const t of [["bench","Bench"],["squat","Squat"],["deadlift","Deadlift"]]){const e=exById(t[0]);if(!e)continue;if(detectPlateau(e1rmSeries(S.logs||[],e.name)).plateaued)return t[1];}return"";}catch(x){return"";}})();
   return`
+  ${dashPlateau?`<div class="card section" style="border-color:var(--gold);background:rgba(212,175,55,.06);padding:12px 14px;margin-bottom:8px"><div style="font-size:12px;font-weight:700;color:var(--gold)">⚠️ ${dashPlateau} has stalled</div><div style="font-size:12px;color:var(--text2);margin-top:3px;line-height:1.45">No e1RM progress in several sessions — consider a deload week or swapping the variation. Options are on the Train tab.</div></div>`:""}
   ${lastLogSummary?`<div class="session-banner" id="dash-sum"><b style="color:var(--text)">Logged.</b> ${lastLogSummary.name} · Current streak: <b>${lastLogSummary.streak}</b> day${lastLogSummary.streak!==1?"s":""}.${lastLogSummary.vol?` Volume (est.): <b>${lastLogSummary.vol}</b>.`:""} ${lastLogSummary.next} <button type="button" class="details-toggle" id="sum-dismiss" style="margin-left:6px">Dismiss</button></div>`:""}
   ${showTrust?`<div class="trust-banner" id="trust-ban"><span>Signed-in data syncs to your Firebase project. Export a JSON backup anytime in Settings — your data belongs to you.</span><div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button type="button" class="btn btn-sm btn-secondary-solid" id="trust-later">Remind in a week</button><button type="button" class="btn btn-sm btn-ghost" id="trust-hide">Don't show again</button></div></div>`:""}
   ${mile?`<div class="card section milestone-card"><div style="font-size:14px;font-weight:600">${mile.title}</div><p style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5">${mile.body}</p></div>`:""}
@@ -4373,9 +4383,22 @@ function renderExerciseStack(exs){
     }
   }
   const exTypes=exs.map(ex=>{const e=exById(ex.eid);return isRunExerciseName(e?e.name:ex.eid)?"run":"lift"});
-  let html="",skip=new Set();
+  // Session progress bar (how many of today's lifts are logged).
+  const total=exs.length;
+  const doneN=exs.filter(e=>isExLoggedToday(e.eid)).length;
+  const pct=total?Math.round(doneN/total*100):0;
+  // "Main work" vs "Accessories": main lifts lead the session (heavy %1RM work);
+  // everything after the leading main block is an accessory.
+  const isMain=ex=>/1RM/.test(ex.reason||"");
+  let mainCount=0;while(mainCount<exs.length&&isMain(exs[mainCount]))mainCount++;
+  if(mainCount===0)mainCount=Math.min(1,exs.length);
+  const labelCss="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin:16px 2px 6px";
+  let html=total?`<div class="card section" style="padding:10px 14px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:6px"><span style="font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text3)">Session progress</span><span style="color:${doneN>=total&&total?"var(--mint)":"var(--text2)"}">${doneN}/${total} done</span></div><div style="height:6px;border-radius:99px;background:var(--border);overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--mint);transition:width .3s"></div></div></div>`:"";
+  html+=`<div style="${labelCss}">Main work</div>`;
+  let skip=new Set(),accLabelDone=false;
   for(let i=0;i<exs.length;i++){
     if(skip.has(i))continue;
+    if(!accLabelDone&&i>=mainCount&&mainCount<total){html+=`<div style="${labelCss}">Accessories</div>`;accLabelDone=true;}
     if(i>0&&exTypes[i]!==exTypes[i-1]&&!skip.has(i-1)){
       html+=transitionTimerHtml();
     }
