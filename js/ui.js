@@ -3244,9 +3244,9 @@ function renderDash(){
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-ease">Ease load</button>
     </div>
   </div>
-  <div class="card section" style="padding:14px">
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Your metrics</div>
-    <div class="grid3" style="gap:10px">
+  <details class="card section" style="padding:14px">
+    <summary style="font-size:13px;font-weight:600;cursor:pointer">Your metrics <span style="font-size:11px;color:var(--text3);font-weight:400">· ${p.weight>0?formatLoadLbText(p.weight):"—"}${p.goalWt>0?" → "+formatLoadLbText(p.goalWt):""} · tap to expand</span></summary>
+    <div class="grid3" style="gap:10px;margin-top:12px">
       <div><div style="font-size:10px;color:var(--text3)">Weight</div><div style="font-size:17px;font-weight:600">${p.weight>0?formatLoadLbText(p.weight):"—"}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">Goal</div><div style="font-size:17px;font-weight:600">${p.goalWt>0?formatLoadLbText(p.goalWt):"—"}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">Body fat</div><div style="font-size:17px;font-weight:600">${p.bodyFat>0?p.bodyFat.toFixed(1)+"%":"—"}</div></div>
@@ -3256,7 +3256,7 @@ function renderDash(){
     </div>
     <button type="button" class="btn btn-secondary-solid btn-sm" id="dash-update-metrics" style="margin-top:10px">Update metrics</button>
     <p style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.45">Update anytime in Settings → Training &amp; profile.</p>
-  </div>
+  </details>
   ${(()=>{
     const dh=(S.dailyHealth&&S.dailyHealth[iso()])||{};
     const supps=["Creatine","Vitamin D","Fish Oil","Magnesium","Protein Shake"];
@@ -3283,8 +3283,8 @@ function renderDash(){
     <div class="supp-row">${suppChecks}</div>
     <button type="button" class="btn btn-mint btn-block" id="dh-save" style="margin-top:10px">Save daily health</button>
   </div>
-  ${vo2>0?`<div class="card section" style="padding:14px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:10px;color:var(--text3)">Est. VO2 Max</div><div style="font-size:28px;font-weight:700;color:var(--mint)">${vo2}</div><div style="font-size:10px;color:var(--text3)">mL/kg/min</div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3)">Fitness level</div><div style="font-size:14px;font-weight:600;color:var(--text)">${vo2>=55?"Elite":vo2>=45?"Excellent":vo2>=35?"Good":vo2>=25?"Fair":"Below avg"}</div></div></div></div>`:""}
-  ${(S.shoes||[]).length?`<div class="card section" style="padding:14px" id="dash-shoes"><div style="font-size:13px;font-weight:600;margin-bottom:8px">Shoe mileage</div>${(S.shoes||[]).filter(s=>!s.retired).map(s=>{const pct=Math.min(1,s.miles/300);const warn=s.miles>=300;return`<div class="shoe-row ${warn?"shoe-warn":""}"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:var(--text)">${s.name}</span><span style="font-size:11px;color:${warn?"var(--red)":"var(--text2)"}"><b>${Math.round(s.miles)}</b> / 300 mi${warn?" ⚠️ Replace":""}  </span></div><div class="shoe-bar"><div style="width:${pct*100}%;background:${warn?"var(--red)":"var(--mint)"}"></div></div></div>`}).join("")}<button type="button" class="btn btn-sm btn-ghost" id="dash-manage-shoes" style="margin-top:8px">Manage shoes</button></div>`:""}`})()}
+  ${vo2>0?`<details class="card section" style="padding:14px"><summary style="font-size:13px;font-weight:600;cursor:pointer">Est. VO2 Max <span style="font-size:11px;color:var(--text3);font-weight:400">· ${vo2} mL/kg/min</span></summary><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:10px;color:var(--text3)">Est. VO2 Max</div><div style="font-size:28px;font-weight:700;color:var(--mint)">${vo2}</div><div style="font-size:10px;color:var(--text3)">mL/kg/min</div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3)">Fitness level</div><div style="font-size:14px;font-weight:600;color:var(--text)">${vo2>=55?"Elite":vo2>=45?"Excellent":vo2>=35?"Good":vo2>=25?"Fair":"Below avg"}</div></div></div></details>`:""}
+  ${(S.shoes||[]).length?`<details class="card section" style="padding:14px" id="dash-shoes"><summary style="font-size:13px;font-weight:600;cursor:pointer">Shoe mileage <span style="font-size:11px;color:var(--text3);font-weight:400">· ${(S.shoes||[]).filter(s=>!s.retired).length} active</span></summary><div style="margin-top:10px">${(S.shoes||[]).filter(s=>!s.retired).map(s=>{const pct=Math.min(1,s.miles/300);const warn=s.miles>=300;return`<div class="shoe-row ${warn?"shoe-warn":""}"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:var(--text)">${s.name}</span><span style="font-size:11px;color:${warn?"var(--red)":"var(--text2)"}"><b>${Math.round(s.miles)}</b> / 300 mi${warn?" ⚠️ Replace":""}  </span></div><div class="shoe-bar"><div style="width:${pct*100}%;background:${warn?"var(--red)":"var(--mint)"}"></div></div></div>`}).join("")}<button type="button" class="btn btn-sm btn-ghost" id="dash-manage-shoes" style="margin-top:8px">Manage shoes</button></div></details>`:""}`})()}
   
   <div class="micro-goal card" style="padding:14px;display:flex;align-items:center;gap:14px">
     <div class="micro-ring"><svg width="52" height="52" viewBox="0 0 52 52"><circle class="rbg" cx="26" cy="26" r="18"/><circle class="rfill" cx="26" cy="26" r="18" stroke-dasharray="${ringLen}" stroke-dashoffset="${off}"/></svg><span>${mg.logged}/${mg.target}</span></div>
@@ -3333,7 +3333,7 @@ function renderDash(){
   ${dashPin?`</div>`:""}
 
   <div class="section">
-    <button type="button" class="details-toggle" id="dash-details-toggle">${openDet?"Hide":"Show"} details — measurements, heatmap, health</button>
+    <button type="button" class="details-toggle" id="dash-details-toggle">${openDet?"Hide":"Show"} more stats — goal gauges, body-fat calc, pain map &amp; charts</button>
     <div class="details-panel ${openDet?"open":""}" id="dash-details-body">
   <div class="grid-auto">
     ${g.bench?`<div class="card"><div class="card-h"><h2>Bench → ${g.bench}lb</h2></div><div style="font-size:11px;color:var(--text3);margin:-6px 0 8px">Estimated 1RM in center · goal % below</div>
