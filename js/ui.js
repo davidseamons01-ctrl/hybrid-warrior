@@ -4,7 +4,8 @@ import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
   warmupText, recentBestE1RM, workingMax,
-  rankPlans, bestPlanId, whyPlan, toEmbedUrl
+  rankPlans, bestPlanId, whyPlan, toEmbedUrl,
+  e1rmSeries, detectPlateau, projectWeeksToGoal
 } from "./programming.js";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -1020,6 +1021,20 @@ function wmax1RM(type){
 // The user's equipment as understood by the substitution engine: prefer the
 // detailed inventory, fall back to the legacy gym/home string.
 function userEquip(){const pr=S.profile.prefs||{};return (Array.isArray(pr.equipmentInv)&&pr.equipmentInv.length)?pr.equipmentInv:(pr.equipment||"gym");}
+// If a main barbell lift in today's session has stalled across recent logged
+// sessions, return a gentle deload suggestion (else "").
+function detectMainLiftPlateau(exs){
+  try{
+    for(const ex of (exs||[])){
+      const t=inferType((exById(ex.eid)||{}).name||ex.eid);
+      if(t!=="bench"&&t!=="squat"&&t!=="dead")continue;
+      const e=exById(ex.eid);if(!e)continue;
+      const res=detectPlateau(e1rmSeries(S.logs||[],e.name));
+      if(res.plateaued)return `${e.name} has stalled ~${res.sessions} sessions — consider a lighter "deload" week or swapping the variation.`;
+    }
+  }catch(err){}
+  return "";
+}
 // Swap one prescribed exercise for an equipment-appropriate alternative,
 // scaling the load sensibly so a barbell target isn't applied to a DB move.
 function subExForEquip(ex){
@@ -1441,7 +1456,8 @@ function todayPlanFiltered(){
   const effectiveQuick=Math.max(qm,autoQuick);
   const quickNote=effectiveQuick>0&&base.exs.length>2;
   if(effectiveQuick>0&&exs.length>2)exs=exs.slice(0,2);
-  return{...base,exs,quickNote,readiness,isTaper:taperMul<1};
+  const deloadHint=detectMainLiftPlateau(exs);
+  return{...base,exs,quickNote,readiness,isTaper:taperMul<1,deloadHint};
 }
 function sessionIndexForEid(eid){
   const plan=todayPlanFiltered();
@@ -4220,7 +4236,7 @@ function renderToday(){
   <div id="weather-slot"></div>
   ${fuelingAdviceHtml(plan)}
   ${plan.exs.length?`<div class="power-focus-bar"><span class="power-focus-label">${powerFocusOn?"Focus Mode":"Session"}</span><button type="button" class="power-focus-toggle ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit Focus":"Focus Mode"}</button><button type="button" class="ghost-mode-toggle ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost On":"Ghost"}</button></div>`:""}
-  ${plan.exs.length&&trainFocusIdx===null?`<div class="card section readiness-card"><div style="font-size:13px;font-weight:600;margin-bottom:6px">How are you feeling?</div><div class="readiness-row"><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="strong"?"readiness-on":""}" data-ready="strong"><span style="font-size:15px">💪</span> Strong</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="normal"||!plan.readiness?"readiness-on":""}" data-ready="normal"><span style="font-size:15px">👍</span> Normal</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="fatigued"?"readiness-on":""}" data-ready="fatigued"><span style="font-size:15px">😴</span> Fatigued</button></div>${plan.readiness==="fatigued"?`<p style="font-size:11px;color:var(--gold);margin-top:8px;line-height:1.45">Loads eased ~5% for this session only — your program stays intact.</p>`:plan.readiness==="strong"?`<p style="font-size:11px;color:var(--mint);margin-top:8px;line-height:1.45">Targets nudged up ~3% — push it today.</p>`:""}</div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
+  ${plan.exs.length&&trainFocusIdx===null?`${plan.deloadHint?`<div class="card section" style="border-color:var(--gold);background:rgba(212,175,55,.06)"><div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:2px">⚠️ Progress check</div><p style="font-size:12px;color:var(--text2);line-height:1.45;margin:0">${escPlanChip(plan.deloadHint)}</p></div>`:""}<div class="card section readiness-card"><div style="font-size:13px;font-weight:600;margin-bottom:6px">How are you feeling?</div><div class="readiness-row"><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="strong"?"readiness-on":""}" data-ready="strong"><span style="font-size:15px">💪</span> Strong</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="normal"||!plan.readiness?"readiness-on":""}" data-ready="normal"><span style="font-size:15px">👍</span> Normal</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="fatigued"?"readiness-on":""}" data-ready="fatigued"><span style="font-size:15px">😴</span> Fatigued</button></div>${plan.readiness==="fatigued"?`<p style="font-size:11px;color:var(--gold);margin-top:8px;line-height:1.45">Loads eased ~5% for this session only — your program stays intact.</p>`:plan.readiness==="strong"?`<p style="font-size:11px;color:var(--mint);margin-top:8px;line-height:1.45">Targets nudged up ~3% — push it today.</p>`:""}</div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does catch-up work?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p></details><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">Why am I seeing this?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p></details><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today" style="margin-top:8px">Add to today</button></div>`:""}

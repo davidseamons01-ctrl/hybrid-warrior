@@ -4,7 +4,8 @@ import {
   goalFromFocus, equipmentSet, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel, isDeloadWeek,
   warmupSets, warmupText, epley, recentBestE1RM, workingMax,
-  scorePlan, rankPlans, bestPlanId, whyPlan, toEmbedUrl
+  scorePlan, rankPlans, bestPlanId, whyPlan, toEmbedUrl,
+  e1rmSeries, detectPlateau, projectWeeksToGoal
 } from "../js/programming.js";
 
 let pass = 0, fail = 0;
@@ -259,6 +260,39 @@ t("race goal routes to an endurance plan that keeps runs", () => {
 t("powerlifter routes to a powerlifting plan", () => {
   const ctx = { goal: "powerlifting", sex: "male", trainingDays: [1, 2, 4, 5], sessionMin: 90, experienceMonths: 36 };
   assert.equal(PLANS2.find((p) => p.id === bestPlanId(PLANS2, ctx)).goal, "powerlifting");
+});
+
+/* --- plateau detection & goal projection (Wave 2c) --- */
+t("e1rmSeries takes best per day, chronological", () => {
+  const logs = [
+    { date: "2026-06-03", exercise: "Back Squat", aW: 200, aR: 5 },
+    { date: "2026-06-01", exercise: "Back Squat", aW: 185, aR: 5 },
+    { date: "2026-06-03", exercise: "Back Squat", aW: 225, aR: 2 }
+  ];
+  const s = e1rmSeries(logs, "Back Squat");
+  assert.equal(s.length, 2);
+  assert.ok(s[0] < s[1]); // 06-01 then best of 06-03
+});
+t("detectPlateau flags a flat series", () => {
+  assert.equal(detectPlateau([200, 201, 200, 200]).plateaued, true);
+});
+t("detectPlateau passes a progressing series", () => {
+  assert.equal(detectPlateau([200, 210, 220, 235]).plateaued, false);
+});
+t("detectPlateau needs enough data", () => {
+  assert.equal(detectPlateau([200, 205]).plateaued, false);
+});
+t("projectWeeksToGoal computes ETA for a gain goal", () => {
+  assert.deepEqual(projectWeeksToGoal(225, 245, 2), { weeks: 10 });
+});
+t("projectWeeksToGoal handles a loss goal (negative rate)", () => {
+  assert.deepEqual(projectWeeksToGoal(200, 185, -1.5), { weeks: 10 });
+});
+t("projectWeeksToGoal null when trending the wrong way", () => {
+  assert.equal(projectWeeksToGoal(225, 245, -2), null);
+});
+t("projectWeeksToGoal null on flat rate", () => {
+  assert.equal(projectWeeksToGoal(225, 245, 0), null);
 });
 
 /* --- media --- */

@@ -263,6 +263,47 @@ export function workingMax(profileMax, recentBest, opts) {
   return Math.round(Math.max(lo, Math.min(hi, rb)));
 }
 
+/* ---------- 5b. PLATEAU DETECTION & GOAL PROJECTION ---------- */
+
+// Chronological best-e1RM-per-day series for one exercise.
+export function e1rmSeries(logs, exerciseName) {
+  const byDate = {};
+  for (const l of (logs || [])) {
+    if (!l || l.exercise !== exerciseName) continue;
+    const e = epley(Number(l.aW) || 0, Number(l.aR) || 0);
+    if (e > (byDate[l.date] || 0)) byDate[l.date] = e;
+  }
+  return Object.keys(byDate).sort().map((d) => byDate[d]);
+}
+
+// Stall detector: no meaningful gain (and no fresh peak) over the recent window.
+export function detectPlateau(series, opts) {
+  const o = opts || {};
+  const min = o.minSessions || 4;
+  const tol = o.tol != null ? o.tol : 0.01;
+  const s = (series || []).filter((n) => n > 0);
+  if (s.length < min) return { plateaued: false, reason: "insufficient data", sessions: s.length };
+  const recent = s.slice(-min);
+  const first = recent[0], last = recent[recent.length - 1];
+  const best = Math.max.apply(null, recent);
+  const gain = first > 0 ? (last - first) / first : 0;
+  const freshPeak = best > recent[0] * (1 + tol);
+  if (gain <= tol && !freshPeak) return { plateaued: true, reason: `no progress in last ${min} sessions`, sessions: min };
+  return { plateaued: false, sessions: min };
+}
+
+// Weeks to reach a target at a given per-week rate. Returns null if the rate is
+// flat or moving the wrong direction (handles both gain and loss goals).
+export function projectWeeksToGoal(current, target, perWeek) {
+  const c = Number(current), t = Number(target), r = Number(perWeek);
+  if (![c, t, r].every(Number.isFinite) || r === 0) return null;
+  const remaining = t - c;
+  if (remaining === 0) return { weeks: 0 };
+  if (Math.sign(remaining) !== Math.sign(r)) return null; // trending away from goal
+  const weeks = Math.ceil(remaining / r);
+  return { weeks: Math.max(0, weeks) };
+}
+
 /* ---------- 6. PLAN SCORING (the keystone) ---------- */
 // Score a generated plan object {id,name,goal,slots} against the user profile.
 // Higher = better fit. Pure: caller passes everything in.
