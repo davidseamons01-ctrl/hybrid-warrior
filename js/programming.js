@@ -249,18 +249,20 @@ export function recentBestE1RM(logs, exerciseName, opts) {
   return Math.round(best);
 }
 
-// Blend a frozen profile max with recent logged performance. We trust logged
-// data but clamp how far a single window can move the working max (anti-fluke).
+// Working max for load math. The stored profile max is already ratcheted UP by
+// applyDayAdaptation whenever a logged set's e1RM beats it, so this only ever
+// RAISES the working max for a genuine recent PR — it never drops below the
+// stored max (logged working sets estimate below a true 1RM, so pulling toward
+// them would wrongly lighten everything). A fluke PR is capped via maxUp.
 export function workingMax(profileMax, recentBest, opts) {
   const o = opts || {};
   const pm = Number(profileMax) || 0;
   const rb = Number(recentBest) || 0;
+  if (pm <= 0) return Math.round(rb);
   if (rb <= 0) return pm;
-  if (pm <= 0) return rb;
-  const maxUp = o.maxUp != null ? o.maxUp : 0.12;   // +12% per window cap
-  const maxDown = o.maxDown != null ? o.maxDown : 0.10; // -10% cap
-  const hi = pm * (1 + maxUp), lo = pm * (1 - maxDown);
-  return Math.round(Math.max(lo, Math.min(hi, rb)));
+  const maxUp = o.maxUp != null ? o.maxUp : 0.12;        // anti-fluke ceiling on a single PR
+  const cappedUp = Math.min(rb, pm * (1 + maxUp));
+  return Math.round(Math.max(pm, cappedUp));             // never below the stored max
 }
 
 /* ---------- 5b. PLATEAU DETECTION & GOAL PROJECTION ---------- */
