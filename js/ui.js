@@ -4989,8 +4989,8 @@ function renderSettings(){
       </ul>
     </div>
   </details>
-  <details class="settings-fold settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style appearance theme light dark save account email firebase sign plan switch onboard offline sync program start date calendar block adaptation reset advanced multiplier" open>
-    <summary>Training profile &amp; account</summary>
+  <details class="settings-fold settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style appearance theme light dark oled units metric audio altitude biometric save adaptation reset advanced multiplier">
+    <summary>Profile, body &amp; app settings</summary>
     <div class="settings-fold-body"><div class="grid2 section" style="margin-bottom:0">
     <div class="card settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style appearance theme light dark save" id="settings-profile"><div class="card-h"><h2>Training & profile</h2></div>
       <div class="grid3 settings-1rm-grid"><div><label>Bench 1RM (${massUnitLabel()})</label><input id="s-b" type="number" step="any" value="${massLbToField(S.profile.bench1RM)}"></div><div><label>Squat 1RM (${massUnitLabel()})</label><input id="s-sq" type="number" step="any" value="${massLbToField(S.profile.squat1RM)}"></div><div><label>Deadlift 1RM (${massUnitLabel()})</label><input id="s-dl" type="number" step="any" value="${massLbToField(S.profile.dead1RM)}"></div></div>
@@ -5027,11 +5027,16 @@ function renderSettings(){
         </div>
       </details>
       </div>
+        </div></div>
+  </details>
+  <details class="settings-fold settings-section" data-k="account email firebase sign plan switch onboard offline sync program start date calendar block parked trial onboarding wizard resume">
+    <summary>Account &amp; plan</summary>
+    <div class="settings-fold-body"><div class="grid2 section" style="margin-bottom:0">
     <div class="card settings-section" data-k="account email firebase sign plan switch onboard offline sync program start date calendar block" id="settings-account"><div class="card-h"><h2>Account & plan</h2></div>
       ${currentUser?`<div style="font-size:13px;font-weight:700;margin-bottom:4px">${currentUser.email}</div><div style="font-size:10px;color:var(--mint);margin-bottom:10px">Syncing to cloud</div><button class="btn btn-ghost btn-block" id="s-signout">Sign Out</button>`:`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">${offlineMode?"Offline mode":"Not connected"}</div>`}
       <div style="margin-top:12px"><label>Program start date</label><input type="date" id="s-pstart" value="${(S.program&&S.program.start)||iso()}"></div>
       <details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does the start date work?</summary><p style="font-size:10px;color:var(--text3);margin:6px 0 0;line-height:1.45">Session 1 = first allowed train day on or after this date (then your template continues in weekday order).</p></details>
-      <div style="margin-top:12px"><label>Current Plan (#${(S.planId||0)+1}/64)</label>
+      <div style="margin-top:12px"><label>Current Plan (#${(S.planId||0)+1}/${PLANS.length})</label>
         <select id="s-plan" class="settings-plan-select">${PLANS.map(p=>`<option value="${p.id}" ${p.id===S.planId?"selected":""}>${p.name}</option>`).join("")}</select></div>
       <button class="btn btn-ice btn-block" id="s-plan-save" style="margin-top:6px">Switch Plan</button>
       <div class="program-mgmt-card">
@@ -5046,7 +5051,7 @@ function renderSettings(){
     </div>
         </div></div>
   </details>
-  <details class="settings-fold settings-section" id="settings-plates" data-k="plate barbell calculator load weight gym plates per side olympic metric kg lb" open><summary>Bar load helper</summary><div class="settings-fold-body">
+  <details class="settings-fold settings-section" id="settings-plates" data-k="plate barbell calculator load weight gym plates per side olympic metric kg lb"><summary>Bar load helper</summary><div class="settings-fold-body">
     ${(()=>{const m=useMetric();const hint=m?"Pairs per side for a standard kg set (25, 20, 15, 10, 5, 2.5, 1.25 kg).":"Pairs per side for a standard Olympic set (45, 35, 25, 10, 5, 2.5 lb).";const tot=m?"Target total (kg)":"Target total (lb)";const ph=m?"e.g. 102.5":"e.g. 225";const bi=m?`<option value="20" selected>20 kg</option><option value="15">15 kg</option><option value="10">10 kg technique</option><option value="0">No bar</option>`:`<option value="45" selected>45 lb</option><option value="35">35 lb</option><option value="20">20 lb technique</option><option value="0">No bar</option>`;const bl=m?"Bar (kg)":"Bar weight";return`<p style="font-size:12px;color:var(--text2);margin-bottom:10px">${hint}</p><div class="grid3"><div><label>${tot}</label><input type="number" id="pl-total" step="0.5" placeholder="${ph}" min="0"></div><div><label>${bl}</label><select id="pl-bar">${bi}</select></div><div style="align-self:end"><button type="button" class="btn btn-secondary-solid btn-block" id="pl-calc">Calculate</button></div></div>`})()}
     <div id="pl-out" style="font-size:13px;color:var(--text);margin-top:12px;line-height:1.45;font-weight:500"></div>
   </div></details>
@@ -5072,7 +5077,7 @@ function renderSettings(){
     <label>Steps only (fast log)</label>
     <div class="row" style="gap:8px;margin-top:6px;flex-wrap:wrap"><input type="number" id="health-steps-quick" placeholder="e.g. 8420" style="max-width:160px"><button type="button" class="btn btn-sm btn-mint" id="health-steps-save">Save steps</button><button type="button" class="btn btn-sm btn-ghost" id="health-paste-steps">Paste clipboard</button></div>
   </div></details>
-  <details class="settings-fold settings-section" data-k="shoes running shoe mileage tracker retire replace footwear" id="settings-shoes" open><summary>Running shoes</summary><div class="settings-fold-body">
+  <details class="settings-fold settings-section" data-k="shoes running shoe mileage tracker retire replace footwear" id="settings-shoes"><summary>Running shoes</summary><div class="settings-fold-body">
     <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:12px">Register shoes and track mileage. We'll warn you when a pair exceeds 300 miles so you can replace them before injury risk increases.</p>
     <div class="grid2" style="gap:10px;margin-bottom:10px">
       <div><label>Shoe name</label><input type="text" id="shoe-name" placeholder="Nike Pegasus 41" maxlength="60"></div>
@@ -5083,7 +5088,7 @@ function renderSettings(){
       <div style="align-self:end"><button type="button" class="btn btn-mint btn-block" id="shoe-add">Add shoe</button></div>
     </div>
     ${(S.shoes||[]).length?`<div style="margin-top:10px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Registered shoes</div>${(S.shoes||[]).map(s=>{const warn=s.miles>=300;return`<div class="shoe-mgmt-row ${warn?"shoe-warn":""}" data-sid="${s.id}"><div><span style="font-size:13px;font-weight:600;color:var(--text)">${s.name}</span>${s.brand?` <span style="font-size:10px;color:var(--text3)">${s.brand}</span>`:""}<div style="font-size:11px;color:${warn?"var(--red)":"var(--text2)"}">${Math.round(s.miles)} mi${warn?" — replace recommended ⚠️":""}${s.retired?" (retired)":""}</div></div><div class="row" style="gap:6px">${!s.retired?`<button type="button" class="btn btn-sm btn-ghost shoe-retire" data-sid="${s.id}">Retire</button>`:""}</div></div>`}).join("")}`:""}</div></details>
-  <details class="settings-fold settings-section" data-k="data backup export import clear logs json csv" id="settings-data" open><summary>Data &amp; backup</summary><div class="settings-fold-body">
+  <details class="settings-fold settings-section" data-k="data backup export import clear logs json csv" id="settings-data"><summary>Data &amp; backup</summary><div class="settings-fold-body">
     <p style="font-size:12px;color:var(--text2);margin-bottom:10px">Export a full backup of your training state, or import a saved JSON file from another device.</p>
     <div class="row settings-data-actions" style="flex-wrap:wrap;gap:8px"><button type="button" class="btn btn-ghost" id="s-clear">Clear logs</button><button type="button" class="btn btn-ghost" id="s-export">Export JSON</button><button type="button" class="btn btn-ghost" id="s-export-csv">Export CSV</button><button type="button" class="btn btn-cta" id="s-export-pdf">📄 PDF Report</button><button type="button" class="btn btn-ghost" id="s-import-btn">Import</button><input type="file" id="s-import-file" accept="application/json" style="display:none"></div>
   </div></details>
@@ -5142,6 +5147,7 @@ function bindSettings(){
       }
       if(!ok)ok=[...sec.querySelectorAll(".settings-section")].some(sub=>matched.has(sub));
       sec.classList.toggle("hidden",!ok);
+      if(ok&&q.length){if(sec.tagName==="DETAILS")sec.open=true;let pa=sec.parentElement;while(pa){if(pa.tagName==="DETAILS")pa.open=true;pa=pa.parentElement;}}
     });
   }
   if(fil){fil.oninput=applySettingsFilter;if(fil.value.trim())applySettingsFilter()}
@@ -5744,4 +5750,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, bindDash, bindToday, bindAuthUI };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, bindDash, bindToday, bindAuthUI };
