@@ -69,20 +69,20 @@ export function equipmentSet(equip) {
 // Substitution table: eid → ordered fallbacks keyed by required equipment.
 // We only reference exercise ids that exist in the catalog.
 const SUBS = {
-  bench:    [["dumbbell", "incline_db"], ["bodyweight", "pushup"]],
-  cgbench:  [["dumbbell", "incline_db"], ["bodyweight", "pushup"]],
-  incline_db: [["bodyweight", "pushup"]],
-  squat:    [["dumbbell", "bss"], ["bodyweight", "air_squat"]],
-  deadlift: [["dumbbell", "rdl"], ["bodyweight", "hip_thrust"]],
-  rdl:      [["dumbbell", "hip_thrust"], ["bodyweight", "hip_thrust"]],
-  row:      [["dumbbell", "cross_press"], ["bands", "face_pull"], ["bodyweight", "pullup"]],
-  pullup:   [["bands", "face_pull"], ["bodyweight", "pushup"]],
-  ohp:      [["bands", "champagne"], ["bodyweight", "pushup"]],
-  dip:      [["bodyweight", "pushup"]],
+  bench:    [["machine", "machine_chest_press"], ["dumbbell", "incline_db"], ["bodyweight", "pushup"]],
+  cgbench:  [["machine", "tricep_pushdown"], ["dumbbell", "incline_db"], ["bodyweight", "diamond_pushup"]],
+  incline_db: [["machine", "machine_chest_press"], ["bodyweight", "decline_pushup"]],
+  squat:    [["machine", "leg_press"], ["dumbbell", "goblet_squat"], ["bodyweight", "air_squat"]],
+  deadlift: [["dumbbell", "rdl"], ["kettlebell", "kb_swing"], ["bodyweight", "glute_bridge"]],
+  rdl:      [["kettlebell", "kb_swing"], ["dumbbell", "hip_thrust"], ["bodyweight", "glute_bridge"]],
+  row:      [["machine", "seated_cable_row"], ["dumbbell", "chest_supported_row"], ["bands", "face_pull"], ["bodyweight", "inverted_row"]],
+  pullup:   [["machine", "lat_pulldown"], ["pullup_bar", "chinup"], ["bands", "face_pull"], ["bodyweight", "inverted_row"]],
+  ohp:      [["dumbbell", "arnold_press"], ["bands", "champagne"], ["bodyweight", "pike_pushup"]],
+  dip:      [["machine", "tricep_pushdown"], ["bodyweight", "diamond_pushup"]],
   farmer:   [["dumbbell", "suitcase"], ["bodyweight", "plank"]],
-  lunge:    [["bodyweight", "air_squat"]],
-  bss:      [["bodyweight", "air_squat"]],
-  lat_raise:[["bands", "champagne"], ["bodyweight", "pushup"]]
+  lunge:    [["dumbbell", "step_up"], ["bodyweight", "air_squat"]],
+  bss:      [["dumbbell", "step_up"], ["bodyweight", "air_squat"]],
+  lat_raise:[["machine", "rear_delt_fly"], ["bands", "champagne"], ["bodyweight", "pike_pushup"]]
 };
 
 // Equipment an exercise needs (anything not listed is treated as bodyweight).
@@ -90,7 +90,21 @@ const EX_EQUIP = {
   bench: "barbell", cgbench: "barbell", squat: "barbell", deadlift: "barbell",
   rdl: "barbell", row: "barbell", ohp: "dumbbell", incline_db: "dumbbell",
   dip: "bodyweight", farmer: "dumbbell", lunge: "dumbbell", bss: "dumbbell",
-  lat_raise: "dumbbell", pullup: "pullup_bar", face_pull: "bands"
+  lat_raise: "dumbbell", pullup: "pullup_bar", face_pull: "bands",
+  // Wave 2 catalog
+  front_squat: "barbell", goblet_squat: "dumbbell", leg_press: "machine", hack_squat: "machine",
+  leg_ext: "machine", leg_curl: "machine", calf_raise: "machine", step_up: "dumbbell",
+  glute_bridge: "bodyweight", bb_hip_thrust: "barbell", kb_swing: "kettlebell",
+  lat_pulldown: "machine", seated_cable_row: "machine", chest_supported_row: "dumbbell",
+  inverted_row: "bodyweight", chinup: "pullup_bar", shrug: "dumbbell",
+  machine_chest_press: "machine", cable_fly: "machine", pec_deck: "machine",
+  pike_pushup: "bodyweight", decline_pushup: "bodyweight", diamond_pushup: "bodyweight",
+  bb_ohp: "barbell", arnold_press: "dumbbell", rear_delt_fly: "dumbbell",
+  bb_curl: "barbell", db_curl: "dumbbell", hammer_curl: "dumbbell", cable_curl: "machine",
+  tricep_pushdown: "machine", skullcrusher: "barbell", overhead_ext: "dumbbell",
+  hanging_leg_raise: "pullup_bar", cable_crunch: "machine", russian_twist: "bodyweight",
+  side_plank: "bodyweight", mountain_climber: "bodyweight",
+  row_erg: "machine", bike_erg: "machine", jump_rope: "bodyweight", box_jump: "bodyweight", wall_ball: "machine"
 };
 
 export function exerciseNeeds(eid) { return EX_EQUIP[eid] || "bodyweight"; }

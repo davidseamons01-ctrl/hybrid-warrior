@@ -1050,7 +1050,7 @@ function injectComputedWarmup(out){
 // repeat onto a distinct bodyweight fallback so a session never lists a dup.
 function dedupeExs(exs){
   try{
-    const seen=new Set();const pushPool=["dip","pushup"],legPool=["air_squat","lunge","bss"];
+    const seen=new Set();const pushPool=["dip","pushup","pike_pushup","decline_pushup","diamond_pushup"],legPool=["air_squat","glute_bridge","lunge","bss","step_up"];
     return (exs||[]).map(ex=>{
       if(!seen.has(ex.eid)){seen.add(ex.eid);return ex;}
       const e=exById(ex.eid),tags=(e&&e.tags)||[];

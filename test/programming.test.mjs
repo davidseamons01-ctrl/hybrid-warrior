@@ -55,6 +55,23 @@ t("bodyweight move unaffected", () => {
   assert.equal(exerciseNeeds("pushup"), "bodyweight");
   assert.equal(substituteEid("pushup", "none"), "pushup");
 });
+t("machine user gets machine sub for bench", () => {
+  assert.equal(substituteEid("bench", ["machine", "bodyweight"]), "machine_chest_press");
+});
+t("machine user gets leg press for squat", () => {
+  assert.equal(substituteEid("squat", ["machine", "bodyweight"]), "leg_press");
+});
+t("kettlebell-only user gets swing for deadlift", () => {
+  assert.equal(substituteEid("deadlift", ["kettlebell", "bodyweight"]), "kb_swing");
+});
+t("machine user gets lat pulldown for pullup", () => {
+  assert.equal(substituteEid("pullup", ["machine", "bodyweight"]), "lat_pulldown");
+});
+t("new catalog moves know their equipment", () => {
+  assert.equal(exerciseNeeds("leg_press"), "machine");
+  assert.equal(exerciseNeeds("kb_swing"), "kettlebell");
+  assert.equal(exerciseNeeds("pike_pushup"), "bodyweight");
+});
 
 /* --- periodization --- */
 t("fat loss never max-tests at wk13", () => {
