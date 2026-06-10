@@ -3084,6 +3084,40 @@ function trainingDayHint(){
   }
   return"Add training days under Settings → Training & profile.";
 }
+// Per-week e1RM trend (lb/week) for a lift, from logged sessions.
+function liftRatePerWeek(exName){
+  const byDate={};
+  for(const l of (S.logs||[])){if(l.exercise!==exName)continue;const e=epley(Number(l.aW)||0,Number(l.aR)||0);if(e>(byDate[l.date]||0))byDate[l.date]=e;}
+  const dates=Object.keys(byDate).sort();
+  if(dates.length<2)return null;
+  const t0=parseIsoNoon(dates[0]).getTime(),t1=parseIsoNoon(dates[dates.length-1]).getTime();
+  const weeks=(t1-t0)/(7*864e5);
+  if(weeks<1)return null;
+  return (byDate[dates[dates.length-1]]-byDate[dates[0]])/weeks;
+}
+// "Goal projections" card: project ETA from logged trend toward each set goal.
+function goalEtaCardHtml(){
+  const rows=[];
+  const fmtEta=weeks=>{const d=new Date();d.setDate(d.getDate()+Math.round(weeks*7));return d.toLocaleDateString(undefined,{month:"short",day:"numeric"});};
+  const lift=(label,curMax,goal,exName)=>{
+    const cur=Number(curMax)||0,tgt=Number(goal)||0;
+    if(!cur||!tgt||tgt<=cur)return;
+    const rate=liftRatePerWeek(exName);
+    if(rate==null||rate<=0){rows.push({label,detail:`${cur}→${tgt} lb`,eta:"log more to project"});return;}
+    const proj=projectWeeksToGoal(cur,tgt,rate);
+    rows.push({label,detail:`${cur}→${tgt} lb · +${rate.toFixed(1)}/wk`,eta:proj?(proj.weeks<=0?"reached 🎉":`~${proj.weeks} wk · ${fmtEta(proj.weeks)}`):"—"});
+  };
+  lift("Bench",S.profile.bench1RM,S.goals.bench,(exById("bench")||{}).name);
+  lift("Squat",S.profile.squat1RM,S.goals.squat,(exById("squat")||{}).name);
+  lift("Deadlift",S.profile.dead1RM,S.goals.deadlift,(exById("deadlift")||{}).name);
+  const wt=weightTrend();
+  if(S.profile.goalWt&&S.profile.weight&&Math.abs(S.profile.weight-S.profile.goalWt)>=1&&wt&&Math.abs(wt.perWeek)>0.05){
+    const proj=projectWeeksToGoal(S.profile.weight,S.profile.goalWt,wt.perWeek);
+    rows.push({label:"Bodyweight",detail:`${Math.round(S.profile.weight)}→${S.profile.goalWt} lb · ${wt.perWeek>0?"+":""}${wt.perWeek.toFixed(1)}/wk`,eta:proj?(proj.weeks<=0?"reached 🎉":`~${proj.weeks} wk · ${fmtEta(proj.weeks)}`):"trend off-target"});
+  }
+  if(!rows.length)return"";
+  return`<div class="card section" style="padding:14px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">🎯 Goal projections</div>${rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600;color:var(--text)">${r.label}</div><div style="font-size:10px;color:var(--text3)">${escPlanChip(r.detail)}</div></div><div style="font-size:12px;color:var(--text2);text-align:right;align-self:center">${escPlanChip(r.eta)}</div></div>`).join("")}<div style="font-size:10px;color:var(--text3);margin-top:8px">Projected from your logged trend — keep logging to sharpen the estimate.</div></div>`;
+}
 function renderDash(){
   autoWeek();
   const d=new Date(),w=S.program.week,plan=rollingPlanForDate(iso());
@@ -3232,6 +3266,7 @@ function renderDash(){
     </div>
     <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap">${warriorBadges().length?warriorBadges().map(x=>`<span class="badge badge-mint">${x}</span>`).join(""):`<span style="font-size:11px;color:var(--text3)">Log sessions to unlock badges.</span>`}</div>
   </div>
+  ${goalEtaCardHtml()}
   ${(()=>{const rc=calcRecoveryScore();return`<div class="card section recovery-card" style="padding:14px">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
       <div><div style="font-size:13px;font-weight:600">Recovery Score</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Based on RPE, missed reps, volume trend, and rest days over 7 days</div></div>
