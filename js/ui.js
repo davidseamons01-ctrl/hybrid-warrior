@@ -1,5 +1,11 @@
 // ═══════════════════════════════════════════════════════════
 import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js";
+import {
+  goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
+  wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
+  warmupText, recentBestE1RM, workingMax,
+  rankPlans, bestPlanId, whyPlan, toEmbedUrl
+} from "./programming.js";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -58,7 +64,7 @@ function activeTrainIso(){
 }
 const DEF={
   v:7,
-  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,neckCirc:0,onboarded:false,prefs:{equipment:"gym",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"dark",units:"imperial",quickSessionMin:0,womenSimpleUi:true}},
+  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,neckCirc:0,onboarded:false,prefs:{equipment:"gym",equipmentInv:null,experienceMonths:0,primaryGoal:"",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"dark",units:"imperial",quickSessionMin:0,womenSimpleUi:true}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   scheduleAdjust:{catchUpQueue:[],missChoices:{},missSnoozed:{},extraTrainingIso:null,catchUpClearedDate:null},
@@ -524,7 +530,7 @@ function womenBaselineTier(){
 }
 let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let logHistoryFilter="";let logBulkSelectOn=false;let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;let powerFocusOn=false;let ghostModeOn=false;
 const DASH_RANGES=[["1w","1W"],["1m","1M"],["3m","3M"],["6m","6M"],["all","All-Time"]];
-let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;
+let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;let obChosenPlan=null;
 function tabFromHash(){
   const h=(location.hash||"").replace(/^#/,"").toLowerCase();
   if(h===TAB_TRAIN||h===TAB_PLAN||h===TAB_YOU||h===TAB_SOCIAL)return h;
@@ -919,7 +925,7 @@ function useWomenSoftUi(){
 function planCompactOn(){
   return useWomenSoftUi()?sessionStorage.getItem("hw-plan-compact")!=="0":sessionStorage.getItem("hw-plan-compact")==="1";
 }
-function phaseName(w){return w<=4?"Hypertrophy":w<=8?"Strength":w<=12?"Peak":"Test"}
+function phaseName(w){try{return goalPhaseLabel(currentPlanGoal(),w);}catch(e){return w<=4?"Hypertrophy":w<=8?"Strength":w<=12?"Peak":"Test";}}
 function phaseClass(w){return w<=4?"phase-hyp":w<=8?"phase-str":w<=12?"phase-peak":"phase-test"}
 function phaseColor(w){return w<=4?"var(--ice)":w<=8?"var(--gold)":w<=12?"var(--fire)":"var(--mint)"}
 function phaseAbbrev(w){return w<=4?"Hyp":w<=8?"Str":w<=12?"Peak":"Test"}
@@ -971,10 +977,100 @@ function planFocusHeadline(focusStr){
   return s.length>56?s.slice(0,53)+"…":s;
 }
 function escPlanChip(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;")}
-function selectPlan(){return S.planId!=null?S.planId:0}
-function wkFactor(w){return[.62,.65,.68,.60,.72,.76,.79,.65,.80,.84,.88,.92,.85][clamp(w,1,13)-1]}
-function phaseReps(w){return w<=4?[10,8,8,6]:w<=8?[6,5,4,3]:w<=12?[4,3,2,2]:[3,2,1,1]}
-function phaseSets(w){return w<=4?4:w<=8?5:w<=12?5:3}
+// Build the scoring context from the onboarding profile/goals/schedule.
+function planCtx(){
+  const fa=S.goals.focusAreas||[];
+  const pr=S.profile.prefs||{};
+  const det=goalFromFocus(fa,pr.primaryGoal);
+  return {
+    goal:det.goal,
+    sex:S.profile.sex,
+    trainingDays:S.schedule.days||[1,2,3,4,5],
+    sessionMin:S.schedule.sessionMin||45,
+    experienceMonths:Number(pr.experienceMonths)||0
+  };
+}
+// Top-N recommended plans with one-line rationale (for onboarding choice UI).
+function recommendedPlans(n){
+  const ctx=planCtx();
+  return rankPlans(PLANS,ctx).slice(0,n||3).map(r=>({id:r.plan.id,plan:r.plan,why:r.why,score:r.score}));
+}
+// The active plan's goal (drives goal-aware periodization).
+function currentPlanGoal(){
+  const plan=PLANS[S.planId!=null?S.planId:0];
+  return (plan&&plan.goal)||"hybrid";
+}
+// Rolling working 1RM: blend frozen profile max with recent logged best so the
+// program gets smarter the more you log (clamped against single-session flukes).
+function wmax1RM(type){
+  try{
+    const map={bench:["bench1RM","bench"],squat:["squat1RM","squat"],dead:["dead1RM","deadlift"]};
+    const cfg=map[type];if(!cfg)return Number(S.profile[type+"1RM"])||0;
+    const e=exById(cfg[1]);
+    const rb=recentBestE1RM(S.logs||[],e?e.name:cfg[1]);
+    return workingMax(Number(S.profile[cfg[0]])||0,rb);
+  }catch(err){return Number(S.profile[(type==="dead"?"dead":type)+"1RM"])||0;}
+}
+// The user's equipment as understood by the substitution engine: prefer the
+// detailed inventory, fall back to the legacy gym/home string.
+function userEquip(){const pr=S.profile.prefs||{};return (Array.isArray(pr.equipmentInv)&&pr.equipmentInv.length)?pr.equipmentInv:(pr.equipment||"gym");}
+// Swap one prescribed exercise for an equipment-appropriate alternative,
+// scaling the load sensibly so a barbell target isn't applied to a DB move.
+function subExForEquip(ex){
+  try{
+    const equip=userEquip();
+    const need=exerciseNeeds(ex.eid);
+    const set=equipSetOf(equip);
+    if(need==="bodyweight"||set.has(need))return ex;
+    const newEid=substituteEid(ex.eid,equip);
+    if(newEid===ex.eid)return ex;
+    const ne=exById(newEid),name=ne?ne.name:newEid;
+    if(exerciseNeeds(newEid)==="bodyweight"){
+      const keepUnit=(newEid==="plank"||newEid==="face_pull");
+      return {...ex,eid:newEid,target:keepUnit?ex.target:0,unit:keepUnit?ex.unit:"BW",reason:`No ${need} — swapped to ${name}`};
+    }
+    const uni=["bss","lunge","suitcase"].includes(newEid);
+    const scale={incline_db:0.4,rdl:0.45,hip_thrust:0.5,bss:0.2,suitcase:0.2,cross_press:0.12,champagne:0.1}[newEid]||0.4;
+    return {...ex,eid:newEid,target:r5((Number(ex.target)||0)*scale),unit:uni?"lb/hand":"lb",reason:`No ${need} — swapped to ${name}`};
+  }catch(err){return ex;}
+}
+// Replace any hard-coded numeric warmup ramp with one scaled to the day's main
+// lift. Only touches days that actually have a weighted lift, so running/
+// bodyweight warmups (which may legitimately contain digits) are left intact.
+function injectComputedWarmup(out){
+  try{
+    const weighted=(out.exs||[]).filter(e=>/lb/.test(e.unit||"")&&Number(e.target)>0);
+    if(!weighted.length)return; // run/bodyweight day — leave warmup untouched
+    const intro=String(out.warmup||"").split(/→\s*(?:bar|\d)/)[0].replace(/→\s*$/,"").trim();
+    const ramp=warmupText(Number(weighted[0].target)||0,{unit:"lb"});
+    out.warmup=ramp?(intro?intro+" → ":"")+ramp:(intro||out.warmup);
+  }catch(err){}
+}
+// After equipment swaps, two slots can collapse to the same movement. Vary any
+// repeat onto a distinct bodyweight fallback so a session never lists a dup.
+function dedupeExs(exs){
+  try{
+    const seen=new Set();const pushPool=["dip","pushup"],legPool=["air_squat","lunge","bss"];
+    return (exs||[]).map(ex=>{
+      if(!seen.has(ex.eid)){seen.add(ex.eid);return ex;}
+      const e=exById(ex.eid),tags=(e&&e.tags)||[];
+      const pool=(tags.includes("legs")||tags.includes("lower"))?legPool:pushPool;
+      const alt=pool.find(a=>!seen.has(a)&&exerciseNeeds(a)==="bodyweight");
+      if(!alt){seen.add(ex.eid);return ex;}
+      seen.add(alt);const ae=exById(alt);
+      return {...ex,eid:alt,target:0,unit:"BW",reason:`Varied to ${ae?ae.name:alt} (avoids repeat)`};
+    });
+  }catch(err){return exs;}
+}
+// Keep an explicit choice; otherwise score the whole catalog instead of always
+// returning plan 0. THIS is what makes onboarding personalized.
+function selectPlan(){
+  if(S.planId!=null)return S.planId;
+  try{return bestPlanId(PLANS,planCtx());}catch(e){return 0;}
+}
+function wkFactor(w){try{return wkFactorFor(currentPlanGoal(),w);}catch(e){return[.62,.65,.68,.60,.72,.76,.79,.65,.80,.84,.88,.92,.85][clamp(w,1,13)-1];}}
+function phaseReps(w){try{return phaseRepsFor(currentPlanGoal(),w);}catch(e){return w<=4?[10,8,8,6]:w<=8?[6,5,4,3]:w<=12?[4,3,2,2]:[3,2,1,1];}}
+function phaseSets(w){try{return phaseSetsFor(currentPlanGoal(),w);}catch(e){return w<=4?4:w<=8?5:w<=12?5:3;}}
 function parseIsoNoon(isoStr){const p=(isoStr||"").split("-").map(Number);return new Date(p[0],(p[1]||1)-1,p[2]||1,12,0,0,0)}
 function addCalendarDaysIso(isoStr,delta){const d=parseIsoNoon(isoStr);d.setDate(d.getDate()+delta);return isoFromDate(d)}
 function sortedScheduleDays(){const raw=S.schedule.days||[1,2,3,4,5];return[...new Set(raw)].sort((a,b)=>a-b)}
@@ -1820,7 +1916,7 @@ function similarExerciseAlternatives(templateEid){
 }
 function ytId(u){
   if(!u)return"";
-  const m=u.match(/(?:youtube\.com\/embed\/|youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
+  const m=u.match(/(?:youtube\.com\/embed\/|youtube\.com\/watch\?v=|youtube\.com\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{6,})/);
   return m?m[1]:"";
 }
 function embedVideoUrl(u){
@@ -2119,7 +2215,8 @@ function renderOB(){
         <div><label>Goal Weight (lb)</label><input id="ob-gw" type="number" value="${S.profile.goalWt||""}"></div>
         <div><label>Body Fat % (optional)</label><input id="ob-bf" type="number" step="0.1" value="${S.profile.bodyFat||""}" placeholder="e.g. 22"></div>
       </div>
-      <div class="grid2" style="margin-top:10px"><div><label>Program Start Date</label><input id="ob-start" type="date" value="${S.program.start}"></div><div></div></div>
+      <div class="grid2" style="margin-top:10px"><div><label>Program Start Date</label><input id="ob-start" type="date" value="${S.program.start}"></div>
+        <div><label>Training Experience</label><select id="ob-exp"><option value="0" ${(((S.profile.prefs||{}).experienceMonths)||0)<6?"selected":""}>New (0-6 months)</option><option value="12" ${(((S.profile.prefs||{}).experienceMonths)||0)>=6&&(((S.profile.prefs||{}).experienceMonths)||0)<18?"selected":""}>Intermediate (6-18 mo)</option><option value="36" ${(((S.profile.prefs||{}).experienceMonths)||0)>=18?"selected":""}>Advanced (18+ months)</option></select></div></div>
       <button class="btn btn-fire btn-block" style="margin-top:16px" id="ob-next">Continue</button>`;
     document.getElementById("ob-next").onclick=()=>{
       S.profile.name=document.getElementById("ob-name").value||"Athlete";
@@ -2134,6 +2231,7 @@ function renderOB(){
       S.profile.startWt=S.profile.weight;
       S.profile.goalWt=Number(document.getElementById("ob-gw").value)||S.profile.weight-20;
       S.program.start=document.getElementById("ob-start").value||iso();
+      S.profile.prefs={...(S.profile.prefs||{}),experienceMonths:Number(document.getElementById("ob-exp").value)||0};
       S.goals.fatLoss=Math.max(0,S.profile.startWt-S.profile.goalWt);
       obStep=1;renderOB();
     };
@@ -2151,8 +2249,10 @@ function renderOB(){
     document.getElementById("ob-next").onclick=()=>{S.goals.focusAreas=[...document.querySelectorAll(".goal-option.selected")].map(e=>e.dataset.g);obStep=2;renderOB()};
   } else if(obStep===2){
     const fa=S.goals.focusAreas||[];
+    const curPrimary=(S.profile.prefs||{}).primaryGoal||"";
     card.innerHTML=`<div class="ob-progress">${dots}</div>
       <div class="ob-title">Current Fitness</div><div class="ob-sub">Enter your current maxes / times. Leave blank if unknown — we'll estimate.</div>
+      ${fa.length>1?`<div style="margin-bottom:14px"><label>Your #1 priority</label><select id="ob-primary"><option value="">Auto (balance all goals)</option>${fa.map(a=>`<option value="${a}" ${curPrimary===a?"selected":""}>${a}</option>`).join("")}</select><p style="font-size:11px;color:var(--text3);margin-top:4px">We'll bias your program toward this when goals compete.</p></div>`:""}
       ${fa.includes("Bench Press")?`<div style="margin-bottom:10px"><label>Bench Press 1RM (lb)</label><input id="ob-b" type="number" value="${S.profile.bench1RM||""}" placeholder="e.g. 215"></div>
         <div style="margin-bottom:10px"><label>Bench Goal (lb)</label><input id="ob-bg" type="number" value="${S.goals.bench||""}" placeholder="e.g. 225"></div>`:""}
       ${fa.includes("Squat")?`<div style="margin-bottom:10px"><label>Squat 1RM (lb)</label><input id="ob-sq" type="number" value="${S.profile.squat1RM||""}" placeholder="e.g. 265"></div>
@@ -2166,6 +2266,7 @@ function renderOB(){
     document.getElementById("ob-back").onclick=()=>{obStep=1;renderOB()};
     document.getElementById("ob-next").onclick=()=>{
       const fa=S.goals.focusAreas;const g=v=>Number((document.getElementById(v)||{}).value)||0;const gm=v=>parseMM((document.getElementById(v)||{}).value);
+      const primEl=document.getElementById("ob-primary");if(primEl)S.profile.prefs={...(S.profile.prefs||{}),primaryGoal:primEl.value||""};
       if(fa.includes("Bench Press")){S.profile.bench1RM=g("ob-b")||135;S.goals.bench=g("ob-bg")||S.profile.bench1RM+20}
       if(fa.includes("Squat")){S.profile.squat1RM=g("ob-sq")||185;S.goals.squat=g("ob-sqg")||S.profile.squat1RM+30}
       if(fa.includes("Deadlift")){S.profile.dead1RM=g("ob-dl")||225;S.goals.deadlift=g("ob-dlg")||S.profile.dead1RM+30}
@@ -2183,28 +2284,39 @@ function renderOB(){
       <label>Training Days (tap to toggle)</label>
       <div class="row" style="gap:8px;margin-bottom:14px">${[1,2,3,4,5,6].map(d=>`<div class="day-toggle ${selDays.includes(d)?"on":""}" data-d="${d}">${DAYS[d].slice(0,3)}</div>`).join("")}</div>
       <div><label>Minutes per Session</label><select id="ob-mins"><option value="30" ${S.schedule.sessionMin===30?"selected":""}>30 min (quick)</option><option value="45" ${S.schedule.sessionMin===45?"selected":""}>45 min</option><option value="60" ${S.schedule.sessionMin===60?"selected":""}>60 min</option><option value="75" ${S.schedule.sessionMin===75?"selected":""}>75 min</option><option value="90" ${S.schedule.sessionMin===90?"selected":""}>90 min</option></select></div>
-      <div class="grid3" style="margin-top:10px">
-        <div><label>Equipment Access</label><select id="ob-eq"><option value="gym" ${(S.profile.prefs||{}).equipment==="gym"?"selected":""}>Gym / Full Access</option><option value="home" ${(S.profile.prefs||{}).equipment==="home"?"selected":""}>Home / DB-Minimal</option></select></div>
+      <div class="grid2" style="margin-top:10px">
         <div><label>Session Style</label><select id="ob-style"><option value="balanced" ${(S.profile.prefs||{}).style!=="burner"?"selected":""}>Balanced Strength + Cardio</option><option value="burner" ${(S.profile.prefs||{}).style==="burner"?"selected":""}>10-20 min Burners</option></select></div>
         <div><label>Life Stage</label><select id="ob-life"><option value="general" ${(S.profile.prefs||{}).lifeStage==="general"||!(S.profile.prefs||{}).lifeStage?"selected":""}>General</option><option value="pregnancy" ${(S.profile.prefs||{}).lifeStage==="pregnancy"?"selected":""}>Pregnancy Safe</option><option value="postpartum" ${(S.profile.prefs||{}).lifeStage==="postpartum"?"selected":""}>Postpartum (gentle core)</option></select></div>
       </div>
+      <div style="margin-top:12px"><label>Equipment you have (optional — fine-tunes swaps)</label>
+        <div class="row" id="ob-eq-inv" style="gap:8px;flex-wrap:wrap;margin-top:6px">${[["barbell","Barbell"],["dumbbell","Dumbbells"],["kettlebell","Kettlebell"],["machine","Machines"],["bands","Bands"],["pullup_bar","Pull-up bar"],["bench","Bench"]].map(([k,l])=>{const inv=(S.profile.prefs||{}).equipmentInv;const on=Array.isArray(inv)?inv.includes(k):((S.profile.prefs||{}).equipment!=="home");return`<span class="eq-toggle" data-eq="${k}" data-on="${on?1:0}" style="padding:6px 11px;border-radius:8px;border:1px solid ${on?"var(--ice)":"var(--border)"};font-size:12px;cursor:pointer;${on?"background:var(--ice);color:#06202b":"color:var(--text2)"}">${l}</span>`}).join("")}</div>
+        <p style="font-size:11px;color:var(--text3);margin-top:4px">Any move you lack gear for is automatically swapped for one you can do.</p></div>
       ${S.profile.sex==="female"?`<div style="margin-top:10px"><label>Women's Program Emphasis</label><select id="ob-wm"><option value="auto" ${((S.profile.prefs||{}).womenMode||"auto")==="auto"?"selected":""}>Auto (from goals)</option><option value="hourglass" ${(S.profile.prefs||{}).womenMode==="hourglass"?"selected":""}>Hourglass Sculpt</option><option value="glute_shelf" ${(S.profile.prefs||{}).womenMode==="glute_shelf"?"selected":""}>Glute Shelf Builder</option><option value="posture" ${(S.profile.prefs||{}).womenMode==="posture"?"selected":""}>Posture + Back Tone</option><option value="pilates" ${(S.profile.prefs||{}).womenMode==="pilates"?"selected":""}>Pilates Plus Tone</option><option value="home" ${(S.profile.prefs||{}).womenMode==="home"?"selected":""}>Home-Friendly Minimal Equipment</option></select></div>`:""}
       <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Continue</button></div>`;
     document.querySelectorAll(".day-toggle").forEach(t=>t.onclick=()=>t.classList.toggle("on"));
+    document.querySelectorAll(".eq-toggle").forEach(t=>t.onclick=()=>{const on=t.dataset.on==="1";t.dataset.on=on?"0":"1";t.style.background=on?"":"var(--ice)";t.style.color=on?"var(--text2)":"#06202b";t.style.borderColor=on?"var(--border)":"var(--ice)";});
     document.getElementById("ob-back").onclick=()=>{obStep=2;renderOB()};
-    document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;S.profile.prefs={...(S.profile.prefs||{}),equipment:document.getElementById("ob-eq").value,style:document.getElementById("ob-style").value,lifeStage:document.getElementById("ob-life").value,womenMode:(document.getElementById("ob-wm")||{value:(S.profile.prefs||{}).womenMode||"auto"}).value};obStep=4;renderOB()};
+    document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;const inv=[...document.querySelectorAll(".eq-toggle")].filter(t=>t.dataset.on==="1").map(t=>t.dataset.eq);const eqStr=(inv.includes("barbell")||inv.includes("machine"))?"gym":"home";S.profile.prefs={...(S.profile.prefs||{}),equipment:eqStr,equipmentInv:inv,style:document.getElementById("ob-style").value,lifeStage:document.getElementById("ob-life").value,womenMode:(document.getElementById("ob-wm")||{value:(S.profile.prefs||{}).womenMode||"auto"}).value};obChosenPlan=null;obStep=4;renderOB();};
   } else if(obStep===4){
-    const pid=selectPlan();const plan=PLANS[pid];const tDays=[...new Set(S.schedule.days||[1,2,3,4,5])].sort((a,b)=>a-b);
+    const recs=recommendedPlans(3);
+    if(obChosenPlan==null||!recs.some(r=>r.id===obChosenPlan))obChosenPlan=recs.length?recs[0].id:0;
+    const pid=obChosenPlan;const plan=PLANS[pid];const goal=plan.goal;
+    const tDays=[...new Set(S.schedule.days||[1,2,3,4,5])].sort((a,b)=>a-b);
     const dayPreview=plan.slots.map((sl,i)=>{const d=tDays[i];return d!=null?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:600;font-size:12px">${DAYS[d]} (slot ${i+1})</span><span style="font-size:12px;color:var(--text2)">${mkDay(sl,1).focus.replace(" (DELOAD)","")}</span></div>`:""}).join("");
+    const phaseLine=`${goalPhaseLabel(goal,1)} (wk 1-4) → ${goalPhaseLabel(goal,5)} (5-8) → ${goalPhaseLabel(goal,9)} (9-12) → ${goalPhaseLabel(goal,13)} (13${peakIsMaxTest(goal)?", max test":""}) · Deload wk 4 & 8`;
+    const recCards=recs.map(r=>`<div class="ob-rec" data-pid="${r.id}" style="border:1px solid ${r.id===pid?"var(--mint)":"var(--border)"};border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;${r.id===pid?"background:rgba(80,220,160,.07)":""}">
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:16px;height:16px;border-radius:50%;border:2px solid ${r.id===pid?"var(--mint)":"var(--border-lit)"};flex:none;${r.id===pid?"background:var(--mint)":""}"></span><span style="font-weight:600;font-size:13px;color:var(--text)">${r.plan.name}</span></div>
+      <div style="font-size:11px;color:var(--text3);margin:5px 0 0 24px">Why this fits: ${r.why}</div></div>`).join("");
     card.innerHTML=`<div class="ob-progress">${dots}</div>
-      <div class="ob-title">Your Program</div><div class="ob-sub">Based on your profile, we matched you to one of 64 preset programs.</div>
-      <div class="card" style="border-color:var(--border-lit);margin-bottom:14px"><div style="font-size:16px;font-weight:600;margin-bottom:4px;color:var(--text);letter-spacing:-0.02em">${plan.name}</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Template ${pid+1} of 64 · ${plan.slots.length} training days per week · 13-week progression</div>
+      <div class="ob-title">Your Top Matches</div><div class="ob-sub">Scored against your goals, schedule, equipment, and experience. Pick the one that feels right.</div>
+      ${recCards}
+      <div class="card" style="border-color:var(--border-lit);margin:6px 0 14px"><div style="font-size:11px;color:var(--text3);margin-bottom:8px">Week-1 preview · ${plan.slots.length} session${plan.slots.length!==1?"s":""}/week</div>
         ${dayPreview}
-        <div style="margin-top:8px;font-size:10px;color:var(--text3)">Hypertrophy (wk 1-4) → Strength (5-8) → Peak (9-12) → Test (13) · Deload at wk 4 & 8</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text3)">${phaseLine}</div>
       </div>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Weights auto-calculate from your maxes. The program adapts every time you log a workout. You can change plans later in Settings.</p>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Loads auto-calculate from your maxes and get smarter as you log. Change plans anytime in Settings.</p>
       <div class="row" style="margin-top:8px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-mint" id="ob-generate" style="flex:1">Begin this program</button></div>`;
+    document.querySelectorAll(".ob-rec").forEach(el=>el.onclick=()=>{obChosenPlan=Number(el.dataset.pid);renderOB();});
     document.getElementById("ob-back").onclick=()=>{obStep=3;renderOB()};
     document.getElementById("ob-generate").onclick=async()=>{
       S.planId=pid;
@@ -5360,7 +5472,7 @@ function mkDay(slot,w){
   const wf=wkFactor(w),p=S.profile,reps=phaseReps(w),sets=phaseSets(w);
   const sb=S.adapt.setsBonus||{bench:0,squat:0,dead:0};
   const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5),pmi=paceMi(fk);
-  const b=r5(p.bench1RM*wf*S.adapt.bench),sq=r5(p.squat1RM*wf*S.adapt.squat),dl=r5(p.dead1RM*wf*S.adapt.dead);
+  const b=r5(wmax1RM("bench")*wf*S.adapt.bench),sq=r5(wmax1RM("squat")*wf*S.adapt.squat),dl=r5(wmax1RM("dead")*wf*S.adapt.dead);
   const bSets=sets+(sb.bench||0),sqSets=sets+(sb.squat||0),dlSets=sets+(sb.dead||0);
   const intRestBase=90;
   const intRest=Math.max(30,intRestBase+(S.adapt.runRestAdj||0));
@@ -5462,14 +5574,8 @@ function mkDay(slot,w){
   };
   const out=S_[slot]||{focus:"Recovery",exs:[],finisher:"Rest."};
   applyWomenBlueprint(out,slot,w);
-  if(S.profile.prefs&&S.profile.prefs.equipment==="home"){
-    out.exs=out.exs.map(ex=>{
-      if(ex.eid==="bench")return {...ex,eid:"pushup",target:0,unit:"BW",reason:"Home-friendly push alternative"};
-      if(ex.eid==="deadlift")return {...ex,eid:"rdl",target:r5((ex.target||0)*0.45),unit:"lb",reason:"DB hinge replacement"};
-      if(ex.eid==="squat")return {...ex,eid:"bss",target:r5((ex.target||0)*0.2),unit:"lb/hand",reason:"DB split-squat replacement"};
-      return ex;
-    });
-  }
+  // Equipment-aware auto-substitution (covers full inventory, not just "home").
+  out.exs=dedupeExs((out.exs||[]).map(subExForEquip));
   if(S.profile.prefs&&S.profile.prefs.style==="burner"){
     out.exs=out.exs.map(ex=>({ ...ex, sets:Math.min(ex.sets,3), reps:typeof ex.reps==="number"?Math.min(ex.reps,15):ex.reps }));
     if(out.finisher&&slot!=="SR"&&slot!=="TR")out.finisher="10-15 min targeted burner: 3 rounds of 12-15 reps per move.";
@@ -5492,6 +5598,7 @@ function mkDay(slot,w){
       ?"Low-impact finisher: 10-min walk + diaphragmatic breathing"
       :"Postpartum finisher: 8-10 min easy incline walk + core reset";
   }
+  injectComputedWarmup(out);
   return out;
 }
 
