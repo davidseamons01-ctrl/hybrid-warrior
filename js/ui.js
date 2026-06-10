@@ -4,14 +4,15 @@ import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
   warmupText, recentBestE1RM, workingMax,
-  rankPlans, bestPlanId, whyPlan, toEmbedUrl
+  rankPlans, bestPlanId, whyPlan, toEmbedUrl,
+  e1rmSeries, detectPlateau, projectWeeksToGoal
 } from "./programming.js";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
 const PLANS=(function(){
-  const G=["strength","hybrid","fat_loss","muscle"];
-  const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy"];
+  const G=["strength","hybrid","fat_loss","muscle","beginner","powerlifting","endurance"];
+  const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy","Beginner Foundations","Powerlifting","Endurance"];
   const fN=["3-4 Day","5-6 Day"];
   const dN=["Express","Full"];
   const sN=["Men's","Women's"];
@@ -20,7 +21,13 @@ const PLANS=(function(){
     strength:{"00":["FB","SR","FB"],"01":["HP","SR","HL","TR"],"10":["HP","SR","HL","TR","HB"],"11":["HP","HPL","HL","SR","PW"]},
     hybrid:{"00":["FB","SR","FB"],"01":["HP","SR","HL","TR"],"10":["HP","SR","HL","TR","HB"],"11":["HP","SR","HL","TR","HB"]},
     fat_loss:{"00":["CT","SR","FBC"],"01":["HB","SR","CT","TR"],"10":["CT","SR","HB","TR","CT"],"11":["HB","SR","HL","TR","CT"]},
-    muscle:{"00":["FB","FB","FB"],"01":["HYP","HYG","HYL"],"10":["HYP","HYL","HYG","HB","CT"],"11":["HYP","HYL","HYG","HP","HL"]}
+    muscle:{"00":["FB","FB","FB"],"01":["HYP","HYG","HYL"],"10":["HYP","HYL","HYG","HB","CT"],"11":["HYP","HYL","HYG","HP","HL"]},
+    // Beginner: full-body, form-first, gentle ramp (no max test).
+    beginner:{"00":["FB","FB","FB"],"01":["FB","FBC","FB","FB"],"10":["FB","FBC","FB","FBC","FB"],"11":["FB","HP","HL","FBC","FB"]},
+    // Powerlifting: squat/bench/deadlift focus, low reps, peak to a test.
+    powerlifting:{"00":["HP","HL","HPL"],"01":["HP","HL","HPL","FB"],"10":["HP","HL","HPL","HL","HP"],"11":["HP","HL","HPL","HL","HP"]},
+    // Endurance: run-dominant base→build→taper with minimal supporting strength.
+    endurance:{"00":["TR","SR","TR"],"01":["TR","SR","TR","FB"],"10":["TR","SR","TR","SR","FB"],"11":["TR","SR","TR","SR","HL"]}
   };
   function feminizeSlots(goal,slots,isExpress){
     let out=slots.map(sl=>{
@@ -45,9 +52,9 @@ const PLANS=(function(){
     return out;
   }
   const plans=[];
-  for(let g=0;g<4;g++)for(let f=0;f<2;f++)for(let d=0;d<2;d++)for(let s=0;s<2;s++)for(let e=0;e<2;e++){
+  for(let g=0;g<G.length;g++)for(let f=0;f<2;f++)for(let d=0;d<2;d++)for(let s=0;s<2;s++)for(let e=0;e<2;e++){
     let sl=[...base[G[g]][""+f+d]];
-    if(s===1)sl=feminizeSlots(G[g],sl,d===0);
+    if(s===1&&g<4)sl=feminizeSlots(G[g],sl,d===0); // only the original 4 goals get the women's slot remap; archetypes keep their structure (e.g. endurance runs)
     if(e===0)sl=sl.map(x=>x==="PW"?"FB":x==="HPL"?"FB":x);
     plans.push({id:g*16+f*8+d*4+s*2+e,name:`${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`,goal:G[g],slots:sl});
   }
@@ -1014,6 +1021,20 @@ function wmax1RM(type){
 // The user's equipment as understood by the substitution engine: prefer the
 // detailed inventory, fall back to the legacy gym/home string.
 function userEquip(){const pr=S.profile.prefs||{};return (Array.isArray(pr.equipmentInv)&&pr.equipmentInv.length)?pr.equipmentInv:(pr.equipment||"gym");}
+// If a main barbell lift in today's session has stalled across recent logged
+// sessions, return a gentle deload suggestion (else "").
+function detectMainLiftPlateau(exs){
+  try{
+    for(const ex of (exs||[])){
+      const t=inferType((exById(ex.eid)||{}).name||ex.eid);
+      if(t!=="bench"&&t!=="squat"&&t!=="dead")continue;
+      const e=exById(ex.eid);if(!e)continue;
+      const res=detectPlateau(e1rmSeries(S.logs||[],e.name));
+      if(res.plateaued)return `${e.name} has stalled ~${res.sessions} sessions — consider a lighter "deload" week or swapping the variation.`;
+    }
+  }catch(err){}
+  return "";
+}
 // Swap one prescribed exercise for an equipment-appropriate alternative,
 // scaling the load sensibly so a barbell target isn't applied to a DB move.
 function subExForEquip(ex){
@@ -1050,7 +1071,7 @@ function injectComputedWarmup(out){
 // repeat onto a distinct bodyweight fallback so a session never lists a dup.
 function dedupeExs(exs){
   try{
-    const seen=new Set();const pushPool=["dip","pushup"],legPool=["air_squat","lunge","bss"];
+    const seen=new Set();const pushPool=["dip","pushup","pike_pushup","decline_pushup","diamond_pushup"],legPool=["air_squat","glute_bridge","lunge","bss","step_up"];
     return (exs||[]).map(ex=>{
       if(!seen.has(ex.eid)){seen.add(ex.eid);return ex;}
       const e=exById(ex.eid),tags=(e&&e.tags)||[];
@@ -1435,7 +1456,8 @@ function todayPlanFiltered(){
   const effectiveQuick=Math.max(qm,autoQuick);
   const quickNote=effectiveQuick>0&&base.exs.length>2;
   if(effectiveQuick>0&&exs.length>2)exs=exs.slice(0,2);
-  return{...base,exs,quickNote,readiness,isTaper:taperMul<1};
+  const deloadHint=detectMainLiftPlateau(exs);
+  return{...base,exs,quickNote,readiness,isTaper:taperMul<1,deloadHint};
 }
 function sessionIndexForEid(eid){
   const plan=todayPlanFiltered();
@@ -2236,7 +2258,7 @@ function renderOB(){
       obStep=1;renderOB();
     };
   } else if(obStep===1){
-    const areas=["Bench Press","Squat","Deadlift","5K Running","Lose Weight","Build Muscle","Improve Conditioning","General Fitness","Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone","Home-Friendly Workouts","Pregnancy Safe","Postpartum Recovery"];
+    const areas=["Brand New to Training","Bench Press","Squat","Deadlift","Powerlifting Total","5K Running","Run a Race (5K/10K/Half)","Lose Weight","Build Muscle","Improve Conditioning","General Fitness","Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone","Home-Friendly Workouts","Pregnancy Safe","Postpartum Recovery"];
     const sel=S.goals.focusAreas||[];
     card.innerHTML=`<div class="ob-progress">${dots}</div>
       <div class="ob-title">Your Goals</div><div class="ob-sub">Select everything you want to work on. We'll build your program around these.</div>
@@ -2250,27 +2272,33 @@ function renderOB(){
   } else if(obStep===2){
     const fa=S.goals.focusAreas||[];
     const curPrimary=(S.profile.prefs||{}).primaryGoal||"";
+    const isPL=fa.includes("Powerlifting Total");
+    const wantsBench=fa.includes("Bench Press")||isPL;
+    const wantsSquat=fa.includes("Squat")||isPL;
+    const wantsDead=fa.includes("Deadlift")||isPL;
+    const wantsRun=fa.includes("5K Running")||fa.includes("Run a Race (5K/10K/Half)");
     card.innerHTML=`<div class="ob-progress">${dots}</div>
       <div class="ob-title">Current Fitness</div><div class="ob-sub">Enter your current maxes / times. Leave blank if unknown — we'll estimate.</div>
       ${fa.length>1?`<div style="margin-bottom:14px"><label>Your #1 priority</label><select id="ob-primary"><option value="">Auto (balance all goals)</option>${fa.map(a=>`<option value="${a}" ${curPrimary===a?"selected":""}>${a}</option>`).join("")}</select><p style="font-size:11px;color:var(--text3);margin-top:4px">We'll bias your program toward this when goals compete.</p></div>`:""}
-      ${fa.includes("Bench Press")?`<div style="margin-bottom:10px"><label>Bench Press 1RM (lb)</label><input id="ob-b" type="number" value="${S.profile.bench1RM||""}" placeholder="e.g. 215"></div>
+      ${wantsBench?`<div style="margin-bottom:10px"><label>Bench Press 1RM (lb)</label><input id="ob-b" type="number" value="${S.profile.bench1RM||""}" placeholder="e.g. 215"></div>
         <div style="margin-bottom:10px"><label>Bench Goal (lb)</label><input id="ob-bg" type="number" value="${S.goals.bench||""}" placeholder="e.g. 225"></div>`:""}
-      ${fa.includes("Squat")?`<div style="margin-bottom:10px"><label>Squat 1RM (lb)</label><input id="ob-sq" type="number" value="${S.profile.squat1RM||""}" placeholder="e.g. 265"></div>
+      ${wantsSquat?`<div style="margin-bottom:10px"><label>Squat 1RM (lb)</label><input id="ob-sq" type="number" value="${S.profile.squat1RM||""}" placeholder="e.g. 265"></div>
         <div style="margin-bottom:10px"><label>Squat Goal (lb)</label><input id="ob-sqg" type="number" value="${S.goals.squat||""}" placeholder="e.g. 315"></div>`:""}
-      ${fa.includes("Deadlift")?`<div style="margin-bottom:10px"><label>Deadlift 1RM (lb)</label><input id="ob-dl" type="number" value="${S.profile.dead1RM||""}" placeholder="e.g. 386"></div>
+      ${wantsDead?`<div style="margin-bottom:10px"><label>Deadlift 1RM (lb)</label><input id="ob-dl" type="number" value="${S.profile.dead1RM||""}" placeholder="e.g. 386"></div>
         <div style="margin-bottom:10px"><label>Deadlift Goal (lb)</label><input id="ob-dlg" type="number" value="${S.goals.deadlift||""}" placeholder="e.g. 405"></div>`:""}
-      ${fa.includes("5K Running")?`<div style="margin-bottom:10px"><label>Current 4-Mile Time (mm:ss)</label><input id="ob-run" value="${S.profile.run4mi?mmss(S.profile.run4mi):""}" placeholder="e.g. 35:57"></div>
+      ${wantsRun?`<div style="margin-bottom:10px"><label>Current 4-Mile Time (mm:ss)</label><input id="ob-run" value="${S.profile.run4mi?mmss(S.profile.run4mi):""}" placeholder="e.g. 35:57"></div>
         <div style="margin-bottom:10px"><label>5K Goal Time (mm:ss)</label><input id="ob-5kg" value="${S.goals.fiveK?mmss(S.goals.fiveK):""}" placeholder="e.g. 20:00"></div>`:""}
-      ${!fa.includes("Bench Press")&&!fa.includes("Squat")&&!fa.includes("Deadlift")&&!fa.includes("5K Running")?`<p style="color:var(--text3);font-size:13px">No specific targets needed for your selected goals. We'll build a balanced program.</p>`:""}
+      ${!wantsBench&&!wantsSquat&&!wantsDead&&!wantsRun?`<p style="color:var(--text3);font-size:13px">No specific targets needed for your selected goals. We'll build a balanced program.</p>`:""}
       <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Continue</button></div>`;
     document.getElementById("ob-back").onclick=()=>{obStep=1;renderOB()};
     document.getElementById("ob-next").onclick=()=>{
       const fa=S.goals.focusAreas;const g=v=>Number((document.getElementById(v)||{}).value)||0;const gm=v=>parseMM((document.getElementById(v)||{}).value);
+      const isPL=fa.includes("Powerlifting Total");
       const primEl=document.getElementById("ob-primary");if(primEl)S.profile.prefs={...(S.profile.prefs||{}),primaryGoal:primEl.value||""};
-      if(fa.includes("Bench Press")){S.profile.bench1RM=g("ob-b")||135;S.goals.bench=g("ob-bg")||S.profile.bench1RM+20}
-      if(fa.includes("Squat")){S.profile.squat1RM=g("ob-sq")||185;S.goals.squat=g("ob-sqg")||S.profile.squat1RM+30}
-      if(fa.includes("Deadlift")){S.profile.dead1RM=g("ob-dl")||225;S.goals.deadlift=g("ob-dlg")||S.profile.dead1RM+30}
-      if(fa.includes("5K Running")){S.profile.run4mi=gm("ob-run")||2400;S.goals.fiveK=gm("ob-5kg")||1200}
+      if(fa.includes("Bench Press")||isPL){S.profile.bench1RM=g("ob-b")||135;S.goals.bench=g("ob-bg")||S.profile.bench1RM+20}
+      if(fa.includes("Squat")||isPL){S.profile.squat1RM=g("ob-sq")||185;S.goals.squat=g("ob-sqg")||S.profile.squat1RM+30}
+      if(fa.includes("Deadlift")||isPL){S.profile.dead1RM=g("ob-dl")||225;S.goals.deadlift=g("ob-dlg")||S.profile.dead1RM+30}
+      if(fa.includes("5K Running")||fa.includes("Run a Race (5K/10K/Half)")){S.profile.run4mi=gm("ob-run")||2400;S.goals.fiveK=gm("ob-5kg")||1200}
       if(!S.profile.bench1RM)S.profile.bench1RM=Math.round(S.profile.weight*.65);
       if(!S.profile.squat1RM)S.profile.squat1RM=Math.round(S.profile.weight*.85);
       if(!S.profile.dead1RM)S.profile.dead1RM=Math.round(S.profile.weight*1.2);
@@ -4208,7 +4236,7 @@ function renderToday(){
   <div id="weather-slot"></div>
   ${fuelingAdviceHtml(plan)}
   ${plan.exs.length?`<div class="power-focus-bar"><span class="power-focus-label">${powerFocusOn?"Focus Mode":"Session"}</span><button type="button" class="power-focus-toggle ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit Focus":"Focus Mode"}</button><button type="button" class="ghost-mode-toggle ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost On":"Ghost"}</button></div>`:""}
-  ${plan.exs.length&&trainFocusIdx===null?`<div class="card section readiness-card"><div style="font-size:13px;font-weight:600;margin-bottom:6px">How are you feeling?</div><div class="readiness-row"><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="strong"?"readiness-on":""}" data-ready="strong"><span style="font-size:15px">💪</span> Strong</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="normal"||!plan.readiness?"readiness-on":""}" data-ready="normal"><span style="font-size:15px">👍</span> Normal</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="fatigued"?"readiness-on":""}" data-ready="fatigued"><span style="font-size:15px">😴</span> Fatigued</button></div>${plan.readiness==="fatigued"?`<p style="font-size:11px;color:var(--gold);margin-top:8px;line-height:1.45">Loads eased ~5% for this session only — your program stays intact.</p>`:plan.readiness==="strong"?`<p style="font-size:11px;color:var(--mint);margin-top:8px;line-height:1.45">Targets nudged up ~3% — push it today.</p>`:""}</div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
+  ${plan.exs.length&&trainFocusIdx===null?`${plan.deloadHint?`<div class="card section" style="border-color:var(--gold);background:rgba(212,175,55,.06)"><div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:2px">⚠️ Progress check</div><p style="font-size:12px;color:var(--text2);line-height:1.45;margin:0">${escPlanChip(plan.deloadHint)}</p></div>`:""}<div class="card section readiness-card"><div style="font-size:13px;font-weight:600;margin-bottom:6px">How are you feeling?</div><div class="readiness-row"><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="strong"?"readiness-on":""}" data-ready="strong"><span style="font-size:15px">💪</span> Strong</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="normal"||!plan.readiness?"readiness-on":""}" data-ready="normal"><span style="font-size:15px">👍</span> Normal</button><button type="button" class="btn btn-sm readiness-btn ${plan.readiness==="fatigued"?"readiness-on":""}" data-ready="fatigued"><span style="font-size:15px">😴</span> Fatigued</button></div>${plan.readiness==="fatigued"?`<p style="font-size:11px;color:var(--gold);margin-top:8px;line-height:1.45">Loads eased ~5% for this session only — your program stays intact.</p>`:plan.readiness==="strong"?`<p style="font-size:11px;color:var(--mint);margin-top:8px;line-height:1.45">Targets nudged up ~3% — push it today.</p>`:""}</div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does catch-up work?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p></details><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">Why am I seeing this?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p></details><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today" style="margin-top:8px">Add to today</button></div>`:""}

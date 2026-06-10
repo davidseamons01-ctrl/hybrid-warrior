@@ -6,8 +6,10 @@
 
 /* ---------- 1. GOAL / ARCHETYPE MODEL ---------- */
 
-// Base goals match the 4 goals the 64-plan generator already builds.
+// Base goals match the 4 goals the original generator builds; ALL_GOALS adds
+// the Wave-2 archetypes (the generator appends them at plan ids 64+).
 export const BASE_GOALS = ["strength", "hybrid", "fat_loss", "muscle"];
+export const ALL_GOALS = ["strength", "hybrid", "fat_loss", "muscle", "beginner", "powerlifting", "endurance"];
 
 // Map each onboarding focus-area label to goal weights. Lets us pick the
 // dominant goal AND detect secondary intent (e.g. running + lifting = hybrid).
@@ -26,12 +28,16 @@ const FOCUS_GOAL_WEIGHTS = {
   "Pilates Plus Tone":    { fat_loss: 2, muscle: 1 },
   "Home-Friendly Workouts": { hybrid: 1, fat_loss: 1, muscle: 1 },
   "Pregnancy Safe":       { hybrid: 1 },
-  "Postpartum Recovery":  { hybrid: 1 }
+  "Postpartum Recovery":  { hybrid: 1 },
+  // Wave-2 archetype focus areas
+  "Brand New to Training": { beginner: 6 },
+  "Powerlifting Total":    { powerlifting: 6, strength: 1 },
+  "Run a Race (5K/10K/Half)": { endurance: 6, hybrid: 1 }
 };
 
-// Returns { goal, scores } — the dominant base goal plus the full weight map.
+// Returns { goal, scores } — the dominant goal plus the full weight map.
 export function goalFromFocus(focusAreas, primaryGoal) {
-  const scores = { strength: 0, hybrid: 0, fat_loss: 0, muscle: 0 };
+  const scores = {}; for (const g of ALL_GOALS) scores[g] = 0;
   for (const fa of (focusAreas || [])) {
     const w = FOCUS_GOAL_WEIGHTS[fa];
     if (!w) continue;
@@ -43,7 +49,7 @@ export function goalFromFocus(focusAreas, primaryGoal) {
     for (const g of Object.keys(w)) scores[g] += w[g] * 2;
   }
   let goal = "hybrid", best = -1;
-  for (const g of BASE_GOALS) if (scores[g] > best) { best = scores[g]; goal = g; }
+  for (const g of ALL_GOALS) if (scores[g] > best) { best = scores[g]; goal = g; }
   if (best <= 0) goal = "hybrid"; // sensible default when nothing selected
   return { goal, scores };
 }
@@ -69,20 +75,20 @@ export function equipmentSet(equip) {
 // Substitution table: eid → ordered fallbacks keyed by required equipment.
 // We only reference exercise ids that exist in the catalog.
 const SUBS = {
-  bench:    [["dumbbell", "incline_db"], ["bodyweight", "pushup"]],
-  cgbench:  [["dumbbell", "incline_db"], ["bodyweight", "pushup"]],
-  incline_db: [["bodyweight", "pushup"]],
-  squat:    [["dumbbell", "bss"], ["bodyweight", "air_squat"]],
-  deadlift: [["dumbbell", "rdl"], ["bodyweight", "hip_thrust"]],
-  rdl:      [["dumbbell", "hip_thrust"], ["bodyweight", "hip_thrust"]],
-  row:      [["dumbbell", "cross_press"], ["bands", "face_pull"], ["bodyweight", "pullup"]],
-  pullup:   [["bands", "face_pull"], ["bodyweight", "pushup"]],
-  ohp:      [["bands", "champagne"], ["bodyweight", "pushup"]],
-  dip:      [["bodyweight", "pushup"]],
+  bench:    [["machine", "machine_chest_press"], ["dumbbell", "incline_db"], ["bodyweight", "pushup"]],
+  cgbench:  [["machine", "tricep_pushdown"], ["dumbbell", "incline_db"], ["bodyweight", "diamond_pushup"]],
+  incline_db: [["machine", "machine_chest_press"], ["bodyweight", "decline_pushup"]],
+  squat:    [["machine", "leg_press"], ["dumbbell", "goblet_squat"], ["bodyweight", "air_squat"]],
+  deadlift: [["dumbbell", "rdl"], ["kettlebell", "kb_swing"], ["bodyweight", "glute_bridge"]],
+  rdl:      [["kettlebell", "kb_swing"], ["dumbbell", "hip_thrust"], ["bodyweight", "glute_bridge"]],
+  row:      [["machine", "seated_cable_row"], ["dumbbell", "chest_supported_row"], ["bands", "face_pull"], ["bodyweight", "inverted_row"]],
+  pullup:   [["machine", "lat_pulldown"], ["pullup_bar", "chinup"], ["bands", "face_pull"], ["bodyweight", "inverted_row"]],
+  ohp:      [["dumbbell", "arnold_press"], ["bands", "champagne"], ["bodyweight", "pike_pushup"]],
+  dip:      [["machine", "tricep_pushdown"], ["bodyweight", "diamond_pushup"]],
   farmer:   [["dumbbell", "suitcase"], ["bodyweight", "plank"]],
-  lunge:    [["bodyweight", "air_squat"]],
-  bss:      [["bodyweight", "air_squat"]],
-  lat_raise:[["bands", "champagne"], ["bodyweight", "pushup"]]
+  lunge:    [["dumbbell", "step_up"], ["bodyweight", "air_squat"]],
+  bss:      [["dumbbell", "step_up"], ["bodyweight", "air_squat"]],
+  lat_raise:[["machine", "rear_delt_fly"], ["bands", "champagne"], ["bodyweight", "pike_pushup"]]
 };
 
 // Equipment an exercise needs (anything not listed is treated as bodyweight).
@@ -90,7 +96,21 @@ const EX_EQUIP = {
   bench: "barbell", cgbench: "barbell", squat: "barbell", deadlift: "barbell",
   rdl: "barbell", row: "barbell", ohp: "dumbbell", incline_db: "dumbbell",
   dip: "bodyweight", farmer: "dumbbell", lunge: "dumbbell", bss: "dumbbell",
-  lat_raise: "dumbbell", pullup: "pullup_bar", face_pull: "bands"
+  lat_raise: "dumbbell", pullup: "pullup_bar", face_pull: "bands",
+  // Wave 2 catalog
+  front_squat: "barbell", goblet_squat: "dumbbell", leg_press: "machine", hack_squat: "machine",
+  leg_ext: "machine", leg_curl: "machine", calf_raise: "machine", step_up: "dumbbell",
+  glute_bridge: "bodyweight", bb_hip_thrust: "barbell", kb_swing: "kettlebell",
+  lat_pulldown: "machine", seated_cable_row: "machine", chest_supported_row: "dumbbell",
+  inverted_row: "bodyweight", chinup: "pullup_bar", shrug: "dumbbell",
+  machine_chest_press: "machine", cable_fly: "machine", pec_deck: "machine",
+  pike_pushup: "bodyweight", decline_pushup: "bodyweight", diamond_pushup: "bodyweight",
+  bb_ohp: "barbell", arnold_press: "dumbbell", rear_delt_fly: "dumbbell",
+  bb_curl: "barbell", db_curl: "dumbbell", hammer_curl: "dumbbell", cable_curl: "machine",
+  tricep_pushdown: "machine", skullcrusher: "barbell", overhead_ext: "dumbbell",
+  hanging_leg_raise: "pullup_bar", cable_crunch: "machine", russian_twist: "bodyweight",
+  side_plank: "bodyweight", mountain_climber: "bodyweight",
+  row_erg: "machine", bike_erg: "machine", jump_rope: "bodyweight", box_jump: "bodyweight", wall_ball: "machine"
 };
 
 export function exerciseNeeds(eid) { return EX_EQUIP[eid] || "bodyweight"; }
@@ -114,13 +134,15 @@ export function substituteEid(eid, equip) {
 
 export function isDeloadWeek(w) { return w === 4 || w === 8; }
 
-// Only strength/hybrid peak toward a true max test at wk 13.
-export function peakIsMaxTest(goal) { return goal === "strength" || goal === "hybrid"; }
+// Strength / hybrid / powerlifting peak toward a true max test at wk 13.
+export function peakIsMaxTest(goal) { return goal === "strength" || goal === "hybrid" || goal === "powerlifting"; }
 
 export function phaseLabel(goal, w) {
   if (goal === "fat_loss") return w <= 4 ? "Base" : w <= 8 ? "Build" : w <= 12 ? "Burn" : "Benchmark";
   if (goal === "muscle")   return w <= 4 ? "Volume" : w <= 8 ? "Overload" : w <= 12 ? "Intensify" : "Pump Peak";
-  // strength / hybrid (legacy labels preserved)
+  if (goal === "beginner") return w <= 4 ? "Learn" : w <= 8 ? "Build" : w <= 12 ? "Grow" : "Check-In";
+  if (goal === "endurance")return w <= 4 ? "Base" : w <= 8 ? "Build" : w <= 12 ? "Peak" : "Taper";
+  // strength / hybrid / powerlifting
   return w <= 4 ? "Hypertrophy" : w <= 8 ? "Strength" : w <= 12 ? "Peak" : "Test";
 }
 
@@ -129,7 +151,13 @@ const WK_FACTOR = {
   strength: [.62, .65, .68, .60, .72, .76, .79, .65, .80, .84, .88, .92, .85],
   hybrid:   [.62, .65, .68, .60, .72, .76, .79, .65, .80, .84, .88, .92, .85],
   muscle:   [.65, .68, .70, .60, .70, .72, .74, .64, .72, .75, .77, .78, .70],
-  fat_loss: [.55, .58, .60, .52, .60, .62, .64, .56, .62, .64, .66, .66, .60]
+  fat_loss: [.55, .58, .60, .52, .60, .62, .64, .56, .62, .64, .66, .66, .60],
+  // Gentle, slow climb — never near a true max.
+  beginner:    [.50, .52, .55, .50, .58, .60, .62, .56, .64, .66, .68, .68, .65],
+  // Heaviest curve, true peak/test.
+  powerlifting:[.65, .68, .72, .62, .76, .80, .84, .68, .86, .90, .93, .95, .90],
+  // Low lifting intensity (running is the stimulus); tapers at the end.
+  endurance:   [.55, .58, .60, .52, .62, .64, .66, .58, .66, .66, .64, .58, .55]
 };
 export function wkFactorFor(goal, w) {
   const arr = WK_FACTOR[goal] || WK_FACTOR.strength;
@@ -141,6 +169,9 @@ export function wkFactorFor(goal, w) {
 export function phaseRepsFor(goal, w) {
   if (goal === "muscle")   return w <= 4 ? [12, 12, 10, 12] : w <= 8 ? [10, 10, 8, 10] : w <= 12 ? [8, 8, 6, 8] : [12, 15, 12, 15];
   if (goal === "fat_loss") return w <= 4 ? [15, 12, 15, 12] : w <= 8 ? [12, 12, 12, 15] : w <= 12 ? [12, 10, 12, 15] : [15, 20, 15, 20];
+  if (goal === "beginner") return w <= 4 ? [12, 12, 12, 12] : w <= 8 ? [10, 10, 10, 12] : w <= 12 ? [8, 10, 8, 10] : [10, 12, 10, 12];
+  if (goal === "powerlifting") return w <= 4 ? [6, 5, 5, 5] : w <= 8 ? [5, 4, 3, 4] : w <= 12 ? [3, 2, 2, 2] : [2, 1, 1, 1];
+  if (goal === "endurance") return w <= 4 ? [10, 10, 8, 10] : w <= 8 ? [8, 8, 8, 10] : w <= 12 ? [8, 6, 8, 8] : [10, 10, 10, 12];
   // strength / hybrid (legacy)
   return w <= 4 ? [10, 8, 8, 6] : w <= 8 ? [6, 5, 4, 3] : w <= 12 ? [4, 3, 2, 2] : [3, 2, 1, 1];
 }
@@ -149,6 +180,9 @@ export function phaseSetsFor(goal, w) {
   if (isDeloadWeek(w)) return goal === "fat_loss" ? 2 : 3;
   if (goal === "muscle")   return w <= 4 ? 4 : w <= 8 ? 4 : w <= 12 ? 5 : 4;
   if (goal === "fat_loss") return 3;
+  if (goal === "beginner") return 3;                 // keep volume modest while learning
+  if (goal === "endurance") return 3;                // preserve legs for running
+  if (goal === "powerlifting") return w <= 4 ? 4 : w <= 12 ? 5 : 3;
   return w <= 4 ? 4 : w <= 12 ? 5 : 3; // strength / hybrid
 }
 
@@ -229,6 +263,47 @@ export function workingMax(profileMax, recentBest, opts) {
   return Math.round(Math.max(lo, Math.min(hi, rb)));
 }
 
+/* ---------- 5b. PLATEAU DETECTION & GOAL PROJECTION ---------- */
+
+// Chronological best-e1RM-per-day series for one exercise.
+export function e1rmSeries(logs, exerciseName) {
+  const byDate = {};
+  for (const l of (logs || [])) {
+    if (!l || l.exercise !== exerciseName) continue;
+    const e = epley(Number(l.aW) || 0, Number(l.aR) || 0);
+    if (e > (byDate[l.date] || 0)) byDate[l.date] = e;
+  }
+  return Object.keys(byDate).sort().map((d) => byDate[d]);
+}
+
+// Stall detector: no meaningful gain (and no fresh peak) over the recent window.
+export function detectPlateau(series, opts) {
+  const o = opts || {};
+  const min = o.minSessions || 4;
+  const tol = o.tol != null ? o.tol : 0.01;
+  const s = (series || []).filter((n) => n > 0);
+  if (s.length < min) return { plateaued: false, reason: "insufficient data", sessions: s.length };
+  const recent = s.slice(-min);
+  const first = recent[0], last = recent[recent.length - 1];
+  const best = Math.max.apply(null, recent);
+  const gain = first > 0 ? (last - first) / first : 0;
+  const freshPeak = best > recent[0] * (1 + tol);
+  if (gain <= tol && !freshPeak) return { plateaued: true, reason: `no progress in last ${min} sessions`, sessions: min };
+  return { plateaued: false, sessions: min };
+}
+
+// Weeks to reach a target at a given per-week rate. Returns null if the rate is
+// flat or moving the wrong direction (handles both gain and loss goals).
+export function projectWeeksToGoal(current, target, perWeek) {
+  const c = Number(current), t = Number(target), r = Number(perWeek);
+  if (![c, t, r].every(Number.isFinite) || r === 0) return null;
+  const remaining = t - c;
+  if (remaining === 0) return { weeks: 0 };
+  if (Math.sign(remaining) !== Math.sign(r)) return null; // trending away from goal
+  const weeks = Math.ceil(remaining / r);
+  return { weeks: Math.max(0, weeks) };
+}
+
 /* ---------- 6. PLAN SCORING (the keystone) ---------- */
 // Score a generated plan object {id,name,goal,slots} against the user profile.
 // Higher = better fit. Pure: caller passes everything in.
@@ -284,7 +359,7 @@ export function bestPlanId(plans, ctx) {
 // One-line human rationale for a recommendation.
 export function whyPlan(plan, ctx) {
   const bits = [];
-  const goalName = { strength: "strength", hybrid: "hybrid", fat_loss: "fat loss", muscle: "muscle" }[plan.goal] || plan.goal;
+  const goalName = { strength: "strength", hybrid: "hybrid", fat_loss: "fat loss", muscle: "muscle", beginner: "beginner", powerlifting: "powerlifting", endurance: "endurance" }[plan.goal] || plan.goal;
   if (plan.goal === ctx.goal) bits.push(`matches your ${goalName} goal`);
   const days = (ctx.trainingDays || []).length || 5;
   const slots = (plan.slots || []).length;
