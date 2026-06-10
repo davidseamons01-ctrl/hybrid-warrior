@@ -137,6 +137,13 @@ t("workingMax clamps fluke upward", () => {
 t("workingMax falls back to profile when no logs", () => {
   assert.equal(workingMax(225, 0), 225);
 });
+t("workingMax NEVER drops below stored max (no lightening regression)", () => {
+  assert.equal(workingMax(225, 200), 225); // logged working sets below true 1RM → stay at 225
+  assert.equal(workingMax(225, 224), 225);
+});
+t("workingMax raises for a genuine recent PR", () => {
+  assert.equal(workingMax(225, 235), 235); // new e1RM above stored max, within cap
+});
 
 /* --- plan scoring --- */
 const PLANS = (function () {
