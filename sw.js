@@ -1,4 +1,4 @@
-const CACHE_NAME = "hybrid-warrior-v66";
+const CACHE_NAME = "hybrid-warrior-v67";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -50,17 +50,16 @@ self.addEventListener("fetch", (event) => {
   const isManifest = isSameOrigin && reqUrl.pathname.endsWith(".webmanifest");
 
   if (isHtmlRequest) {
+    // Network-first for HTML so a fresh deploy is picked up immediately when
+    // online; fall back to cache (then index.html) only when offline.
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const network = fetch(event.request)
-          .then((resp) => {
-            const clone = resp.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            return resp;
-          })
-          .catch(() => null);
-        return cached || network.then((r) => r || caches.match("./index.html"));
-      })
+      fetch(event.request)
+        .then((resp) => {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return resp;
+        })
+        .catch(() => caches.match(event.request).then((c) => c || caches.match("./index.html")))
     );
     return;
   }
