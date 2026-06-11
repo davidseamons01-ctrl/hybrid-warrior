@@ -1,13 +1,14 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610h";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610i";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
   warmupText, recentBestE1RM, workingMax,
   rankPlans, bestPlanId, whyPlan, toEmbedUrl,
   e1rmSeries, detectPlateau, projectWeeksToGoal,
-  accessoryRx, mergeLogSets
-} from "./programming.js?v=20260610h";
+  accessoryRx, mergeEvents,
+  setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
+} from "./programming.js?v=20260610i";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -78,7 +79,7 @@ const DEF={
   scheduleAdjust:{catchUpQueue:[],missChoices:{},missSnoozed:{},extraTrainingIso:null,catchUpClearedDate:null},
   program:{week:1,start:iso()},
   adapt:{bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0},
-  logs:[],weightLog:[],healthLog:[],
+  logs:[],events:[],weightLog:[],healthLog:[],
   planId:null,
   sync:{on:false,cfg:"",uid:""},
   pdfs:{"28DayPlan_FinalVersion.pdf":"","Copy of OffSeason_2ndEdition_Final.pdf":"","IN Season workouts.pdf":"","WrestlingEBook2_FINAL.compressed.pdf":""},
@@ -221,6 +222,7 @@ function parkCurrentProgram(label){
     adapt:{...S.adapt},
     schedule:{...S.schedule},
     logs:S.logs.slice(),
+    events:Array.isArray(S.events)?S.events.slice():[],
     weightLog:S.weightLog.slice(),
     lastLiftByEid:{...S.lastLiftByEid},
     sessionAdaptedByDate:{...(S.sessionAdaptedByDate||{})}
@@ -240,7 +242,8 @@ function resumeParkedProgram(parkId){
   S.program={...parked.program};
   S.adapt={...parked.adapt};
   S.schedule={...parked.schedule};
-  S.logs=parked.logs||[];
+  S.events=Array.isArray(parked.events)?parked.events.slice():fromLegacyLogs(parked.logs||[]);
+  reprojectLogs();
   S.weightLog=parked.weightLog||[];
   S.lastLiftByEid=parked.lastLiftByEid||{};
   S.sessionAdaptedByDate=parked.sessionAdaptedByDate||{};
@@ -323,9 +326,34 @@ function normalizeProgramStart(st){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(x))st.program.start=iso();
   else if(Number.isNaN(parseIsoNoon(x).getTime()))st.program.start=iso();
 }
-function load(){try{const r=localStorage.getItem("hw5");const s=r?merge(structuredClone(DEF),JSON.parse(r)):structuredClone(DEF);trimStaleSkipped(s);normalizeProgramStart(s);return s}catch{return structuredClone(DEF)}}
+function load(){try{const r=localStorage.getItem("hw5");const s=r?merge(structuredClone(DEF),JSON.parse(r)):structuredClone(DEF);trimStaleSkipped(s);normalizeProgramStart(s);backfillEventsOnce(s);return s}catch{return structuredClone(DEF)}}
 function merge(b,s){if(!s||typeof s!=="object")return b;for(const k of Object.keys(s)){if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k]))b[k]=merge(b[k]||{},s[k]);else b[k]=s[k]}return b}
-function save(){localStorage.setItem("hw5",JSON.stringify(S));idbPut("kv","state",JSON.parse(JSON.stringify(S))).catch(()=>{})}
+// ── Event-sourced log (overhaul 2b): S.events is the source of truth; S.logs
+// is a derived projection. These helpers keep them in lock-step and never let a
+// log/delete fail (try/catch falls back to the legacy array mutation). ──
+function makeLogId(){return(typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10))}
+function ensureEvents(){if(!Array.isArray(S.events))S.events=[]}
+function reprojectLogs(){ensureEvents();try{S.logs=projectLogs(S.events).slice(-1000)}catch(e){}}
+function recordLoggedSet(log){
+  try{ensureEvents();if(!log.id)log.id=makeLogId();S.events.push(setLoggedFromLog(log));reprojectLogs();}
+  catch(e){try{if(!Array.isArray(S.logs))S.logs=[];S.logs.push(log);S.logs=S.logs.slice(-1000);}catch(_){}}
+  return log;
+}
+function tombstoneLogs(pred){
+  const removed=[];
+  try{ensureEvents();for(const l of (S.logs||[])){if(l&&pred(l)){removed.push(l);if(l.id)S.events.push(setDeletedEvent(String(l.id)));}}reprojectLogs();}
+  catch(e){try{S.logs=(S.logs||[]).filter(l=>!pred(l));}catch(_){}}
+  return removed;
+}
+function backfillEventsOnce(st){
+  try{
+    if(!Array.isArray(st.events))st.events=[];
+    if(st.events.length===0&&Array.isArray(st.logs)&&st.logs.length)st.events=fromLegacyLogs(st.logs);
+    if(st.events.length)st.logs=projectLogs(st.events).slice(-1000);
+  }catch(e){if(!Array.isArray(st.logs))st.logs=[];}
+  return st;
+}
+function save(){if(Array.isArray(S.events)&&S.events.length>5000)S.events=S.events.slice(-5000);localStorage.setItem("hw5",JSON.stringify(S));idbPut("kv","state",JSON.parse(JSON.stringify(S))).catch(()=>{})}
 async function persist(){save();if(currentUser)await cloudPush()}
 
 let fbApp=null,fbDb=null,fbAuth=null,fbUnsub=null,lastPushAt=0;
@@ -400,12 +428,17 @@ async function initFB(cfg){
   await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 }
 function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){
-  // Event-sourced conflict-free log merge: whole-document merge would let the
-  // remote snapshot's logs array overwrite ours (last-write-wins). Instead,
-  // union both devices' logs by stable id so no logged set is ever lost.
-  const localLogs=Array.isArray(S.logs)?S.logs.slice():[];
+  // Event-sourced conflict-free merge: whole-document sync would let the remote
+  // snapshot overwrite our logs (last-write-wins). Instead, union both devices'
+  // event streams by id so no logged set — or delete — is ever lost. Handles
+  // both event-native and legacy logs-only remotes.
+  const localEv=(Array.isArray(S.events)&&S.events.length)?S.events.slice():fromLegacyLogs(S.logs||[]);
   S=merge(S,d.state);
-  try{S.logs=mergeLogSets(localLogs,(d.state&&Array.isArray(d.state.logs))?d.state.logs:[]).slice(-1000);}catch(e){}
+  try{
+    const remoteEv=(d.state&&Array.isArray(d.state.events)&&d.state.events.length)?d.state.events:fromLegacyLogs((d.state&&d.state.logs)||[]);
+    S.events=mergeEvents(localEv,remoteEv);
+    reprojectLogs();
+  }catch(e){}
   normalizeProgramStart(S);save();render()}})}
 async function cloudPush(){
   if(offlineMode||!fbDb||!currentUser)return;
@@ -4530,8 +4563,7 @@ async function logSingleSetForExercise(i){
   }
   if(shoeId)log.shoeId=shoeId;
   log.score=calcLogScore(log);
-  S.logs.push(log);
-  S.logs=S.logs.slice(-1000);
+  recordLoggedSet(log);
   S.lastLiftByEid[ex.eid]=aW;
   if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};
   delete S.sessionAdaptedByDate[dayIso];
@@ -4734,7 +4766,7 @@ function bindToday(){
     else toast(`${result.name} saved — ready for set ${nextSet}.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});
   });
   document.querySelectorAll(".ex-copyprev").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const name=e?e.name:ex.eid;const row=[...S.logs].reverse().find(l=>l.exercise===name);if(!row){toast("No previous set yet for this exercise.");return}const run=isRunExerciseName(name);const wVal=run?paceSecPerMiDisplay(Number(row.aW)||0):String(loadInputDisplayFromLb(Number(row.aW)||0));document.getElementById("t-s"+i).value=Number(row.aS)||1;document.getElementById("t-r"+i).value=Number(row.aR)||ex.reps||1;document.getElementById("t-w"+i).value=wVal;const tqW=document.getElementById("tq-w"+i);if(tqW)tqW.value=wVal;const o=document.getElementById("t-o"+i);if(o&&row.outcome)o.value=row.outcome;hapticPulse(12);toast("Copied previous set")});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);S.logs.push(log);S.logs=S.logs.slice(-1000);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}const isPR=!run&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);if(isPR){triggerHaptic("pr");celebrateFinish();toastMsg+=" — 🏆 New Record!"}else{triggerHaptic("tick")}toast(toastMsg,{undo:()=>{S.logs=prev;delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});const restSec=e&&e.rest?parseRestSec(e.rest):90;startRestTimer(restSec,name);render()});
+  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const prevEv=Array.isArray(S.events)?S.events.slice():[];const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);recordLoggedSet(log);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}const isPR=!run&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);if(isPR){triggerHaptic("pr");celebrateFinish();toastMsg+=" — 🏆 New Record!"}else{triggerHaptic("tick")}toast(toastMsg,{undo:()=>{S.events=prevEv;reprojectLogs();delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});const restSec=e&&e.rest?parseRestSec(e.rest):90;startRestTimer(restSec,name);render()});
   const mm=document.getElementById("miss-move"),ms=document.getElementById("miss-skip"),mp=document.getElementById("miss-pick"),ml=document.getElementById("miss-later"),cu=document.getElementById("catchup-add-today"),tas=document.getElementById("train-adjust-schedule");
   if(mm)mm.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const pl=rollingPlanForDate(m.date);const due=nextTrainingIso(m.date);if(!due){toast("Could not find a next training day.");return}const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:due});a.missChoices[m.date]={choice:"move"};await persist();render();toast(`Queued for ${DAYS[parseIsoNoon(due).getDay()]} (${due}).`)};
   if(ms)ms.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();render();toast("Session skipped for this block week.")};
@@ -4854,11 +4886,11 @@ function bindLog(){
   }
   document.querySelectorAll(".log-history-actions").forEach(el=>{el.addEventListener("click",e=>e.stopPropagation());el.addEventListener("mousedown",e=>e.stopPropagation())});
   document.querySelectorAll("#train-inner .input-mmss").forEach(el=>bindMmssPaceInput(el));
-  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{hapticKey();const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;S.logs=S.logs.filter(l=>!(l.date===logDate&&l.exercise===name));const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("lg-w"+i).value):loadInputToLb(Number(document.getElementById("lg-w"+i).value)||0);const ok=run?(aS>0&&aR>0&&aW>0):(aS>0&&aR>0);if(ok){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:plan.blockWeek!=null?plan.blockWeek:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);S.logs.push(log);c++}});S.logs=S.logs.slice(-1000);if(c>0)resolveCatchUpQueueAfterLog(logDate);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
+  const sb=document.getElementById("log-save");if(sb)sb.onclick=async()=>{hapticKey();const wk=getWkForDate(logDate);const plan=rollingPlanForDate(logDate);let c=0;plan.exs.forEach((ex,i)=>{const e=exById(ex.eid);const name=e?e.name:ex.eid;tombstoneLogs(l=>l.date===logDate&&l.exercise===name);const aS=Number(document.getElementById("lg-s"+i).value)||0,aR=Number(document.getElementById("lg-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("lg-w"+i).value):loadInputToLb(Number(document.getElementById("lg-w"+i).value)||0);const ok=run?(aS>0&&aR>0&&aW>0):(aS>0&&aR>0);if(ok){const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const log={id:makeId(),date:logDate,week:plan.blockWeek!=null?plan.blockWeek:wk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,note:document.getElementById("lg-n"+i).value||"",outcome:"ok",score:1};log.score=calcLogScore(log);recordLoggedSet(log);c++}});if(c>0)resolveCatchUpQueueAfterLog(logDate);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[logDate];const n=applyDayAdaptation(logDate);S.sessionAdaptedByDate[logDate]=true;await persist();render();toast(`${c} exercises saved/updated · adaptation ${n?"applied":"saved"}`)};
   document.querySelectorAll(".log-edit").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();logDate=b.dataset.d;render();toast("Editing "+logDate+" — update the table, then Save report.")});
-  document.querySelectorAll(".log-del").forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const ds=b.dataset.d;const ok=await showCustomModal("Delete logs?",`Remove all logged sets for <b>${ds}</b>?`,{confirmLabel:"Delete"});if(!ok)return;const prev=S.logs.slice();S.logs=S.logs.filter(l=>l.date!==ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.logs=prev;persist();render()}})});
+  document.querySelectorAll(".log-del").forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const ds=b.dataset.d;const ok=await showCustomModal("Delete logs?",`Remove all logged sets for <b>${ds}</b>?`,{confirmLabel:"Delete"});if(!ok)return;const prevEv=Array.isArray(S.events)?S.events.slice():[];tombstoneLogs(l=>l.date===ds);await persist();render();toast("Removed "+ds,{undo:()=>{S.events=prevEv;reprojectLogs();persist();render()}})});
   document.querySelectorAll(".log-move-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;const log=S.logs.find(x=>x.id===id);if(!log)return;const nd=await showCustomModal("Move log entry","Move this set to a different date.",{inputPlaceholder:"YYYY-MM-DD",inputDefault:log.date,confirmLabel:"Move"});if(nd==null)return;const nd2=nd.trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)){toast("Use YYYY-MM-DD.");return}if(Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Invalid date.");return}const oldDate=log.date;log.date=nd2;log.week=getWkForDate(nd2);if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[oldDate];delete S.sessionAdaptedByDate[nd2];await persist();render();toast("Entry moved to "+nd2)});
-  document.querySelectorAll(".log-del-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;const ok=await showCustomModal("Remove set?","Delete this logged set? You can undo from the toast.",{confirmLabel:"Remove"});if(!ok)return;const prev=S.logs.slice();const rm=S.logs.find(x=>x.id===id);S.logs=S.logs.filter(x=>x.id!==id);if(rm&&S.sessionAdaptedByDate)delete S.sessionAdaptedByDate[rm.date];await persist();render();toast("Removed",{undo:()=>{S.logs=prev;persist();render()}})});
+  document.querySelectorAll(".log-del-line").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.dataset.id;const ok=await showCustomModal("Remove set?","Delete this logged set? You can undo from the toast.",{confirmLabel:"Remove"});if(!ok)return;const prevEv=Array.isArray(S.events)?S.events.slice():[];const rm=(S.logs||[]).find(x=>x.id===id);tombstoneLogs(x=>x.id===id);if(rm&&S.sessionAdaptedByDate)delete S.sessionAdaptedByDate[rm.date];await persist();render();toast("Removed",{undo:()=>{S.events=prevEv;reprojectLogs();persist();render()}})});
   const bulkToggle=document.getElementById("log-bulk-toggle");
   if(bulkToggle)bulkToggle.onclick=()=>{logBulkSelectOn=!logBulkSelectOn;render()};
   function updateBulkCount(){
@@ -4877,13 +4909,13 @@ function bindLog(){
     if(!dates.length)return;
     const ok=await showCustomModal("Bulk delete?",`Delete all logs for <b>${dates.length} day${dates.length>1?"s":""}</b>? This removes ${S.logs.filter(l=>dates.includes(l.date)).length} entries total.`,{confirmLabel:"Delete all"});
     if(!ok)return;
-    const prev=S.logs.slice();
+    const prevEv=Array.isArray(S.events)?S.events.slice():[];
     const dateSet=new Set(dates);
-    S.logs=S.logs.filter(l=>!dateSet.has(l.date));
+    tombstoneLogs(l=>dateSet.has(l.date));
     if(S.sessionAdaptedByDate)dates.forEach(d=>delete S.sessionAdaptedByDate[d]);
     logBulkSelectOn=false;
     await persist();render();
-    toast(`Deleted ${dates.length} day${dates.length>1?"s":""}`,{undo:()=>{S.logs=prev;persist();render()}});
+    toast(`Deleted ${dates.length} day${dates.length>1?"s":""}`,{undo:()=>{S.events=prevEv;reprojectLogs();persist();render()}});
   };
   const bulkMov=document.getElementById("bulk-move");
   if(bulkMov)bulkMov.onclick=async()=>{
@@ -4895,7 +4927,7 @@ function bindLog(){
     if(!/^\d{4}-\d{2}-\d{2}$/.test(nd2)||Number.isNaN(new Date(nd2+"T12:00:00").getTime())){toast("Use a valid YYYY-MM-DD date.");return}
     const dateSet=new Set(dates);
     let moved=0;
-    S.logs.forEach(l=>{if(dateSet.has(l.date)){l.date=nd2;l.week=getWkForDate(nd2);moved++}});
+    const _mv=(S.logs||[]).filter(l=>dateSet.has(l.date));ensureEvents();_mv.forEach(l=>{if(l.id)S.events.push(setDeletedEvent(String(l.id)));S.events.push(setLoggedFromLog({...l,id:makeLogId(),date:nd2,week:getWkForDate(nd2)}));moved++});reprojectLogs();
     if(S.sessionAdaptedByDate){dates.forEach(d=>delete S.sessionAdaptedByDate[d]);delete S.sessionAdaptedByDate[nd2]}
     logBulkSelectOn=false;
     await persist();render();
@@ -5228,7 +5260,7 @@ function bindSettings(){
   document.querySelectorAll(".parked-resume").forEach(btn=>{btn.onclick=async()=>{const pp=(S.parkedPrograms||[]).find(p=>p.id===btn.dataset.pid);if(!pp)return;const ok=await showCustomModal("Resume program?",`Resume <b>${pp.label}</b>? Your current program will be parked automatically.`,{confirmLabel:"Resume"});if(!ok)return;resumeParkedProgram(pp.id);await persist();render();toast("Program resumed.")}});
   document.querySelectorAll(".parked-delete").forEach(btn=>{btn.onclick=async()=>{const pp=(S.parkedPrograms||[]).find(p=>p.id===btn.dataset.pid);if(!pp)return;const ok=await showCustomModal("Delete parked program?",`Permanently delete <b>${pp.label}</b>? This cannot be undone — ${(pp.logs||[]).length} logs will be lost.`,{confirmLabel:"Delete",cancelLabel:"Keep it"});if(!ok)return;S.parkedPrograms=(S.parkedPrograms||[]).filter(p=>p.id!==btn.dataset.pid);await persist();render();toast("Parked program deleted.")}});
   document.getElementById("s-reonboard").onclick=async()=>{const ok=await showCustomModal("Re-run onboarding?","Your logs stay saved, but you'll step through goals and schedule again.",{confirmLabel:"Re-run"});if(!ok)return;S.profile.onboarded=false;save();showOnboarding()};
-  document.getElementById("s-clear").onclick=async()=>{const ok=await showCustomModal("Clear all data?","Delete all workout logs and weight history? Use undo in the toast or a backup to restore.",{confirmLabel:"Clear everything"});if(!ok)return;const logs=S.logs.slice(),wl=S.weightLog.slice(),ad={...S.adapt};S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Logs cleared.",{undo:()=>{S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
+  document.getElementById("s-clear").onclick=async()=>{const ok=await showCustomModal("Clear all data?","Delete all workout logs and weight history? Use undo in the toast or a backup to restore.",{confirmLabel:"Clear everything"});if(!ok)return;const logs=S.logs.slice(),ev=Array.isArray(S.events)?S.events.slice():[],wl=S.weightLog.slice(),ad={...S.adapt};S.events=[];S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Logs cleared.",{undo:()=>{S.events=ev;S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
   const shoeAdd=document.getElementById("shoe-add");
   if(shoeAdd)shoeAdd.onclick=async()=>{
     const name=(document.getElementById("shoe-name")?.value||"").trim();
@@ -5793,4 +5825,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, bindDash, bindToday, bindAuthUI };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
