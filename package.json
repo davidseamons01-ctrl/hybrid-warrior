@@ -1,0 +1,21 @@
+{
+  "name": "hybrid-warrior",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hybrid Training PWA — typed @core engine + vanilla PWA shell (overhaul in progress).",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:core": "node scripts/build-core.mjs",
+    "test:artifact": "node test/programming.test.mjs",
+    "test:integration": "node test/engine.integration.mjs",
+    "verify": "npm run typecheck && npm run test && npm run build:core && npm run test:artifact && npm run test:integration"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
