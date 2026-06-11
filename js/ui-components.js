@@ -792,9 +792,289 @@ function ProfileSettings(props) {
 function mountProfileSettings(container, props) {
   R(/* @__PURE__ */ u3(ProfileSettings, { ...props }), container);
 }
+
+// src/ui/plan.tsx
+function Html({ html }) {
+  return /* @__PURE__ */ u3("div", { style: "display:contents", dangerouslySetInnerHTML: { __html: html } });
+}
+function ExRow({ ex, day, drag, setDrag, over, setOver, reorder }) {
+  const isDragging = !!drag && drag.eid === ex.eid && drag.date === day.dateIso;
+  const isOver = over === ex.eid && !!drag && drag.date === day.dateIso && drag.eid !== ex.eid;
+  const cls = "pw-ex-row pw-ex-drag" + (isDragging ? " pw-ex-dragging" : "") + (isOver ? " pw-ex-drop-over" : "");
+  return /* @__PURE__ */ u3(
+    "div",
+    {
+      class: cls,
+      draggable: true,
+      "data-date": day.dateIso,
+      "data-eid": ex.eid,
+      onDragStart: (e3) => {
+        setDrag({ eid: ex.eid, date: day.dateIso });
+        try {
+          e3.dataTransfer.setData("text/plain", ex.eid);
+          e3.dataTransfer.effectAllowed = "move";
+        } catch {
+        }
+      },
+      onDragOver: (e3) => {
+        if (!drag || drag.date !== day.dateIso) return;
+        e3.preventDefault();
+        try {
+          e3.dataTransfer.dropEffect = "move";
+        } catch {
+        }
+        if (over !== ex.eid) setOver(ex.eid);
+      },
+      onDragLeave: () => {
+        if (over === ex.eid) setOver(null);
+      },
+      onDrop: (e3) => {
+        if (!drag || drag.date !== day.dateIso) return;
+        e3.preventDefault();
+        const fromEid = drag.eid;
+        setOver(null);
+        if (fromEid && fromEid !== ex.eid) reorder(day.dateIso, fromEid, ex.eid);
+      },
+      onDragEnd: () => {
+        setDrag(null);
+        setOver(null);
+      },
+      children: [
+        /* @__PURE__ */ u3("span", { class: "pw-ex-drag-hint", "aria-hidden": "true", title: "Drag to reorder", children: "\u22EE\u22EE" }),
+        /* @__PURE__ */ u3("span", { class: `pw-phase-tag ${day.phaseClass}`, title: day.phaseName, children: day.phaseAbbrev }),
+        /* @__PURE__ */ u3("div", { class: "pw-ex-main", children: [
+          /* @__PURE__ */ u3("b", { children: ex.name }),
+          /* @__PURE__ */ u3("span", { children: ex.rx })
+        ] })
+      ]
+    }
+  );
+}
+function DayCard({ day, drag, setDrag, over, setOver, reorder }) {
+  return /* @__PURE__ */ u3(
+    "div",
+    {
+      class: "pw-day" + (day.isToday ? " pw-day-today" : ""),
+      style: `border-left:3px solid ${day.phaseColor};padding-left:10px;border-radius:8px;box-sizing:border-box`,
+      children: [
+        /* @__PURE__ */ u3("div", { class: "pw-day-label", children: [
+          /* @__PURE__ */ u3("span", { class: "pw-date-line", style: `color:${day.phaseColor}`, children: day.dateLong }),
+          " ",
+          /* @__PURE__ */ u3("span", { class: "pw-day-dow", children: day.dow }),
+          " ",
+          /* @__PURE__ */ u3("span", { class: "pw-meta-muted", children: [
+            "\xB7 Sess ",
+            day.sessIdx,
+            "/",
+            day.total
+          ] }),
+          day.isToday ? /* @__PURE__ */ u3(S, { children: [
+            " ",
+            /* @__PURE__ */ u3("span", { class: "badge badge-ice pw-today-badge", children: "Today" })
+          ] }) : null,
+          day.estMin > 0 ? /* @__PURE__ */ u3(S, { children: [
+            " ",
+            /* @__PURE__ */ u3("span", { class: "pw-est-min", title: "Rough session length", children: [
+              "~",
+              day.estMin,
+              " min"
+            ] })
+          ] }) : null,
+          " ",
+          /* @__PURE__ */ u3("span", { class: "badge pw-focus-badge", title: "Session theme", children: day.focusHead })
+        ] }),
+        day.recovery ? /* @__PURE__ */ u3("div", { class: "pw-ex-row pw-ex-recovery", children: [
+          /* @__PURE__ */ u3("span", { class: `pw-phase-tag ${day.phaseClass}`, title: day.phaseName, children: day.phaseAbbrev }),
+          /* @__PURE__ */ u3("span", { children: "Recovery \u2014 walk or easy mobility" })
+        ] }) : day.exercises.map((ex) => /* @__PURE__ */ u3(ExRow, { ex, day, drag, setDrag, over, setOver, reorder }, ex.eid)),
+        day.finisher ? /* @__PURE__ */ u3("div", { class: "pw-finisher-block", role: "group", "aria-label": "Finisher", children: [
+          /* @__PURE__ */ u3("span", { class: "pw-finisher-label", children: "Finisher" }),
+          /* @__PURE__ */ u3("div", { class: "pw-finisher-txt", children: day.finisher })
+        ] }) : null
+      ]
+    }
+  );
+}
+function WeekCard({ wk, drag, setDrag, over, setOver, a: a3 }) {
+  return /* @__PURE__ */ u3("div", { class: "pw-card" + (wk.isCurrent ? " pw-current" : ""), children: [
+    /* @__PURE__ */ u3("div", { class: "pw-head", "data-w": wk.week, onClick: () => a3.toggleWeek(wk.week), children: [
+      /* @__PURE__ */ u3("span", { class: "arrow" + (wk.isOpen ? " open" : ""), children: "\u25B8" }),
+      /* @__PURE__ */ u3("span", { style: "font-weight:700;font-size:13px", children: [
+        "Week ",
+        wk.week
+      ] }),
+      /* @__PURE__ */ u3("span", { class: `badge ${wk.phaseBadgeClass}`, style: "font-size:9px", children: [
+        wk.phaseName,
+        wk.deload ? " \xB7 Deload" : ""
+      ] }),
+      wk.isCurrent ? /* @__PURE__ */ u3("span", { class: "badge badge-ice", style: "font-size:9px", children: "This training week" }) : null,
+      /* @__PURE__ */ u3("span", { style: "font-size:10px;color:var(--text3);margin-left:auto", children: wk.logLabel })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "pw-body" + (wk.isOpen ? " open" : ""), children: wk.isOpen ? wk.days && wk.days.length ? /* @__PURE__ */ u3(S, { children: [
+      /* @__PURE__ */ u3(Html, { html: wk.rhythmHtml }),
+      wk.days.map((day) => /* @__PURE__ */ u3(DayCard, { day, drag, setDrag, over, setOver, reorder: a3.reorder }, day.dateIso))
+    ] }) : /* @__PURE__ */ u3("div", { class: "pw-ex-row", style: "color:var(--text3)", children: wk.emptyReason }) : null })
+  ] });
+}
+function PlanView(props) {
+  const a3 = props.actions;
+  const c3 = props.context;
+  const hm = props.heatmap;
+  const ws = props.women;
+  const [drag, setDrag] = d2(null);
+  const [over, setOver] = d2(null);
+  return /* @__PURE__ */ u3("div", { class: "plan-root", children: [
+    /* @__PURE__ */ u3("div", { class: "section", children: [
+      /* @__PURE__ */ u3("div", { class: "row", style: "justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px", children: [
+        /* @__PURE__ */ u3("h2", { style: "font-size:18px;font-weight:600;letter-spacing:-0.02em", children: "Thirteen-week block" }),
+        /* @__PURE__ */ u3("div", { class: "row", style: "gap:8px;align-items:center", children: [
+          /* @__PURE__ */ u3("span", { style: "font-size:12px;color:var(--text3)", children: "Loads follow your logs" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-ghost", id: "plan-compact-toggle", onClick: () => a3.toggleCompact(), children: props.toggleLabel })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "plan-context-card card section", children: /* @__PURE__ */ u3("div", { class: "plan-context-inner", children: [
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("div", { class: "plan-context-kicker", children: "You are here" }),
+          /* @__PURE__ */ u3("div", { class: "plan-context-title", children: [
+            "Week ",
+            c3.week,
+            " of 13 \xB7 ",
+            c3.phaseName
+          ] }),
+          /* @__PURE__ */ u3("div", { class: "plan-context-sub", children: [
+            c3.slots,
+            " session",
+            c3.slotsPlural ? "s" : "",
+            " per training week \xB7 bar loads follow your logs"
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-sm", id: "plan-jump-current", onClick: () => a3.jumpCurrent(), children: "Open this week" })
+      ] }) }),
+      /* @__PURE__ */ u3(Html, { html: props.anchorSummaryHtml }),
+      ws ? /* @__PURE__ */ u3("div", { class: "card plan-hide-women", style: "margin-bottom:10px;border-left:3px solid var(--mint)", children: [
+        /* @__PURE__ */ u3("div", { class: "card-h", children: [
+          /* @__PURE__ */ u3("h2", { children: "Women's Program Summary" }),
+          /* @__PURE__ */ u3("span", { class: "badge badge-mint", children: ws.label })
+        ] }),
+        /* @__PURE__ */ u3("div", { style: "font-size:12px;color:var(--text2);margin-bottom:8px", children: [
+          "Baseline: ",
+          /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: ws.tier }),
+          " \xB7 Life stage: ",
+          /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: ws.life }),
+          " \xB7 Equipment: ",
+          /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: ws.eq }),
+          " \xB7 Session style: ",
+          /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: ws.style })
+        ] }),
+        /* @__PURE__ */ u3("div", { style: "display:grid;gap:4px", children: ws.tracks.map((t3, i4) => /* @__PURE__ */ u3("div", { style: "font-size:11px;color:var(--text2)", children: [
+          "\u2022 ",
+          t3
+        ] }, i4)) }),
+        ws.fa.length ? /* @__PURE__ */ u3("div", { style: "margin-top:8px;font-size:10px;color:var(--text3)", children: [
+          "Goals: ",
+          ws.fa.join(" \xB7 ")
+        ] }) : null
+      ] }) : null,
+      /* @__PURE__ */ u3("div", { class: "card plan-hide-women", style: "margin-bottom:10px", children: [
+        /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Expected Changes Heatmap" }) }),
+        /* @__PURE__ */ u3("div", { class: "row", style: "gap:14px", children: [
+          /* @__PURE__ */ u3("div", { style: "font-size:11px;color:var(--text2)", children: [
+            "Glutes ",
+            /* @__PURE__ */ u3("b", { style: "color:var(--mint)", children: [
+              hm.glutes,
+              "%"
+            ] })
+          ] }),
+          /* @__PURE__ */ u3("div", { style: "font-size:11px;color:var(--text2)", children: [
+            "Core ",
+            /* @__PURE__ */ u3("b", { style: "color:var(--mint)", children: [
+              hm.core,
+              "%"
+            ] })
+          ] }),
+          /* @__PURE__ */ u3("div", { style: "font-size:11px;color:var(--text2)", children: [
+            "Back ",
+            /* @__PURE__ */ u3("b", { style: "color:var(--mint)", children: [
+              hm.back,
+              "%"
+            ] })
+          ] }),
+          /* @__PURE__ */ u3("div", { style: "font-size:11px;color:var(--text2)", children: [
+            "Posture ",
+            /* @__PURE__ */ u3("b", { style: "color:var(--mint)", children: [
+              hm.posture,
+              "%"
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "plan-timeline-wrap plan-hide-women", children: [
+        /* @__PURE__ */ u3("div", { class: "timeline", role: "list", "aria-label": "Training weeks 1 to 13", children: props.timeline.map((t3) => /* @__PURE__ */ u3(
+          "div",
+          {
+            class: `tl-wk ${t3.phaseClass} ${t3.current ? "current" : ""} ${t3.complete ? "complete" : ""}`,
+            "data-w": t3.week,
+            role: "listitem",
+            title: `Week ${t3.week} \xB7 ${t3.phaseName}${t3.deload ? " \xB7 Deload" : ""}`,
+            onClick: () => a3.selectWeek(t3.week),
+            children: t3.week
+          },
+          t3.week
+        )) }),
+        /* @__PURE__ */ u3("p", { class: "plan-timeline-hint", children: "Tap a number to expand that week \xB7 color = phase (legend below)." })
+      ] }),
+      /* @__PURE__ */ u3("p", { class: "plan-hide-women", style: "font-size:11px;color:var(--text3);margin:8px 0 0;line-height:1.45", children: [
+        "Weeks are ",
+        /* @__PURE__ */ u3("b", { style: "color:var(--text2)", children: "training weeks" }),
+        " (",
+        c3.slots,
+        " session",
+        c3.slotsPlural ? "s" : "",
+        " each, in order from your start date \u2014 not Mon\u2013Sun buckets)."
+      ] }),
+      /* @__PURE__ */ u3("details", { class: "plan-phase-legend card section plan-hide-women", children: [
+        /* @__PURE__ */ u3("summary", { class: "plan-phase-legend-sum", children: "How phase colors work" }),
+        /* @__PURE__ */ u3("p", { class: "plan-phase-legend-note", children: [
+          "Weeks ",
+          /* @__PURE__ */ u3("b", { children: "4" }),
+          " and ",
+          /* @__PURE__ */ u3("b", { children: "8" }),
+          " are deloads inside Hypertrophy and Strength. Week ",
+          /* @__PURE__ */ u3("b", { children: "13" }),
+          " is test / consolidation."
+        ] }),
+        /* @__PURE__ */ u3("ul", { class: "plan-phase-legend-list", children: [
+          /* @__PURE__ */ u3("li", { children: [
+            /* @__PURE__ */ u3("span", { class: "plan-phase-swatch tl-wk phase-hyp", "aria-hidden": "true" }),
+            " Hypertrophy \u2014 weeks 1\u20134"
+          ] }),
+          /* @__PURE__ */ u3("li", { children: [
+            /* @__PURE__ */ u3("span", { class: "plan-phase-swatch tl-wk phase-str", "aria-hidden": "true" }),
+            " Strength \u2014 weeks 5\u20138"
+          ] }),
+          /* @__PURE__ */ u3("li", { children: [
+            /* @__PURE__ */ u3("span", { class: "plan-phase-swatch tl-wk phase-peak", "aria-hidden": "true" }),
+            " Peak \u2014 weeks 9\u201312"
+          ] }),
+          /* @__PURE__ */ u3("li", { children: [
+            /* @__PURE__ */ u3("span", { class: "plan-phase-swatch tl-wk phase-test", "aria-hidden": "true" }),
+            " Test \u2014 week 13"
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3(Html, { html: props.nextDotsHtml })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "stack", id: "pw-list", children: props.weeks.map((wk) => /* @__PURE__ */ u3(WeekCard, { wk, drag, setDrag, over, setOver, a: a3 }, wk.week)) })
+  ] });
+}
+function mountPlan(container, props) {
+  R(/* @__PURE__ */ u3(PlanView, { ...props }), container);
+}
 export {
+  PlanView,
   ProfileSettings,
   SocialView,
+  mountPlan,
   mountProfileSettings,
   mountSocial
 };

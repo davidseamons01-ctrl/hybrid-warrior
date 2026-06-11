@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h909c740356e3";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hc224357cecf1";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h909c740356e3";
-import { mountSocial, mountProfileSettings } from "./ui-components.js?v=h909c740356e3";
+} from "./programming.js?v=hc224357cecf1";
+import { mountSocial, mountProfileSettings, mountPlan } from "./ui-components.js?v=hc224357cecf1";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4973,99 +4973,53 @@ function planAnchorSummaryHtml(short){
   const longInner=`<div style="font-size:12px;color:var(--text2);line-height:1.5"><b style="color:var(--text)">How this block is ordered:</b> Session 1 is your first scheduled train day on or after <b style="color:var(--text)">${S.program.start}</b> — that lands on <b style="color:var(--text)">${human}</b>. Each week lists those workouts by <b style="color:var(--text)">actual dates</b> (Wed → Fri → Mon…), not a Monday-first calendar. If you still see only “Monday / Wednesday…” with no dates, pull to refresh or reopen the app once to load the latest version.</div>`;
   return`<details class="plan-intro-fold card section"><summary class="plan-intro-sum">How this block lines up on your calendar</summary><div class="plan-intro-body">${longInner}</div></details>`;
 }
-function renderProgram(){
+// ── Plan tab (13-week block): Preact component (UI rebuild #3) ──
+function renderProgram(){return`<div id="plan-mount"></div>`;}
+function buildPlanProps(){
   autoWeek();const cur=S.program.week;if(expandedWeek===null)expandedWeek=cur;
-  const compact=planCompactOn();
-  const wSimple=useWomenSoftUi();
-  const hm=weeklyExpectedChanges();
-  const ws=womenProgramSummary();
-  const planToggleLbl=compact?(wSimple?"Show more detail":"Show all exercises"):"Simpler view";
-  return`<div class="plan-root"><div class="section"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><h2 style="font-size:18px;font-weight:600;letter-spacing:-0.02em">Thirteen-week block</h2><div class="row" style="gap:8px;align-items:center"><span style="font-size:12px;color:var(--text3)">Loads follow your logs</span><button type="button" class="btn btn-sm btn-ghost" id="plan-compact-toggle">${planToggleLbl}</button></div></div>
-    <div class="plan-context-card card section"><div class="plan-context-inner"><div><div class="plan-context-kicker">You are here</div><div class="plan-context-title">Week ${cur} of 13 · ${phaseName(cur)}</div><div class="plan-context-sub">${planSlotsN()} session${planSlotsN()!==1?"s":""} per training week · bar loads follow your logs</div></div><button type="button" class="btn btn-secondary-solid btn-sm" id="plan-jump-current">Open this week</button></div></div>
-    ${planAnchorSummaryHtml(wSimple)}
-    ${ws?`<div class="card plan-hide-women" style="margin-bottom:10px;border-left:3px solid var(--mint)"><div class="card-h"><h2>Women's Program Summary</h2><span class="badge badge-mint">${ws.label}</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:8px">Baseline: <b style="color:var(--text)">${ws.tier}</b> · Life stage: <b style="color:var(--text)">${ws.life}</b> · Equipment: <b style="color:var(--text)">${ws.eq}</b> · Session style: <b style="color:var(--text)">${ws.style}</b></div><div style="display:grid;gap:4px">${ws.tracks.map(t=>`<div style="font-size:11px;color:var(--text2)">• ${t}</div>`).join("")}</div>${ws.fa.length?`<div style="margin-top:8px;font-size:10px;color:var(--text3)">Goals: ${ws.fa.join(" · ")}</div>`:""}</div>`:""}
-    <div class="card plan-hide-women" style="margin-bottom:10px"><div class="card-h"><h2>Expected Changes Heatmap</h2></div><div class="row" style="gap:14px"><div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">${hm.glutes}%</b></div><div style="font-size:11px;color:var(--text2)">Core <b style="color:var(--mint)">${hm.core}%</b></div><div style="font-size:11px;color:var(--text2)">Back <b style="color:var(--mint)">${hm.back}%</b></div><div style="font-size:11px;color:var(--text2)">Posture <b style="color:var(--mint)">${hm.posture}%</b></div></div></div>
-    <div class="plan-timeline-wrap plan-hide-women"><div class="timeline" role="list" aria-label="Training weeks 1 to 13">${Array.from({length:13},(_,i)=>{const w=i+1;return`<div class="tl-wk ${phaseClass(w)} ${w===cur?"current":""} ${weekHasLogs(w)?"complete":""}" data-w="${w}" role="listitem" title="Week ${w} · ${phaseName(w)}${w===4||w===8?" · Deload":""}">${w}</div>`}).join("")}</div><p class="plan-timeline-hint">Tap a number to expand that week · color = phase (legend below).</p></div>
-    <p class="plan-hide-women" style="font-size:11px;color:var(--text3);margin:8px 0 0;line-height:1.45">Weeks are <b style="color:var(--text2)">training weeks</b> (${planSlotsN()} session${planSlotsN()!==1?"s":""} each, in order from your start date — not Mon–Sun buckets).</p>
-    <details class="plan-phase-legend card section plan-hide-women"><summary class="plan-phase-legend-sum">How phase colors work</summary><p class="plan-phase-legend-note">Weeks <b>4</b> and <b>8</b> are deloads inside Hypertrophy and Strength. Week <b>13</b> is test / consolidation.</p><ul class="plan-phase-legend-list"><li><span class="plan-phase-swatch tl-wk phase-hyp" aria-hidden="true"></span> Hypertrophy — weeks 1–4</li><li><span class="plan-phase-swatch tl-wk phase-str" aria-hidden="true"></span> Strength — weeks 5–8</li><li><span class="plan-phase-swatch tl-wk phase-peak" aria-hidden="true"></span> Peak — weeks 9–12</li><li><span class="plan-phase-swatch tl-wk phase-test" aria-hidden="true"></span> Test — week 13</li></ul></details>
-    ${nextTrainingDotsHtml(8)}</div>
-  <div class="stack" id="pw-list">${Array.from({length:13},(_,i)=>{const w=i+1;const isOpen=w===expandedWeek;
-    const tDates=trainingDatesInBlockWeek(w);
+  const compact=planCompactOn(),wSimple=useWomenSoftUi(),slots=planSlotsN();
+  const toggleLabel=compact?(wSimple?"Show more detail":"Show all exercises"):"Simpler view";
+  const todayIso=iso();
+  const timeline=Array.from({length:13},(_,i)=>{const w=i+1;return{week:w,phaseClass:phaseClass(w),current:w===cur,complete:weekHasLogs(w),deload:w===4||w===8,phaseName:phaseName(w)};});
+  const weeks=Array.from({length:13},(_,i)=>{
+    const w=i+1,isOpen=w===expandedWeek,tDates=trainingDatesInBlockWeek(w);
     const logCount=tDates.length?S.logs.filter(l=>tDates.includes(l.date)).length:0;
-    let bodyHTML="";
+    let days=null,rhythmHtml="",emptyReason="";
     if(isOpen){
       if(tDates.length){
-        bodyHTML=rhythmStripHtmlForWeek(w)+tDates.map((ds,si)=>{const p=rollingPlanForDate(ds);const dow=parseIsoNoon(ds).getDay();const isToday=ds===iso()&&w===cur;const dateLong=parseIsoNoon(ds).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"});const mins=estimateDayMinutes(p);const head=planFocusHeadline(p.focus);return`<div class="pw-day ${isToday?"pw-day-today":""}" style="border-left:3px solid ${phaseColor(w)};padding-left:10px;border-radius:8px;box-sizing:border-box"><div class="pw-day-label"><span class="pw-date-line" style="color:${phaseColor(w)}">${dateLong}</span> <span class="pw-day-dow">${DAYS[dow]}</span> <span class="pw-meta-muted">· Sess ${si+1}/${tDates.length}</span>${isToday?` <span class="badge badge-ice pw-today-badge">Today</span>`:""}${mins>0?` <span class="pw-est-min" title="Rough session length">~${mins} min</span>`:""} <span class="badge pw-focus-badge" title="Session theme">${escPlanChip(head)}</span></div>${p.exs.length?p.exs.map(ex=>{const e=exById(ex.eid);return`<div class="pw-ex-row pw-ex-drag" draggable="true" data-date="${ds}" data-eid="${ex.eid}"><span class="pw-ex-drag-hint" aria-hidden="true" title="Drag to reorder">⋮⋮</span><span class="pw-phase-tag ${phaseClass(w)}" title="${phaseName(w)}">${phaseAbbrev(w)}</span><div class="pw-ex-main"><b>${e?e.name:ex.eid}</b><span>${formatPrescribedRx(ex)}</span></div></div>`}).join(""):`<div class="pw-ex-row pw-ex-recovery"><span class="pw-phase-tag ${phaseClass(w)}" title="${phaseName(w)}">${phaseAbbrev(w)}</span><span>Recovery — walk or easy mobility</span></div>`}${p.finisher?`<div class="pw-finisher-block" role="group" aria-label="Finisher"><span class="pw-finisher-label">Finisher</span><div class="pw-finisher-txt">${escPlanChip(p.finisher)}</div></div>`:""}</div>`}).join("");
-      }else bodyHTML=`<div class="pw-ex-row" style="color:var(--text3)">No sessions mapped (check program start & schedule).</div>`;
+        rhythmHtml=rhythmStripHtmlForWeek(w);
+        days=tDates.map((ds,si)=>{
+          const pl=rollingPlanForDate(ds),dow=parseIsoNoon(ds).getDay();
+          const isToday=ds===todayIso&&w===cur;
+          const dateLong=parseIsoNoon(ds).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric",year:"numeric"});
+          const exercises=(pl.exs||[]).map(ex=>{const e=exById(ex.eid);return{eid:ex.eid,name:e?e.name:ex.eid,rx:formatPrescribedRx(ex)};});
+          return{dateIso:ds,dateLong,dow:DAYS[dow],sessIdx:si+1,total:tDates.length,isToday,estMin:estimateDayMinutes(pl),focusHead:planFocusHeadline(pl.focus),phaseColor:phaseColor(w),phaseClass:phaseClass(w),phaseAbbrev:phaseAbbrev(w),phaseName:phaseName(w),exercises,recovery:exercises.length===0,finisher:pl.finisher||null};
+        });
+      }else emptyReason="No sessions mapped (check program start & schedule).";
     }
-    return`<div class="pw-card ${w===cur?"pw-current":""}"><div class="pw-head" data-w="${w}"><span class="arrow ${isOpen?"open":""}">▸</span><span style="font-weight:700;font-size:13px">Week ${w}</span><span class="badge ${phaseClass(w).replace("phase-","badge-")}" style="font-size:9px">${phaseName(w)}${w===4||w===8?" · Deload":""}</span>${w===cur?`<span class="badge badge-ice" style="font-size:9px">This training week</span>`:""}<span style="font-size:10px;color:var(--text3);margin-left:auto">${logCount?logCount+" entries":"scheduled"}</span></div>
-    <div class="pw-body ${isOpen?"open":""}">${bodyHTML}</div></div>`}).join("")}</div></div>`;
+    return{week:w,phaseName:phaseName(w),phaseBadgeClass:phaseClass(w).replace("phase-","badge-"),deload:w===4||w===8,isCurrent:w===cur,isOpen,logLabel:logCount?logCount+" entries":"scheduled",rhythmHtml,days,emptyReason};
+  });
+  return{compact,womenSimple:wSimple,toggleLabel,context:{week:cur,phaseName:phaseName(cur),slots,slotsPlural:slots!==1},heatmap:weeklyExpectedChanges(),women:womenProgramSummary(),anchorSummaryHtml:planAnchorSummaryHtml(wSimple),nextDotsHtml:nextTrainingDotsHtml(8),timeline,weeks,actions:{toggleCompact:planToggleCompact,jumpCurrent:planJumpCurrent,selectWeek:planSelectWeek,toggleWeek:planToggleWeek,reorder:planReorderExercise}};
 }
-function bindProgram(){
-  const pc=document.getElementById("plan-compact-toggle");
-  if(pc)pc.onclick=()=>{
-    if(useWomenSoftUi()){
-      const on=sessionStorage.getItem("hw-plan-compact")!=="0";
-      sessionStorage.setItem("hw-plan-compact",on?"0":"1");
-    }else sessionStorage.setItem("hw-plan-compact",sessionStorage.getItem("hw-plan-compact")==="1"?"0":"1");
-    render();
-  };
-  const pjc=document.getElementById("plan-jump-current");
-  if(pjc)pjc.onclick=()=>{autoWeek();expandedWeek=S.program.week;sessionStorage.setItem("hw-plan-scroll-wk",String(S.program.week));render()};
-  document.querySelectorAll(".tl-wk").forEach(el=>el.onclick=()=>{expandedWeek=+el.dataset.w;render()});
-  document.querySelectorAll(".pw-head").forEach(el=>el.onclick=()=>{const w=+el.dataset.w;expandedWeek=expandedWeek===w?null:w;render()});
-  bindPlanExerciseDrag();
+function mountPlanTab(){const c=document.getElementById("plan-mount");if(c)mountPlan(c,buildPlanProps());}
+function bindProgram(){mountPlanTab();}
+function planToggleCompact(){
+  if(useWomenSoftUi()){const on=sessionStorage.getItem("hw-plan-compact")!=="0";sessionStorage.setItem("hw-plan-compact",on?"0":"1");}
+  else sessionStorage.setItem("hw-plan-compact",sessionStorage.getItem("hw-plan-compact")==="1"?"0":"1");
+  render();
 }
-function bindPlanExerciseDrag(){
-  const root=document.getElementById("pw-list");
-  if(!root)return;
-  let dragEid=null,dragDate=null;
-  root.addEventListener("dragstart",e=>{
-    const row=e.target.closest(".pw-ex-drag");
-    if(!row)return;
-    dragEid=row.dataset.eid;
-    dragDate=row.dataset.date;
-    try{e.dataTransfer.setData("text/plain",dragEid||"");e.dataTransfer.effectAllowed="move"}catch{}
-    row.classList.add("pw-ex-dragging");
-  });
-  root.addEventListener("dragend",()=>{
-    root.querySelectorAll(".pw-ex-dragging").forEach(x=>x.classList.remove("pw-ex-dragging"));
-    root.querySelectorAll(".pw-ex-drop-over").forEach(x=>x.classList.remove("pw-ex-drop-over"));
-    dragEid=null;dragDate=null;
-  });
-  root.addEventListener("dragover",e=>{
-    const row=e.target.closest(".pw-ex-drag");
-    if(!row||!dragDate||row.dataset.date!==dragDate)return;
-    e.preventDefault();
-    try{e.dataTransfer.dropEffect="move"}catch{}
-    root.querySelectorAll(".pw-ex-drop-over").forEach(x=>{if(x!==row)x.classList.remove("pw-ex-drop-over")});
-    row.classList.add("pw-ex-drop-over");
-  });
-  root.addEventListener("dragleave",e=>{
-    const row=e.target.closest(".pw-ex-drag");
-    if(row&&e.relatedTarget&&typeof row.contains==="function"&&!row.contains(e.relatedTarget))row.classList.remove("pw-ex-drop-over");
-  });
-  root.addEventListener("drop",async e=>{
-    const targetRow=e.target.closest(".pw-ex-drag");
-    if(!targetRow||!dragDate||targetRow.dataset.date!==dragDate)return;
-    e.preventDefault();
-    const dateIso=dragDate;
-    const fromEid=dragEid;
-    const toEid=targetRow.dataset.eid;
-    targetRow.classList.remove("pw-ex-drop-over");
-    if(!fromEid||!toEid||fromEid===toEid)return;
-    const plan=rollingPlanForDate(dateIso);
-    const order=(plan.exs||[]).map(ex=>ex.eid);
-    const i=order.indexOf(fromEid),j=order.indexOf(toEid);
-    if(i<0||j<0)return;
-    order.splice(i,1);
-    order.splice(j,0,fromEid);
-    if(!S.exerciseOrderByDate)S.exerciseOrderByDate={};
-    S.exerciseOrderByDate[dateIso]=order;
-    await persist();
-    render();
-    toast("Exercise order updated for this session");
-  });
+function planJumpCurrent(){autoWeek();expandedWeek=S.program.week;sessionStorage.setItem("hw-plan-scroll-wk",String(S.program.week));render();}
+function planSelectWeek(w){expandedWeek=w;render();}
+function planToggleWeek(w){expandedWeek=expandedWeek===w?null:w;render();}
+async function planReorderExercise(dateIso,fromEid,toEid){
+  if(!fromEid||!toEid||fromEid===toEid)return;
+  const plan=rollingPlanForDate(dateIso),order=(plan.exs||[]).map(ex=>ex.eid);
+  const i=order.indexOf(fromEid),j=order.indexOf(toEid);
+  if(i<0||j<0)return;
+  order.splice(i,1);order.splice(j,0,fromEid);
+  if(!S.exerciseOrderByDate)S.exerciseOrderByDate={};
+  S.exerciseOrderByDate[dateIso]=order;
+  await persist();render();toast("Exercise order updated for this session");
 }
 
 // ═══════════════════════════════════════════════════════════
