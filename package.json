@@ -9,15 +9,21 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build:core": "node scripts/build-core.mjs",
+    "build:ui": "node scripts/build-ui.mjs",
+    "build": "npm run build:core && npm run build:ui",
     "stamp": "node scripts/stamp.mjs",
-    "deploy": "npm run build:core && npm run stamp",
+    "deploy": "npm run build && npm run stamp",
     "test:artifact": "node test/programming.test.mjs",
     "test:integration": "node test/engine.integration.mjs && node test/eventsourcing.integration.mjs",
-    "verify": "npm run typecheck && npm run test && npm run build:core && npm run test:artifact && npm run test:integration"
+    "verify": "npm run typecheck && npm run test && npm run build && npm run test:artifact && npm run test:integration"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",
+    "happy-dom": "^15.11.7",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "preact": "^10.29.2"
   }
 }

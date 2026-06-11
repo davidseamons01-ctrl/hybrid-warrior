@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hc338fea1eb5f";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h50e57b4bd306";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,7 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=hc338fea1eb5f";
+} from "./programming.js?v=h50e57b4bd306";
+import { mountSocial } from "./ui-components.js?v=h50e57b4bd306";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -2858,20 +2859,20 @@ function stopSocialSubs(){
   if(_socialUnsubPosts){try{_socialUnsubPosts()}catch{}_socialUnsubPosts=null}
 }
 function startSocialSubs(){
-  stopSocialSubs();
+  if(_socialUnsubProfiles||_socialUnsubPosts)return; // already subscribed (avoid re-render loop)
   if(!fbDb||offlineMode)return;
   try{
     _socialUnsubProfiles=fbDb.collection("community").limit(200).onSnapshot(snap=>{
       const list=[];snap.forEach(d=>{const v=d.data()||{};if(v&&v.handle)list.push(v)});
       _socialCache.profiles=list;_socialCache.fetchedAt=Date.now();
-      if(tab===TAB_SOCIAL)refreshSocialLeaderboards();
+      if(tab===TAB_SOCIAL)mountSocialTab();
     },err=>{console.warn("community sub",err&&err.message)});
   }catch(e){console.warn("startSocialSubs profiles",e&&e.message)}
   try{
     _socialUnsubPosts=fbDb.collection("community_posts").orderBy("createdAt","desc").limit(50).onSnapshot(snap=>{
       const list=[];snap.forEach(d=>list.push(d.data()||{}));
       _socialCache.posts=list;
-      if(tab===TAB_SOCIAL)refreshSocialFeed();
+      if(tab===TAB_SOCIAL)mountSocialTab();
     },err=>{console.warn("community_posts sub",err&&err.message)});
   }catch(e){console.warn("startSocialSubs posts",e&&e.message)}
 }
@@ -3026,8 +3027,32 @@ function renderSocial(){
     </div>
   </div>`;
 }
+// Build the Social tab's view-model from app state + Firestore cache, with
+// action callbacks bridging to the existing data layer.
+function buildSocialProps(){
+  const mode=(!currentUser&&!offlineMode)?"signed-out":offlineMode?"offline":"active";
+  const optedIn=communityOptedIn();
+  const myUid=currentUser?currentUser.uid:"";
+  const map={hybrid:["hybridTotal",true],bench:["bench1RM",true],squat:["squat1RM",true],deadlift:["deadlift1RM",true],volume:["monthVolume",true],miles:["monthMiles",false],level:["level",false],streak:["streak",false]};
+  const lt=_socialCache.leaderTab||"hybrid";const mu=map[lt]||["hybridTotal",true],metric=mu[0],unitLb=mu[1];
+  const leaderRows=sortedLeaderboard(metric).map((p,i)=>{const v=Number(p[metric])||0;return{uid:p.uid||"",handle:p.handle||"Athlete",level:p.level||1,sex:p.sex||"",me:p.uid===myUid,rank:i+1,display:unitLb?`${Math.round(v)} ${massUnitLabel()}`:metric==="monthMiles"?`${v} mi`:metric==="level"?`Lv ${v}`:metric==="streak"?`${v}d`:`${v}`}});
+  const posts=(_socialCache.posts||[]).map(p=>{const hb=Array.isArray(p.heartedBy)?p.heartedBy:[];return{id:p.id,uid:p.uid||"",handle:p.handle||"Athlete",text:p.text||"",ago:postAgo(Number(p.createdAt)||Date.now()),liked:!!(myUid&&hb.indexOf(myUid)>=0),own:p.uid===myUid,hearts:hb.length}});
+  return{mode,totalAthletes:(_socialCache.profiles||[]).length,optedIn,handle:communityHandle(),myStats:buildCommunityProfileSnapshot(),leaderTab:lt,leaderRows,posts,actions:{join:socialJoin,editHandle:socialEditHandle,pushStats:socialPushStats,leave:socialLeave,setLeaderTab:(id)=>{_socialCache.leaderTab=id;mountSocialTab();},post:socialPost,heart:socialHeart,del:socialDelete}};
+}
+function mountSocialTab(){const c=document.getElementById("p-social");if(c)mountSocial(c,buildSocialProps());}
+async function socialJoin(raw){const handle=safeHandle(raw);if(!handle||handle.length<3){toast("Pick a handle with 3-24 letters.");return}S.profile.prefs={...(S.profile.prefs||{}),community:true,communityHandle:handle};await persist();const ok=await communityPublishProfile();if(ok){triggerHaptic("heavy");toast(`Welcome to the community, ${handle}!`)}render();}
+async function socialEditHandle(){const next=await showCustomModal("Edit handle","Pick a new public handle (3-24 chars).",{inputPlaceholder:"New handle",confirmLabel:"Save"});if(!next)return;const handle=safeHandle(next);if(handle.length<3){toast("Handle must be at least 3 characters.");return}S.profile.prefs={...(S.profile.prefs||{}),communityHandle:handle};await persist();await communityPublishProfile();render();}
+async function socialPushStats(){const ok=await communityPublishProfile();if(ok)toast("Stats pushed to the community.");else toast("Couldn't push — check connection.");}
+async function socialLeave(){const ok=await showCustomModal("Leave community?","Your community profile and posts will be removed. You can rejoin anytime.",{confirmLabel:"Leave",cancelLabel:"Stay"});if(!ok)return;await communityRemoveProfile();S.profile.prefs={...(S.profile.prefs||{}),community:false};await persist();toast("You've left the community.");render();}
+async function socialPost(raw){const text=String(raw||"").trim();if(!text){toast("Write something first.");return}if(!communityOptedIn()){toast("Join the community to post.");return}const ok=await communityPostMessage(text);if(ok)triggerHaptic("light");}
+async function socialHeart(id){if(!communityOptedIn()){toast("Join the community below to react.");return}triggerHaptic("light");await communityHeartPost(id);}
+async function socialDelete(id){const ok=await showCustomModal("Delete post?","This will permanently remove your message from the community.",{confirmLabel:"Delete",cancelLabel:"Keep"});if(!ok)return;await communityDeletePost(id);}
+// Social tab is now a Preact component (overhaul UI rebuild). The legacy
+// string-template handlers below are superseded and unreachable.
 function bindSocial(){
   startSocialSubs();
+  mountSocialTab();
+  return;
   if((_socialCache.profiles===null||_socialCache.posts===null)&&!offlineMode){}
   const join=document.getElementById("community-join");
   if(join)join.onclick=async()=>{
@@ -5370,7 +5395,7 @@ function render(){
       html=`<div class="pane show ${planClass}" id="p-plan">${renderProgram()}</div>`;
       bindFn=bindProgram;
     }
-    else if(tab===TAB_SOCIAL){html=`<div class="pane show" id="p-social">${renderSocial()}</div>`;bindFn=bindSocial}
+    else if(tab===TAB_SOCIAL){html=`<div class="pane show" id="p-social"></div>`;bindFn=bindSocial}
     else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
     if(tabChanged){
       const old=app.firstElementChild;

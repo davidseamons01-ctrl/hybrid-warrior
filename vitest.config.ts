@@ -5,6 +5,6 @@ import { defineConfig } from "vitest/config";
 // `npm run test:artifact` / `test:integration`, not by vitest.
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
   },
 });
