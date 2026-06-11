@@ -579,7 +579,222 @@ function SocialView(p3) {
 function mountSocial(container, props) {
   R(/* @__PURE__ */ u3(SocialView, { ...props }), container);
 }
+
+// src/ui/profile-settings.tsx
+function Num({ label, value, step, onInput }) {
+  return /* @__PURE__ */ u3("div", { children: [
+    /* @__PURE__ */ u3("label", { children: label }),
+    /* @__PURE__ */ u3("input", { type: "number", step: step || "any", value, onInput: (e3) => onInput(e3.target.value) })
+  ] });
+}
+function Toggle({ id, checked, onChange, title, desc }) {
+  return /* @__PURE__ */ u3("div", { class: "settings-toggle-row", style: "margin-top:10px;padding:12px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)", children: /* @__PURE__ */ u3("label", { class: "settings-switch-label", children: [
+    /* @__PURE__ */ u3("input", { type: "checkbox", checked, onChange: (e3) => onChange(e3.target.checked) }),
+    /* @__PURE__ */ u3("span", { children: [
+      /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: title }),
+      " \u2014 ",
+      desc
+    ] })
+  ] }) });
+}
+function ProfileSettings(props) {
+  const [f4, setF] = d2(props.initial);
+  const set = (k3, v3) => setF((p3) => ({ ...p3, [k3]: v3 }));
+  const u4 = props.massLabel;
+  const a3 = props.actions;
+  return /* @__PURE__ */ u3("div", { class: "card settings-section", id: "settings-profile", "data-k": "profile strength bench squat deadlift weight measurement body sex women life equipment style appearance theme light dark oled units metric audio altitude biometric save", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Training & profile" }) }),
+    /* @__PURE__ */ u3("div", { class: "grid3 settings-1rm-grid", children: [
+      /* @__PURE__ */ u3(Num, { label: `Bench 1RM (${u4})`, value: f4.bench, onInput: (v3) => set("bench", v3) }),
+      /* @__PURE__ */ u3(Num, { label: `Squat 1RM (${u4})`, value: f4.squat, onInput: (v3) => set("squat", v3) }),
+      /* @__PURE__ */ u3(Num, { label: `Deadlift 1RM (${u4})`, value: f4.dead, onInput: (v3) => set("dead", v3) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "grid3", style: "margin-top:8px", children: [
+      /* @__PURE__ */ u3(Num, { label: `Weight (${u4})`, value: f4.weight, onInput: (v3) => set("weight", v3) }),
+      /* @__PURE__ */ u3(Num, { label: `Goal Wt (${u4})`, value: f4.goalWt, onInput: (v3) => set("goalWt", v3) }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "4mi pace" }),
+        /* @__PURE__ */ u3("input", { class: "input-mmss", value: f4.run, placeholder: "35:00", inputmode: "numeric", autocomplete: "off", spellcheck: false, "aria-label": "Four mile time as mm:ss", onInput: (e3) => set("run", e3.target.value) })
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "grid3", style: "margin-top:8px", children: [
+      /* @__PURE__ */ u3(Num, { label: "Waist (in)", step: "0.1", value: f4.waist, onInput: (v3) => set("waist", v3) }),
+      /* @__PURE__ */ u3(Num, { label: "Hips (in)", step: "0.1", value: f4.hips, onInput: (v3) => set("hips", v3) }),
+      /* @__PURE__ */ u3(Num, { label: "Shoulders (in)", step: "0.1", value: f4.shoulders, onInput: (v3) => set("shoulders", v3) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "grid3", style: "margin-top:8px", children: [
+      /* @__PURE__ */ u3(Num, { label: "Body Fat %", step: "0.1", value: f4.bodyFat, onInput: (v3) => set("bodyFat", v3) }),
+      /* @__PURE__ */ u3(Num, { label: "Neck (in)", step: "0.1", value: f4.neck, onInput: (v3) => set("neck", v3) }),
+      /* @__PURE__ */ u3(Num, { label: "Age", step: "1", value: f4.age, onInput: (v3) => set("age", v3) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: (props.isFemale ? "grid3" : "grid2") + " settings-sex-row", style: "margin-top:8px", children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "Sex" }),
+        /* @__PURE__ */ u3("select", { value: f4.sex, onChange: (e3) => set("sex", e3.target.value), children: [
+          /* @__PURE__ */ u3("option", { value: "male", children: "Male" }),
+          /* @__PURE__ */ u3("option", { value: "female", children: "Female" })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "Life Stage" }),
+        /* @__PURE__ */ u3("select", { value: f4.lifeStage, onChange: (e3) => set("lifeStage", e3.target.value), children: [
+          /* @__PURE__ */ u3("option", { value: "general", children: "General" }),
+          /* @__PURE__ */ u3("option", { value: "pregnancy", children: "Pregnancy" }),
+          /* @__PURE__ */ u3("option", { value: "postpartum", children: "Postpartum" })
+        ] })
+      ] }),
+      props.isFemale ? /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "Women's Mode" }),
+        /* @__PURE__ */ u3("select", { value: f4.womenMode, onChange: (e3) => set("womenMode", e3.target.value), children: props.womenModeOptions.map(([v3, l3]) => /* @__PURE__ */ u3("option", { value: v3, children: l3 })) })
+      ] }) : null
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "grid2", style: "margin-top:8px", children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "Equipment" }),
+        /* @__PURE__ */ u3("select", { value: f4.equipment, onChange: (e3) => set("equipment", e3.target.value), children: [
+          /* @__PURE__ */ u3("option", { value: "gym", children: "Gym" }),
+          /* @__PURE__ */ u3("option", { value: "home", children: "Home" })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "Session Style" }),
+        /* @__PURE__ */ u3("select", { value: f4.style, onChange: (e3) => set("style", e3.target.value), children: [
+          /* @__PURE__ */ u3("option", { value: "balanced", children: "Balanced" }),
+          /* @__PURE__ */ u3("option", { value: "burner", children: "Burner (10-20 min)" })
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ u3(
+      Toggle,
+      {
+        id: "s-light",
+        checked: f4.light,
+        title: "Light mode",
+        desc: "bright backgrounds and higher contrast for daytime use.",
+        onChange: (v3) => {
+          set("light", v3);
+          a3.applyAppearance(v3, f4.oled);
+        }
+      }
+    ),
+    /* @__PURE__ */ u3(
+      Toggle,
+      {
+        id: "s-oled",
+        checked: f4.oled,
+        title: "True Black (OLED)",
+        desc: "pure #000000 backgrounds to save battery on AMOLED screens.",
+        onChange: (v3) => {
+          set("oled", v3);
+          a3.applyAppearance(f4.light, v3);
+        }
+      }
+    ),
+    /* @__PURE__ */ u3("div", { style: "margin-top:10px", children: [
+      /* @__PURE__ */ u3("label", { children: "Weight & load units" }),
+      /* @__PURE__ */ u3(
+        "select",
+        {
+          value: f4.units,
+          onChange: (e3) => {
+            const v3 = e3.target.value;
+            set("units", v3);
+            a3.applyUnits(v3);
+          },
+          children: [
+            /* @__PURE__ */ u3("option", { value: "imperial", children: "Imperial (lb)" }),
+            /* @__PURE__ */ u3("option", { value: "metric", children: "Metric (kg)" })
+          ]
+        }
+      )
+    ] }),
+    props.isFemale ? /* @__PURE__ */ u3("div", { style: "margin-top:8px;padding:10px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)", children: /* @__PURE__ */ u3("label", { style: "display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:12px;color:var(--text2);line-height:1.45", children: [
+      /* @__PURE__ */ u3("input", { type: "checkbox", style: "margin-top:3px;flex-shrink:0", checked: f4.womenSimpleUi, onChange: (e3) => set("womenSimpleUi", e3.target.checked) }),
+      /* @__PURE__ */ u3("span", { children: [
+        /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: "Simpler layout & colors" }),
+        " \u2014 Pinterest-style cards on Home, shorter Plan, pastels. How-to videos prefer female coaches. Turn off anytime."
+      ] })
+    ] }) }) : null,
+    /* @__PURE__ */ u3("div", { style: "margin-top:8px", children: [
+      /* @__PURE__ */ u3("label", { children: "When time is tight (Train tab)" }),
+      /* @__PURE__ */ u3("select", { value: f4.quick, onChange: (e3) => set("quick", e3.target.value), children: [
+        /* @__PURE__ */ u3("option", { value: "0", children: "Full session" }),
+        /* @__PURE__ */ u3("option", { value: "15", children: "~15 min \u2014 first two lifts only" })
+      ] })
+    ] }),
+    /* @__PURE__ */ u3(
+      Toggle,
+      {
+        id: "s-audio-cues",
+        checked: f4.audioCues,
+        title: "Audio cues",
+        desc: "announce next exercise and target weight when the rest timer finishes. Uses device speech synthesis.",
+        onChange: (v3) => {
+          set("audioCues", v3);
+          a3.setAudioCues(v3);
+        }
+      }
+    ),
+    /* @__PURE__ */ u3(
+      Toggle,
+      {
+        id: "s-altitude",
+        checked: f4.altitude,
+        title: "Training at altitude",
+        desc: "automatically adjust target running paces 5% slower to account for reduced oxygen availability.",
+        onChange: (v3) => {
+          set("altitude", v3);
+          a3.setAltitude(v3);
+        }
+      }
+    ),
+    props.biometricAvailable ? /* @__PURE__ */ u3(
+      Toggle,
+      {
+        id: "s-biometric",
+        checked: f4.biometric,
+        title: "Biometric lock",
+        desc: "require FaceID / TouchID when opening the app.",
+        onChange: async (v3) => {
+          const ok = await a3.setBiometric(v3);
+          set("biometric", v3 ? !!ok : false);
+        }
+      }
+    ) : null,
+    /* @__PURE__ */ u3("button", { class: "btn btn-cta btn-block", style: "margin-top:10px", onClick: () => a3.save(f4), children: "Save & recalculate" }),
+    /* @__PURE__ */ u3("details", { class: "settings-adapt-fold settings-section", "data-k": "adaptation reset bench squat dead run multiplier advanced deload", children: [
+      /* @__PURE__ */ u3("summary", { class: "settings-adapt-sum", children: "Advanced \xB7 adaptation multipliers" }),
+      /* @__PURE__ */ u3("div", { class: "settings-adapt-body", children: [
+        /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--text3);margin:0 0 10px;line-height:1.45", children: "These drift from 1.000 as you log. Reset only if prescriptions feel systematically off." }),
+        /* @__PURE__ */ u3("div", { style: "display:flex;gap:10px;font-size:12px;color:var(--text2);flex-wrap:wrap;font-variant-numeric:tabular-nums", children: [
+          /* @__PURE__ */ u3("span", { children: [
+            "B ",
+            /* @__PURE__ */ u3("b", { children: props.adapt.bench.toFixed(3) })
+          ] }),
+          /* @__PURE__ */ u3("span", { children: [
+            "S ",
+            /* @__PURE__ */ u3("b", { children: props.adapt.squat.toFixed(3) })
+          ] }),
+          /* @__PURE__ */ u3("span", { children: [
+            "D ",
+            /* @__PURE__ */ u3("b", { children: props.adapt.dead.toFixed(3) })
+          ] }),
+          /* @__PURE__ */ u3("span", { children: [
+            "R ",
+            /* @__PURE__ */ u3("b", { children: props.adapt.run.toFixed(3) })
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-sm", style: "margin-top:8px", onClick: () => a3.resetAdaptation(), children: "Reset to 1.000" })
+      ] })
+    ] })
+  ] });
+}
+function mountProfileSettings(container, props) {
+  R(/* @__PURE__ */ u3(ProfileSettings, { ...props }), container);
+}
 export {
+  ProfileSettings,
   SocialView,
+  mountProfileSettings,
   mountSocial
 };

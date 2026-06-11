@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h50e57b4bd306";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h909c740356e3";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h50e57b4bd306";
-import { mountSocial } from "./ui-components.js?v=h50e57b4bd306";
+} from "./programming.js?v=h909c740356e3";
+import { mountSocial, mountProfileSettings } from "./ui-components.js?v=h909c740356e3";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -5092,41 +5092,7 @@ function renderSettings(){
   <details class="settings-fold settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style appearance theme light dark oled units metric audio altitude biometric save adaptation reset advanced multiplier">
     <summary>Profile, body &amp; app settings</summary>
     <div class="settings-fold-body"><div class="grid2 section" style="margin-bottom:0">
-    <div class="card settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style appearance theme light dark save" id="settings-profile"><div class="card-h"><h2>Training & profile</h2></div>
-      <div class="grid3 settings-1rm-grid"><div><label>Bench 1RM (${massUnitLabel()})</label><input id="s-b" type="number" step="any" value="${massLbToField(S.profile.bench1RM)}"></div><div><label>Squat 1RM (${massUnitLabel()})</label><input id="s-sq" type="number" step="any" value="${massLbToField(S.profile.squat1RM)}"></div><div><label>Deadlift 1RM (${massUnitLabel()})</label><input id="s-dl" type="number" step="any" value="${massLbToField(S.profile.dead1RM)}"></div></div>
-      <div class="grid3" style="margin-top:8px"><div><label>Weight (${massUnitLabel()})</label><input id="s-wt" type="number" step="any" value="${massLbToField(S.profile.weight)}"></div><div><label>Goal Wt (${massUnitLabel()})</label><input id="s-gw" type="number" step="any" value="${massLbToField(S.profile.goalWt)}"></div><div><label>4mi pace</label><input id="s-run" class="input-mmss" value="${run4Disp}" placeholder="35:00" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Four mile time as mm:ss"></div></div>
-      <div class="grid3" style="margin-top:8px"><div><label>Waist (in)</label><input id="s-waist" type="number" step="0.1" value="${S.profile.waist||""}"></div><div><label>Hips (in)</label><input id="s-hips" type="number" step="0.1" value="${S.profile.hips||""}"></div><div><label>Shoulders (in)</label><input id="s-shoulders" type="number" step="0.1" value="${S.profile.shoulders||""}"></div></div>
-      <div class="grid3" style="margin-top:8px"><div><label>Body Fat %</label><input id="s-bf" type="number" step="0.1" value="${S.profile.bodyFat||""}"></div><div><label>Neck (in)</label><input id="s-neck" type="number" step="0.1" value="${S.profile.neckCirc||""}"></div><div><label>Age</label><input id="s-age" type="number" step="1" value="${S.profile.age||""}"></div></div>
-      ${isFemale?`<div class="grid3 settings-sex-row" style="margin-top:8px"><div><label>Sex</label><select id="s-sex"><option value="male" ${S.profile.sex==="male"?"selected":""}>Male</option><option value="female" ${S.profile.sex==="female"?"selected":""}>Female</option></select></div><div><label>Life Stage</label><select id="s-life"><option value="general" ${((S.profile.prefs||{}).lifeStage||"general")==="general"?"selected":""}>General</option><option value="pregnancy" ${((S.profile.prefs||{}).lifeStage||"")==="pregnancy"?"selected":""}>Pregnancy</option><option value="postpartum" ${((S.profile.prefs||{}).lifeStage||"")==="postpartum"?"selected":""}>Postpartum</option></select></div><div><label>Women's Mode</label><select id="s-wm">${wmOpts.map(([v,l])=>`<option value="${v}" ${wmSel===v?"selected":""}>${l}</option>`).join("")}</select></div></div>`:`<div class="grid2 settings-sex-row" style="margin-top:8px"><div><label>Sex</label><select id="s-sex"><option value="male" ${S.profile.sex==="male"?"selected":""}>Male</option><option value="female" ${S.profile.sex==="female"?"selected":""}>Female</option></select></div><div><label>Life Stage</label><select id="s-life"><option value="general" ${((S.profile.prefs||{}).lifeStage||"general")==="general"?"selected":""}>General</option><option value="pregnancy" ${((S.profile.prefs||{}).lifeStage||"")==="pregnancy"?"selected":""}>Pregnancy</option><option value="postpartum" ${((S.profile.prefs||{}).lifeStage||"")==="postpartum"?"selected":""}>Postpartum</option></select></div></div>`}
-      <div class="grid2" style="margin-top:8px"><div><label>Equipment</label><select id="s-eq"><option value="gym" ${((S.profile.prefs||{}).equipment||"gym")==="gym"?"selected":""}>Gym</option><option value="home" ${((S.profile.prefs||{}).equipment||"")==="home"?"selected":""}>Home</option></select></div><div><label>Session Style</label><select id="s-style"><option value="balanced" ${((S.profile.prefs||{}).style||"balanced")==="balanced"?"selected":""}>Balanced</option><option value="burner" ${((S.profile.prefs||{}).style||"")==="burner"?"selected":""}>Burner (10-20 min)</option></select></div></div>
-      <div class="settings-toggle-row" style="margin-top:10px;padding:12px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)">
-        <label class="settings-switch-label"><input type="checkbox" id="s-light" ${((S.profile.prefs||{}).appearance||"dark")==="light"?"checked":""}><span><b style="color:var(--text)">Light mode</b> — bright backgrounds and higher contrast for daytime use.</span></label>
-      </div>
-      <div class="settings-toggle-row" style="margin-top:8px;padding:12px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)">
-        <label class="settings-switch-label"><input type="checkbox" id="s-oled" ${(S.profile.prefs||{}).oledMode?"checked":""}><span><b style="color:var(--text)">True Black (OLED)</b> — pure #000000 backgrounds to save battery on AMOLED screens.</span></label>
-      </div>
-      <div style="margin-top:10px"><label>Weight &amp; load units</label><select id="s-units"><option value="imperial" ${((S.profile.prefs||{}).units||"imperial")!=="metric"?"selected":""}>Imperial (lb)</option><option value="metric" ${((S.profile.prefs||{}).units||"")==="metric"?"selected":""}>Metric (kg)</option></select><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How are units stored?</summary><p style="font-size:10px;color:var(--text3);margin:6px 0 0;line-height:1.45">Loads and body weight display convert from stored pounds; bar math uses Olympic plate sets for the active unit.</p></details></div>
-      ${isFemale?`<div style="margin-top:8px;padding:10px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)"><label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:12px;color:var(--text2);line-height:1.45"><input type="checkbox" id="s-women-ui" style="margin-top:3px;flex-shrink:0" ${(S.profile.prefs||{}).womenSimpleUi!==false?"checked":""}><span><b style="color:var(--text)">Simpler layout &amp; colors</b> — Pinterest-style cards on Home, shorter Plan, pastels. How-to videos prefer female coaches. Turn off anytime.</span></label></div>`:""}
-      <div style="margin-top:8px"><label>When time is tight (Train tab)</label><select id="s-quick"><option value="0" ${!(Number((S.profile.prefs||{}).quickSessionMin))?"selected":""}>Full session</option><option value="15" ${Number((S.profile.prefs||{}).quickSessionMin)>0?"selected":""}>~15 min — first two lifts only</option></select></div>
-      <div class="settings-toggle-row" style="margin-top:10px;padding:12px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)">
-        <label class="settings-switch-label"><input type="checkbox" id="s-audio-cues" ${(S.profile.prefs||{}).audioCues?"checked":""}><span><b style="color:var(--text)">Audio cues</b> — announce next exercise and target weight when the rest timer finishes. Uses device speech synthesis.</span></label>
-      </div>
-      <div class="settings-toggle-row" style="margin-top:10px;padding:12px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)">
-        <label class="settings-switch-label"><input type="checkbox" id="s-altitude" ${(S.profile.prefs||{}).altitudeTraining?"checked":""}><span><b style="color:var(--text)">Training at altitude</b> — automatically adjust target running paces 5% slower to account for reduced oxygen availability.</span></label>
-      </div>
-      ${window.PublicKeyCredential?`<div class="settings-toggle-row" style="margin-top:10px;padding:12px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)">
-        <label class="settings-switch-label"><input type="checkbox" id="s-biometric" ${localStorage.getItem("hw-webauthn-cred")?"checked":""}><span><b style="color:var(--text)">Biometric lock</b> — require FaceID / TouchID when opening the app.</span></label>
-      </div>`:""}
-      <button class="btn btn-cta btn-block" id="s-save" style="margin-top:10px">Save & recalculate</button>
-      <details class="settings-adapt-fold settings-section" data-k="adaptation reset bench squat dead run multiplier advanced deload">
-        <summary class="settings-adapt-sum">Advanced · adaptation multipliers</summary>
-        <div class="settings-adapt-body">
-          <p style="font-size:11px;color:var(--text3);margin:0 0 10px;line-height:1.45">These drift from 1.000 as you log. Reset only if prescriptions feel systematically off.</p>
-          <div style="display:flex;gap:10px;font-size:12px;color:var(--text2);flex-wrap:wrap;font-variant-numeric:tabular-nums"><span>B <b>${S.adapt.bench.toFixed(3)}</b></span><span>S <b>${S.adapt.squat.toFixed(3)}</b></span><span>D <b>${S.adapt.dead.toFixed(3)}</b></span><span>R <b>${S.adapt.run.toFixed(3)}</b></span></div>
-          <button type="button" class="btn btn-ghost btn-sm" id="s-reset" style="margin-top:8px">Reset to 1.000</button>
-        </div>
-      </details>
-      </div>
+    <div id="settings-profile-mount"></div>
         </div></div>
   </details>
   <details class="settings-fold settings-section" data-k="account email firebase sign plan switch onboard offline sync program start date calendar block parked trial onboarding wizard resume">
@@ -5226,7 +5192,53 @@ function renderSettings(){
     </div>
   </details>`;
 }
+// ── Profile/body/app settings: Preact component (UI rebuild #2) ──
+function buildProfileSettingsProps(){
+  const p=S.profile,prefs=p.prefs||{};
+  const wmOpts=[["auto","Auto"],["hourglass","Hourglass"],["glute_shelf","Glute Shelf"],["posture","Posture"],["pilates","Pilates"],["home","Home Sculpt"]];
+  return{
+    initial:{
+      bench:String(massLbToField(p.bench1RM)),squat:String(massLbToField(p.squat1RM)),dead:String(massLbToField(p.dead1RM)),
+      weight:String(massLbToField(p.weight)),goalWt:String(massLbToField(p.goalWt)),run:p.run4mi>0?mmss(p.run4mi):"",
+      waist:p.waist?String(p.waist):"",hips:p.hips?String(p.hips):"",shoulders:p.shoulders?String(p.shoulders):"",
+      bodyFat:p.bodyFat?String(p.bodyFat):"",neck:p.neckCirc?String(p.neckCirc):"",age:p.age?String(p.age):"",
+      sex:p.sex||"male",lifeStage:prefs.lifeStage||"general",womenMode:prefs.womenMode||"auto",
+      equipment:prefs.equipment||"gym",style:prefs.style||"balanced",units:prefs.units||"imperial",
+      quick:Number(prefs.quickSessionMin)>0?"15":"0",
+      light:(prefs.appearance||"dark")==="light",oled:!!prefs.oledMode,womenSimpleUi:prefs.womenSimpleUi!==false,
+      audioCues:!!prefs.audioCues,altitude:!!prefs.altitudeTraining,biometric:!!localStorage.getItem("hw-webauthn-cred")
+    },
+    massLabel:massUnitLabel(),isFemale:p.sex==="female",biometricAvailable:typeof window!=="undefined"&&!!window.PublicKeyCredential,
+    womenModeOptions:wmOpts,adapt:{bench:S.adapt.bench,squat:S.adapt.squat,dead:S.adapt.dead,run:S.adapt.run},
+    actions:{save:applyProfileSettings,applyAppearance:applyProfileAppearance,applyUnits:applyProfileUnits,setAudioCues:setProfileAudio,setAltitude:setProfileAltitude,setBiometric:setProfileBiometric,resetAdaptation:resetProfileAdaptation}
+  };
+}
+function mountProfileSettingsTab(){const c=document.getElementById("settings-profile-mount");if(c)mountProfileSettings(c,buildProfileSettingsProps());}
+async function applyProfileSettings(form){
+  S.profile.bench1RM=massFieldToLb(form.bench)||S.profile.bench1RM;
+  S.profile.squat1RM=massFieldToLb(form.squat)||S.profile.squat1RM;
+  S.profile.dead1RM=massFieldToLb(form.dead)||S.profile.dead1RM;
+  S.profile.weight=massFieldToLb(form.weight)||S.profile.weight;
+  S.profile.goalWt=massFieldToLb(form.goalWt)||S.profile.goalWt;
+  S.profile.waist=Number(form.waist)||0;S.profile.hips=Number(form.hips)||0;S.profile.shoulders=Number(form.shoulders)||0;
+  S.profile.bodyFat=Number(form.bodyFat)||0;S.profile.neckCirc=Number(form.neck)||0;S.profile.age=Number(form.age)||S.profile.age;
+  S.profile.sex=form.sex;
+  const appearance=form.light?"light":"dark",units=form.units==="metric"?"metric":"imperial";
+  const _prefs={...(S.profile.prefs||{}),lifeStage:form.lifeStage,womenMode:form.womenMode||((S.profile.prefs||{}).womenMode||"auto"),equipment:form.equipment,style:form.style,appearance,units,quickSessionMin:Number(form.quick)||0,audioCues:!!form.audioCues,altitudeTraining:!!form.altitude,oledMode:!!form.oled};
+  if(S.profile.sex==="female")_prefs.womenSimpleUi=!!form.womenSimpleUi;else delete _prefs.womenSimpleUi;
+  S.profile.prefs=_prefs;
+  const r=parseMM(form.run);if(r>0)S.profile.run4mi=r;
+  const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}
+  await persist();applyVisualTheme(false);render();toast("Saved");
+}
+async function applyProfileAppearance(light,oled){S.profile.prefs={...(S.profile.prefs||{}),appearance:light?"light":"dark",oledMode:!!oled};await persist();applyVisualTheme(false);}
+async function applyProfileUnits(units){S.profile.prefs={...(S.profile.prefs||{}),units:units==="metric"?"metric":"imperial"};await persist();render();toast("Units updated");}
+async function setProfileAudio(v){S.profile.prefs={...(S.profile.prefs||{}),audioCues:!!v};await persist();toast(v?"Audio cues enabled":"Audio cues disabled");}
+async function setProfileAltitude(v){S.profile.prefs={...(S.profile.prefs||{}),altitudeTraining:!!v};await persist();toast(v?"Altitude adjustment enabled — run paces +5%":"Altitude adjustment disabled");}
+async function setProfileBiometric(v){if(v){const ok=await webAuthnRegister();toast(ok?"Biometric lock enabled":"Biometric not available on this device");return!!ok}localStorage.removeItem("hw-webauthn-cred");toast("Biometric lock removed");return false}
+async function resetProfileAdaptation(){const ok=await showCustomModal("Reset adaptation?","Reset all multipliers to 1.000? Prescribed loads and run pace will change until your logs move them again.",{confirmLabel:"Reset"});if(!ok)return;const prev={...S.adapt};S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Adaptation reset",{undo:()=>{S.adapt=prev;persist();render()}});}
 function bindSettings(){
+  mountProfileSettingsTab();
   const fil=document.getElementById("s-filter");
   function applySettingsFilter(){
     const root=document.getElementById("you-inner");
@@ -5259,23 +5271,6 @@ function bindSettings(){
   if(hpa&&hst)hpa.onclick=async()=>{try{const t=await navigator.clipboard.readText();const n=parseInt(String(t).replace(/[^0-9]/g,""),10);if(n>=500)hst.value=String(n);else toast("Clipboard did not look like a step count.")}catch{toast("Allow clipboard access or type steps manually.")}};
   const plBtn=document.getElementById("pl-calc"),plOut=document.getElementById("pl-out");
   if(plBtn&&plOut)plBtn.onclick=()=>{const total=Number(document.getElementById("pl-total").value)||0,bar=Number(document.getElementById("pl-bar").value)||(useMetric()?20:45);const o=runPlateCalc(total,bar);if(o.err){plOut.textContent=o.err;return}plOut.textContent=o.text};
-  const sLight=document.getElementById("s-light");
-  if(sLight)sLight.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),appearance:sLight.checked?"light":"dark"};await persist();applyVisualTheme(false);render()};
-  const sOled=document.getElementById("s-oled");
-  if(sOled)sOled.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),oledMode:sOled.checked};await persist();applyVisualTheme(false);render()};
-  const sAudio=document.getElementById("s-audio-cues");
-  if(sAudio)sAudio.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),audioCues:sAudio.checked};await persist();toast(sAudio.checked?"Audio cues enabled":"Audio cues disabled")};
-  const sAlt=document.getElementById("s-altitude");
-  if(sAlt)sAlt.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),altitudeTraining:sAlt.checked};await persist();render();toast(sAlt.checked?"Altitude adjustment enabled — run paces +5%":"Altitude adjustment disabled")};
-  const sBio=document.getElementById("s-biometric");
-  if(sBio)sBio.onchange=async()=>{
-    if(sBio.checked){const ok=await webAuthnRegister();if(ok){toast("Biometric lock enabled")}else{sBio.checked=false;toast("Biometric not available on this device")}}
-    else{localStorage.removeItem("hw-webauthn-cred");toast("Biometric lock removed")}
-  };
-  const sUnits=document.getElementById("s-units");
-  if(sUnits)sUnits.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),units:sUnits.value==="metric"?"metric":"imperial"};await persist();render();toast("Units updated")};
-  document.getElementById("s-save").onclick=async()=>{S.profile.bench1RM=massFieldToLb(document.getElementById("s-b").value)||S.profile.bench1RM;S.profile.squat1RM=massFieldToLb(document.getElementById("s-sq").value)||S.profile.squat1RM;S.profile.dead1RM=massFieldToLb(document.getElementById("s-dl").value)||S.profile.dead1RM;S.profile.weight=massFieldToLb(document.getElementById("s-wt").value)||S.profile.weight;S.profile.goalWt=massFieldToLb(document.getElementById("s-gw").value)||S.profile.goalWt;S.profile.waist=Number(document.getElementById("s-waist").value)||0;S.profile.hips=Number(document.getElementById("s-hips").value)||0;S.profile.shoulders=Number(document.getElementById("s-shoulders").value)||0;S.profile.bodyFat=Number(document.getElementById("s-bf").value)||0;S.profile.neckCirc=Number(document.getElementById("s-neck")?.value)||0;S.profile.age=Number(document.getElementById("s-age")?.value)||S.profile.age;S.profile.sex=document.getElementById("s-sex").value;const qm=Number(document.getElementById("s-quick")?.value)||0;const wmEl=document.getElementById("s-wm");const appearance=(document.getElementById("s-light")?.checked)?"light":"dark";const uEl=document.getElementById("s-units");const units=(uEl&&uEl.value)==="metric"?"metric":"imperial";const audioCues=!!(document.getElementById("s-audio-cues")&&document.getElementById("s-audio-cues").checked);const altitudeTraining=!!(document.getElementById("s-altitude")&&document.getElementById("s-altitude").checked);const oledMode=!!(document.getElementById("s-oled")&&document.getElementById("s-oled").checked);const _prefs={...(S.profile.prefs||{}),lifeStage:document.getElementById("s-life").value,womenMode:wmEl?wmEl.value:((S.profile.prefs||{}).womenMode||"auto"),equipment:document.getElementById("s-eq").value,style:document.getElementById("s-style").value,appearance,units,quickSessionMin:qm,audioCues,altitudeTraining,oledMode};if(S.profile.sex==="female")_prefs.womenSimpleUi=!!(document.getElementById("s-women-ui")&&document.getElementById("s-women-ui").checked);else delete _prefs.womenSimpleUi;S.profile.prefs=_prefs;const r=parseMM(document.getElementById("s-run").value);if(r>0)S.profile.run4mi=r;const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}await persist();applyVisualTheme(false);render();toast("Saved")};
-  document.getElementById("s-reset").onclick=async()=>{const ok=await showCustomModal("Reset adaptation?","Reset all multipliers to 1.000? Prescribed loads and run pace will change until your logs move them again.",{confirmLabel:"Reset"});if(!ok)return;const prev={...S.adapt};S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Adaptation reset",{undo:()=>{S.adapt=prev;persist();render()}})};
   const so=document.getElementById("s-signout");if(so)so.onclick=async()=>{const ok=await showCustomModal("Sign out?","You can sign back in later. Local data on this device stays until you clear it.",{confirmLabel:"Sign out"});if(ok)doSignOut()};
        document.getElementById("s-plan-save").onclick=async()=>{const next=Number(document.getElementById("s-plan").value);const nm=PLANS[next].name;const ok=await showCustomModal("Switch plan?",`Change to <b>${nm}</b>? Week alignment stays the same; review Plan when ready.`,{confirmLabel:"Switch"});if(!ok)return;S.planId=next;const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}await persist();render();toast("Switched to: "+nm)};
   const sTrial=document.getElementById("s-trial-plan");
