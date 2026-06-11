@@ -116,5 +116,20 @@ t("todayPlanFiltered runs without throwing", () => {
   if (typeof ui.todayPlanFiltered === "function") ui.todayPlanFiltered();
 });
 
+t("buildPlanProps builds a 13-week view-model for the Plan component (no throw)", () => {
+  if (typeof ui.buildPlanProps !== "function") throw new Error("buildPlanProps not exported");
+  const p = ui.buildPlanProps();
+  if (!Array.isArray(p.weeks) || p.weeks.length !== 13) throw new Error("expected 13 weeks, got " + (p.weeks && p.weeks.length));
+  if (!Array.isArray(p.timeline) || p.timeline.length !== 13) throw new Error("expected 13 timeline cells");
+  if (typeof p.anchorSummaryHtml !== "string" || typeof p.nextDotsHtml !== "string") throw new Error("panels not strings");
+  if (!p.actions || typeof p.actions.reorder !== "function") throw new Error("actions missing");
+  const open = p.weeks.find((w) => w.isOpen);
+  if (!open) throw new Error("no week marked open");
+  if (open.days && open.days.length) {
+    const ex = open.days.flatMap((d) => d.exercises);
+    if (ex.some((e) => typeof e.name !== "string" || typeof e.rx !== "string")) throw new Error("malformed exercise view-model");
+  }
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
