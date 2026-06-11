@@ -1,13 +1,13 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610g";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610h";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
   warmupText, recentBestE1RM, workingMax,
   rankPlans, bestPlanId, whyPlan, toEmbedUrl,
   e1rmSeries, detectPlateau, projectWeeksToGoal,
-  accessoryRx
-} from "./programming.js?v=20260610g";
+  accessoryRx, mergeLogSets
+} from "./programming.js?v=20260610h";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -399,7 +399,14 @@ async function initFB(cfg){
   // Keep auth session across reloads/devices until explicit sign-out.
   await fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 }
-function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){S=merge(S,d.state);normalizeProgramStart(S);save();render()}})}
+function startSync(){if(!fbDb||!currentUser)return;if(fbUnsub)fbUnsub();fbUnsub=fbDb.collection("hw").doc(currentUser.uid).onSnapshot(doc=>{if(!doc.exists)return;if(Date.now()-lastPushAt<3000)return;const d=doc.data();if(d&&d.state){
+  // Event-sourced conflict-free log merge: whole-document merge would let the
+  // remote snapshot's logs array overwrite ours (last-write-wins). Instead,
+  // union both devices' logs by stable id so no logged set is ever lost.
+  const localLogs=Array.isArray(S.logs)?S.logs.slice():[];
+  S=merge(S,d.state);
+  try{S.logs=mergeLogSets(localLogs,(d.state&&Array.isArray(d.state.logs))?d.state.logs:[]).slice(-1000);}catch(e){}
+  normalizeProgramStart(S);save();render()}})}
 async function cloudPush(){
   if(offlineMode||!fbDb||!currentUser)return;
   const payload={state:S,at:new Date().toISOString()};

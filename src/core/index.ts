@@ -10,3 +10,5 @@ export * from "./periodization";
 export * from "./strength";
 export * from "./scoring";
 export * from "./media";
+export * from "./events";
+export * from "./eventlog";

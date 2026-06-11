@@ -32,6 +32,7 @@ export type LiftFeel = "easy" | "ok" | "hard";
 
 /** One logged set/session row. aW/aR/aS = actual weight/reps/sets. */
 export interface LiftLog {
+  id?: string;
   date: string;
   exercise: string;
   aW?: number;
@@ -41,6 +42,10 @@ export interface LiftLog {
   tR?: number;
   tS?: number;
   liftFeel?: LiftFeel | string;
+  week?: number;
+  outcome?: string;
+  score?: number;
+  note?: string;
   [k: string]: unknown;
 }
 

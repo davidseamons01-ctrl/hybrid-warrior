@@ -418,6 +418,84 @@ function toEmbedUrl(url) {
   if (!id) return url;
   return `https://www.youtube.com/embed/${id}`;
 }
+
+// src/core/events.ts
+function dateTs(date) {
+  const t = (/* @__PURE__ */ new Date(String(date) + "T12:00:00")).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+function setLoggedFromLog(log) {
+  const logId = String(
+    log.id != null ? log.id : `${log.date}|${log.exercise}|${log.aW}|${log.aR}|${log.aS}`
+  );
+  const e = {
+    id: "ev_" + logId,
+    ts: dateTs(String(log.date)),
+    type: "SetLogged",
+    logId,
+    date: String(log.date),
+    exercise: String(log.exercise),
+    weight: Number(log.aW) || 0,
+    reps: Number(log.aR) || 0,
+    sets: Number(log.aS) || 0
+  };
+  if (log.tW != null) e.targetWeight = Number(log.tW);
+  if (log.tR != null) e.targetReps = Number(log.tR);
+  if (log.tS != null) e.targetSets = Number(log.tS);
+  if (log.liftFeel != null) e.feel = String(log.liftFeel);
+  if (log.outcome != null) e.outcome = String(log.outcome);
+  if (log.week != null) e.week = Number(log.week);
+  if (log.score != null) e.score = Number(log.score);
+  if (log.note != null) e.note = String(log.note);
+  return e;
+}
+function setDeletedEvent(logId, ts) {
+  const t = ts != null ? ts : Date.now();
+  return { id: "del_" + String(logId), ts: t, type: "SetDeleted", logId: String(logId) };
+}
+function eventToLog(e) {
+  const log = {
+    id: e.logId,
+    date: e.date,
+    exercise: e.exercise,
+    aW: e.weight,
+    aR: e.reps,
+    aS: e.sets
+  };
+  if (e.targetWeight !== void 0) log.tW = e.targetWeight;
+  if (e.targetReps !== void 0) log.tR = e.targetReps;
+  if (e.targetSets !== void 0) log.tS = e.targetSets;
+  if (e.feel !== void 0) log.liftFeel = e.feel;
+  if (e.outcome !== void 0) log.outcome = e.outcome;
+  if (e.week !== void 0) log.week = e.week;
+  if (e.score !== void 0) log.score = e.score;
+  if (e.note !== void 0) log.note = e.note;
+  return log;
+}
+
+// src/core/eventlog.ts
+function mergeEvents(a, b) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const e of a || []) if (e && e.id) byId.set(e.id, e);
+  for (const e of b || []) if (e && e.id && !byId.has(e.id)) byId.set(e.id, e);
+  return [...byId.values()].sort((x, y) => x.ts - y.ts || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+}
+function projectLogs(events) {
+  const deleted = /* @__PURE__ */ new Set();
+  for (const e of events || []) if (e.type === "SetDeleted") deleted.add(e.logId);
+  const latest = /* @__PURE__ */ new Map();
+  for (const e of events || []) {
+    if (e.type !== "SetLogged" || deleted.has(e.logId)) continue;
+    latest.set(e.logId, e);
+  }
+  return [...latest.values()].sort((a, b) => a.ts - b.ts || (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).map(eventToLog);
+}
+function fromLegacyLogs(logs) {
+  return (logs || []).map(setLoggedFromLog);
+}
+function mergeLogSets(localLogs, remoteLogs) {
+  return projectLogs(mergeEvents(fromLegacyLogs(localLogs), fromLegacyLogs(remoteLogs)));
+}
 export {
   ALL_EQUIPMENT,
   ALL_GOALS,
@@ -429,17 +507,24 @@ export {
   e1rmSeries,
   epley,
   equipmentSet,
+  eventToLog,
   exerciseNeeds,
+  fromLegacyLogs,
   goalFromFocus,
   isDeloadWeek,
+  mergeEvents,
+  mergeLogSets,
   peakIsMaxTest,
   phaseLabel,
   phaseRepsFor,
   phaseSetsFor,
+  projectLogs,
   projectWeeksToGoal,
   rankPlans,
   recentBestE1RM,
   scorePlan,
+  setDeletedEvent,
+  setLoggedFromLog,
   substituteEid,
   toEmbedUrl,
   warmupSets,
