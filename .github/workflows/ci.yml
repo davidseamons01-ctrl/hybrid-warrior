@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "overhaul/**"]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+
+      # typecheck · vitest · build @core · artifact parity · app integration
+      - run: npm run verify
+
+      # Drift guard: the committed js/programming.js and the content-hash cache
+      # tokens must match source. If this fails, run `npm run deploy` and commit.
+      - run: npm run deploy
+      - name: Ensure built artifact + cache tokens are committed
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::Build artifacts or cache tokens are stale. Run 'npm run deploy' and commit the result."
+            git --no-pager diff --stat
+            exit 1
+          fi
