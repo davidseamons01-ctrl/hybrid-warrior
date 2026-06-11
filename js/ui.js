@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610d";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610e";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -7,7 +7,7 @@ import {
   rankPlans, bestPlanId, whyPlan, toEmbedUrl,
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx
-} from "./programming.js?v=20260610d";
+} from "./programming.js?v=20260610e";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3254,12 +3254,11 @@ function renderDash(){
       <button type="button" class="btn btn-secondary-solid btn-sm btn-block" id="dash-whats-today">Details</button>
     </div>
   </div>
-  <div class="card section daily-quote-card" style="padding:14px 16px;border-left:3px solid var(--fire);margin-bottom:4px">
-    <div style="font-size:10px;font-weight:700;color:var(--fire);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Daily motivation</div>
-    <div style="font-size:13px;color:var(--text);line-height:1.55;font-style:italic">"${dailyQuote()}"</div>
-  </div>
-  <div class="card section tip-of-day" style="padding:12px 14px;border-left:3px solid var(--gold)">
-    <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Training tip of the day</div>
+  <div class="card section daily-quote-card" style="padding:12px 14px;border-left:3px solid var(--fire)">
+    <div style="font-size:10px;font-weight:700;color:var(--fire);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Daily motivation</div>
+    <div style="font-size:13px;color:var(--text);line-height:1.5;font-style:italic">"${dailyQuote()}"</div>
+    <div style="height:1px;background:var(--border);margin:10px 0"></div>
+    <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">💡 Training tip</div>
     <div style="font-size:12px;color:var(--text2);line-height:1.5;font-style:italic">${tipOfTheDay()}</div>
   </div>
   ${!plan.exs.length?activeRecoveryCardHtml():""}
@@ -3314,7 +3313,7 @@ function renderDash(){
     </div>
     <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Supplements taken today</div>
     <div class="supp-row">${suppChecks}</div>
-    <button type="button" class="btn btn-mint btn-block" id="dh-save" style="margin-top:10px">Save daily health</button>
+    <button type="button" class="btn btn-secondary-solid btn-block" id="dh-save" style="margin-top:10px">Save daily health</button>
   </div>
   ${vo2>0?`<details class="card section" style="padding:14px"><summary style="font-size:13px;font-weight:600;cursor:pointer">Est. VO2 Max <span style="font-size:11px;color:var(--text3);font-weight:400">· ${vo2} mL/kg/min</span></summary><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><div><div style="font-size:10px;color:var(--text3)">Est. VO2 Max</div><div style="font-size:28px;font-weight:700;color:var(--mint)">${vo2}</div><div style="font-size:10px;color:var(--text3)">mL/kg/min</div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3)">Fitness level</div><div style="font-size:14px;font-weight:600;color:var(--text)">${vo2>=55?"Elite":vo2>=45?"Excellent":vo2>=35?"Good":vo2>=25?"Fair":"Below avg"}</div></div></div></details>`:""}
   ${(S.shoes||[]).length?`<details class="card section" style="padding:14px" id="dash-shoes"><summary style="font-size:13px;font-weight:600;cursor:pointer">Shoe mileage <span style="font-size:11px;color:var(--text3);font-weight:400">· ${(S.shoes||[]).filter(s=>!s.retired).length} active</span></summary><div style="margin-top:10px">${(S.shoes||[]).filter(s=>!s.retired).map(s=>{const pct=Math.min(1,s.miles/300);const warn=s.miles>=300;return`<div class="shoe-row ${warn?"shoe-warn":""}"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font-size:12px;font-weight:600;color:var(--text)">${s.name}</span><span style="font-size:11px;color:${warn?"var(--red)":"var(--text2)"}"><b>${Math.round(s.miles)}</b> / 300 mi${warn?" ⚠️ Replace":""}  </span></div><div class="shoe-bar"><div style="width:${pct*100}%;background:${warn?"var(--red)":"var(--mint)"}"></div></div></div>`}).join("")}<button type="button" class="btn btn-sm btn-ghost" id="dash-manage-shoes" style="margin-top:8px">Manage shoes</button></div></details>`:""}`})()}
@@ -3359,7 +3358,7 @@ function renderDash(){
       <div><label>Distance (mi)</label><input type="number" id="ex-act-mi" min="0" step="0.1" placeholder="optional"></div>
     </div>
     <div style="margin-top:8px"><label>Note</label><input id="ex-act-note" placeholder="Trail, effort, device…" style="width:100%"></div>
-    <button type="button" class="btn btn-mint btn-block" id="ex-act-save" style="margin-top:10px">Save activity</button>
+    <button type="button" class="btn btn-secondary-solid btn-block" id="ex-act-save" style="margin-top:10px">Save activity</button>
     ${extras.length?`<div style="margin-top:14px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px">Recent</div><div>${extraRows}</div>`:""}
   </div>
   ${weekLogEmpty?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:14px;font-weight:600;margin-bottom:4px">No entries yet this week</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px">A short log after training adjusts loads for the rest of the block.</p><button type="button" class="btn btn-fire" id="dash-go-log">Log today's session</button></div>`:""}
@@ -3748,7 +3747,7 @@ function volumeHeatmapHtml(weeksBack){
   const totalCols=weekIdx+1;
   const mlHtml=monthLabels.map(m=>`<span style="grid-column:${m.week+1};font-size:9px;color:var(--text3)">${m.label}</span>`).join("");
   const dayLbls=["S","M","T","W","T","F","S"].map((l,i)=>`<span style="grid-row:${i+1};font-size:9px;color:var(--text3);text-align:right;padding-right:4px">${i%2===1?l:""}</span>`).join("");
-  return`<div class="heatmap-wrap"><div class="heatmap-months" style="display:grid;grid-template-columns:20px repeat(${totalCols},1fr);margin-bottom:2px"><span></span>${mlHtml}</div><div class="heatmap-grid" style="display:grid;grid-template-columns:20px repeat(${totalCols},1fr);grid-template-rows:repeat(7,1fr);gap:2px">${dayLbls}${cells.join("")}</div><div class="heatmap-legend"><span style="font-size:9px;color:var(--text3)">Less</span>${[0,1,2,3,4].map(l=>`<div class="heatmap-cell heatmap-lvl-${l}" style="width:10px;height:10px"></div>`).join("")}<span style="font-size:9px;color:var(--text3)">More</span></div></div>`;
+  return`<div class="heatmap-wrap"><div class="heatmap-months" style="display:grid;grid-template-columns:20px repeat(${totalCols},minmax(0,14px));margin-bottom:2px"><span></span>${mlHtml}</div><div class="heatmap-grid" style="display:grid;grid-template-columns:20px repeat(${totalCols},minmax(0,14px));grid-template-rows:repeat(7,1fr);gap:2px">${dayLbls}${cells.join("")}</div><div class="heatmap-legend"><span style="font-size:9px;color:var(--text3)">Less</span>${[0,1,2,3,4].map(l=>`<div class="heatmap-cell heatmap-lvl-${l}" style="width:10px;height:10px"></div>`).join("")}<span style="font-size:9px;color:var(--text3)">More</span></div></div>`;
 }
 function calcRecoveryScore(){
   const now=new Date();
