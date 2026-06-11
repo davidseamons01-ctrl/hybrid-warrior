@@ -1070,10 +1070,162 @@ function PlanView(props) {
 function mountPlan(container, props) {
   R(/* @__PURE__ */ u3(PlanView, { ...props }), container);
 }
+
+// src/ui/exercise-card.tsx
+function Html2({ html }) {
+  return /* @__PURE__ */ u3("div", { style: "display:contents", dangerouslySetInnerHTML: { __html: html } });
+}
+function Stepper({ id, value, delta, min, step, label, repLab }) {
+  return /* @__PURE__ */ u3("div", { children: [
+    /* @__PURE__ */ u3("label", { children: label ?? repLab }),
+    /* @__PURE__ */ u3("div", { class: "stepper", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": -delta, children: "\u2212" }),
+      /* @__PURE__ */ u3("input", { type: "number", class: "input-sm", id, value, min, step }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": delta, children: "+" })
+    ] })
+  ] });
+}
+function LoadCol({ id, val, wStep, unit, i: i4 }) {
+  return /* @__PURE__ */ u3("div", { children: [
+    /* @__PURE__ */ u3("label", { children: [
+      "Load (",
+      unit,
+      ")"
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "stepper", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": -wStep, children: "\u2212" }),
+      /* @__PURE__ */ u3("input", { type: "number", class: "input-sm", id, value: val, min: "0", step: "any" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": wStep, children: "+" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "icon-btn q-load-helper", "data-i": i4, title: "Open bar load helper", "aria-label": "Open bar load helper for load", children: "\u{1F3CB}\uFE0F" })
+    ] })
+  ] });
+}
+function PaceCol({ id, val }) {
+  return /* @__PURE__ */ u3("div", { children: [
+    /* @__PURE__ */ u3("label", { children: "Pace (mm:ss/mi)" }),
+    /* @__PURE__ */ u3("input", { type: "text", class: "input-sm input-mmss", id, value: val, placeholder: "8:42", inputmode: "numeric", autocomplete: "off", spellcheck: false, "aria-label": "Pace per mile" })
+  ] });
+}
+function OutcomeSelect({ id }) {
+  return /* @__PURE__ */ u3("div", { children: [
+    /* @__PURE__ */ u3("label", { children: "Outcome" }),
+    /* @__PURE__ */ u3("select", { id, class: "input-sm", children: [
+      /* @__PURE__ */ u3("option", { value: "ok", children: "Completed" }),
+      /* @__PURE__ */ u3("option", { value: "fail", children: "Failed rep target" }),
+      /* @__PURE__ */ u3("option", { value: "time", children: "Time-capped" })
+    ] })
+  ] });
+}
+function ExerciseCard(p3) {
+  const { i: i4, unit } = p3;
+  return /* @__PURE__ */ u3("div", { class: "ex-card" + (p3.done ? " ex-done" : ""), id: "exc-" + i4, "data-eid": p3.eid, children: [
+    /* @__PURE__ */ u3("div", { class: "ex-top ex-top-row", children: [
+      /* @__PURE__ */ u3("div", { class: "ex-check", children: p3.done ? "\u2713" : "" }),
+      /* @__PURE__ */ u3("div", { class: "ex-num", children: p3.num }),
+      /* @__PURE__ */ u3("div", { class: "ex-info", children: [
+        /* @__PURE__ */ u3("div", { class: "ex-name-lg", children: p3.exNm }),
+        /* @__PURE__ */ u3("div", { class: "ex-rx-lg", children: p3.rxText }),
+        /* @__PURE__ */ u3(Html2, { html: p3.plateMathHtml }),
+        p3.lastLine ? /* @__PURE__ */ u3("div", { class: "ex-last-inline", style: "font-size:11px;color:var(--ice);margin-top:2px", children: p3.lastLine }) : null,
+        /* @__PURE__ */ u3(Html2, { html: p3.ghostHtml }),
+        /* @__PURE__ */ u3("div", { class: "ex-reason", children: p3.reason }),
+        /* @__PURE__ */ u3(Html2, { html: p3.cueRowHtml })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "ex-actions ex-actions-stack", children: [
+        /* @__PURE__ */ u3("div", { class: "ex-actions-primary", children: [
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-rest", "data-i": i4, title: `Rest timer (${p3.restTitle})`, children: [
+            "Rest \xB7 ",
+            p3.restHuman
+          ] }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-cta ex-toggle", "data-i": i4, children: "Details & video" })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "ex-actions-secondary", children: [
+          /* @__PURE__ */ u3("button", { type: "button", class: "ex-link-btn ex-skip", "data-eid": p3.eid, title: "Remove from today's checklist", children: "Skip" }),
+          /* @__PURE__ */ u3("span", { class: "ex-actions-sep", "aria-hidden": "true", children: "\xB7" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "ex-link-btn ex-swap", "data-orig": p3.originalEid, title: "Replace with a similar movement", children: "Swap" })
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "ex-body", id: "exb-" + i4, children: [
+      /* @__PURE__ */ u3("div", { class: "ex-video", children: [
+        /* @__PURE__ */ u3(Html2, { html: p3.mainVideoHtml }),
+        /* @__PURE__ */ u3(Html2, { html: p3.quickVideoHtml })
+      ] }),
+      /* @__PURE__ */ u3(Html2, { html: p3.howBlockHtml }),
+      /* @__PURE__ */ u3("div", { class: "fig-wrap", children: [
+        /* @__PURE__ */ u3("div", { class: "fig-title", children: "Muscle emphasis" }),
+        /* @__PURE__ */ u3(Html2, { html: p3.anatomyHtml }),
+        /* @__PURE__ */ u3("div", { class: "fig-legend", children: [
+          /* @__PURE__ */ u3("span", { children: [
+            /* @__PURE__ */ u3("span", { class: "dot", style: "background:#00e676;opacity:1" }),
+            "Primary"
+          ] }),
+          /* @__PURE__ */ u3("span", { children: [
+            /* @__PURE__ */ u3("span", { class: "dot", style: "background:#00e676;opacity:.72" }),
+            "Secondary"
+          ] }),
+          /* @__PURE__ */ u3("span", { children: [
+            /* @__PURE__ */ u3("span", { class: "dot", style: "background:#00e676;opacity:.45" }),
+            "Tertiary"
+          ] }),
+          /* @__PURE__ */ u3("span", { children: [
+            /* @__PURE__ */ u3("span", { class: "dot", style: "background:#ff6b35;opacity:.65" }),
+            "Burn"
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "feel-chips", children: [
+        /* @__PURE__ */ u3("span", { children: p3.feelLead }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "easy", "data-i": i4, children: "Too easy (RPE < 7)" }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip on", "data-feel": "ok", "data-i": i4, children: "Just right (RPE 7-8)" }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "hard", "data-i": i4, children: "Too hard (RPE 9+)" })
+      ] }),
+      /* @__PURE__ */ u3(Html2, { html: p3.runRpeSelectHtml }),
+      /* @__PURE__ */ u3("div", { class: "ex-note-wrap", children: [
+        /* @__PURE__ */ u3("label", { class: "ex-note-label", children: [
+          "My notes for ",
+          p3.exNm
+        ] }),
+        /* @__PURE__ */ u3("textarea", { class: "ex-note-input", "data-eid": p3.eid, placeholder: "Cues, grip width, stance notes\u2026", rows: 2, maxlength: 500, value: p3.savedNote }),
+        p3.savedNote ? /* @__PURE__ */ u3("span", { class: "ex-note-saved", children: "Saved" }) : null
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "quick-log-row", children: [
+        /* @__PURE__ */ u3("span", { class: "quick-set-indicator", id: "tq-set-lbl" + i4, style: "font-size:11px;color:var(--text3);align-self:center", children: [
+          "Set ",
+          p3.activeSet,
+          " of ",
+          p3.sets
+        ] }),
+        /* @__PURE__ */ u3(Stepper, { id: "tq-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab }),
+        p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "tq-w" + i4, val: p3.quickWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "tq-w" + i4, val: p3.quickWVal, wStep: p3.wStep, unit, i: i4 }),
+        /* @__PURE__ */ u3(OutcomeSelect, { id: "tq-o" + i4 }),
+        p3.runEx && p3.hasShoe ? /* @__PURE__ */ u3("div", { id: "shoe-pick-" + i4, children: /* @__PURE__ */ u3(Html2, { html: p3.shoeHtml }) }) : null,
+        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block q-save", "data-i": i4, children: "Complete set & start rest" })
+      ] }),
+      /* @__PURE__ */ u3("details", { class: "ex-logall-details", style: "margin-top:6px", children: [
+        /* @__PURE__ */ u3("summary", { style: "font-size:11px;color:var(--text3);cursor:pointer", children: "Log all sets at once" }),
+        /* @__PURE__ */ u3("div", { class: "ex-log-grid", style: "margin-top:8px", children: [
+          /* @__PURE__ */ u3(Stepper, { id: "t-s" + i4, value: p3.sets, delta: 1, min: 1, label: "Sets" }),
+          /* @__PURE__ */ u3(Stepper, { id: "t-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab }),
+          p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "t-w" + i4, val: p3.gridWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "t-w" + i4, val: p3.gridWVal, wStep: p3.wStep, unit, i: i4 }),
+          /* @__PURE__ */ u3(OutcomeSelect, { id: "t-o" + i4 }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-copyprev", "data-i": i4, children: "Copy previous set" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm ex-save", "data-i": i4, children: "Save all" })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { id: "expdf-" + i4, class: "ex-pdf-area" })
+    ] })
+  ] });
+}
+function mountExerciseCard(container, props) {
+  R(/* @__PURE__ */ u3(ExerciseCard, { ...props }), container);
+}
 export {
+  ExerciseCard,
   PlanView,
   ProfileSettings,
   SocialView,
+  mountExerciseCard,
   mountPlan,
   mountProfileSettings,
   mountSocial

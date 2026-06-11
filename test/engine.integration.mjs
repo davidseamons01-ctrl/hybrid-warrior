@@ -131,5 +131,20 @@ t("buildPlanProps builds a 13-week view-model for the Plan component (no throw)"
   }
 });
 
+t("buildExerciseCardProps builds a card view-model for a real prescribed exercise", () => {
+  if (typeof ui.buildExerciseCardProps !== "function") throw new Error("buildExerciseCardProps not exported");
+  const plan = ui.rollingPlanForDate("2026-06-08");
+  if (!plan.exs.length) throw new Error("seeded plan had no exercises to build a card from");
+  const vm = ui.buildExerciseCardProps(plan.exs[0], 0);
+  for (const k of ["exNm", "rxText", "repLab", "unit", "quickWVal", "gridWVal"]) {
+    if (typeof vm[k] !== "string") throw new Error(`card field ${k} should be a string, got ${typeof vm[k]}`);
+  }
+  for (const k of ["mainVideoHtml", "anatomyHtml", "plateMathHtml", "ghostHtml", "howBlockHtml"]) {
+    if (typeof vm[k] !== "string") throw new Error(`trusted-html field ${k} should be a string`);
+  }
+  if (typeof vm.runEx !== "boolean" || typeof vm.done !== "boolean") throw new Error("flags should be booleans");
+  if (!(vm.sets >= 1) || !(vm.activeSet >= 1)) throw new Error("sets/activeSet should be >= 1");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

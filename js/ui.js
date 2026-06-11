@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h53c012fb1c9c";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h58113bfa99ee";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h53c012fb1c9c";
-import { mountSocial, mountProfileSettings, mountPlan } from "./ui-components.js?v=h53c012fb1c9c";
+} from "./programming.js?v=h58113bfa99ee";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard } from "./ui-components.js?v=h58113bfa99ee";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4281,7 +4281,7 @@ function bindYou(){
 // ═══════════════════════════════════════════════════════════
 //  RENDER — TODAY
 // ═══════════════════════════════════════════════════════════
-function renderExerciseCardHtml(ex,i){
+function buildExerciseCardProps(ex,i){
   const e=exById(ex.eid);
   const howBlock=e&&e.howTo&&e.howTo.length?`<div class="ex-howto"><div style="font-size:10px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">How to</div><ol>${e.howTo.map(s=>`<li>${s}</li>`).join("")}</ol></div>`:"";
   const m=exMedia(ex.eid);
@@ -4324,9 +4324,17 @@ function renderExerciseCardHtml(ex,i){
   const gridPaceCol=`<div><label>Pace (mm:ss/mi)</label><input type="text" class="input-sm input-mmss" id="t-w${i}" value="${paceGrid}" placeholder="8:42" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Pace per mile"></div>`;
   const gridLiftCol=`<div><label>Load (${massUnitLabel()})</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${-wStep}">−</button><input type="number" class="input-sm" id="t-w${i}" value="${loadInputDisplayFromLb(Number(ex.target)||0)}" min="0" step="any"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${wStep}">+</button><button type="button" class="icon-btn q-load-helper" data-i="${i}" title="Open bar load helper" aria-label="Plate calculator">🏋️</button></div></div>`;
   const ghostHtml=ghostLineHtml(ex.eid,activeTrainIso());
-  return`<div class="ex-card ${done?"ex-done":""}" id="exc-${i}" data-eid="${ex.eid}"><div class="ex-top ex-top-row"><div class="ex-check">${done?"✓":""}</div><div class="ex-num">${i+1}</div><div class="ex-info"><div class="ex-name-lg">${exNm}</div><div class="ex-rx-lg">${formatPrescribedRx(ex)}</div>${inlinePlateMathHtml(ex)}${lastLine?`<div class="ex-last-inline" style="font-size:11px;color:var(--ice);margin-top:2px">${lastLine}</div>`:""}${ghostHtml}<div class="ex-reason">${ex.reason}</div>${cueRow}</div><div class="ex-actions ex-actions-stack"><div class="ex-actions-primary"><button type="button" class="btn btn-sm btn-secondary-solid ex-rest" data-i="${i}" title="Rest timer (${restTitle})">Rest · ${restHuman}</button><button type="button" class="btn btn-sm btn-cta ex-toggle" data-i="${i}">Details &amp; video</button></div><div class="ex-actions-secondary"><button type="button" class="ex-link-btn ex-skip" data-eid="${ex.eid}" title="Remove from today's checklist">Skip</button><span class="ex-actions-sep" aria-hidden="true">·</span><button type="button" class="ex-link-btn ex-swap" data-orig="${ex.originalEid||ex.eid}" title="Replace with a similar movement">Swap</button></div></div></div><div class="ex-body" id="exb-${i}"><div class="ex-video">${mainVideoHtml}${quickVideoHtml}</div>${howBlock}<div class="fig-wrap"><div class="fig-title">Muscle emphasis</div>${anatomyContainer(mm)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div><div class="feel-chips"><span>${feelLead}</span><button type="button" class="feel-chip" data-feel="easy" data-i="${i}">Too easy (RPE &lt; 7)</button><button type="button" class="feel-chip on" data-feel="ok" data-i="${i}">Just right (RPE 7-8)</button><button type="button" class="feel-chip" data-feel="hard" data-i="${i}">Too hard (RPE 9+)</button></div>${runRpeSelect}${noteHtml}<div class="quick-log-row"><span class="quick-set-indicator" id="tq-set-lbl${i}" style="font-size:11px;color:var(--text3);align-self:center">Set ${activeSet} of ${ex.sets}</span><div><label>${repLab}</label><div class="stepper"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="tq-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="tq-r${i}" data-delta="1">+</button></div></div>${runEx?quickPaceCol:quickLiftCol}<div><label>Outcome</label><select id="tq-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div>${runEx&&shoeHtml?`<div id="shoe-pick-${i}">${shoeHtml}</div>`:""}<button type="button" class="btn btn-cta btn-block q-save" data-i="${i}">Complete set & start rest</button></div><details class="ex-logall-details" style="margin-top:6px"><summary style="font-size:11px;color:var(--text3);cursor:pointer">Log all sets at once</summary><div class="ex-log-grid" style="margin-top:8px"><div><label>Sets</label><div class="stepper"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-s${i}" value="${ex.sets}" min="1"><button type="button" class="step-btn" data-target="t-s${i}" data-delta="1">+</button></div></div><div><label>${repLab}</label><div class="stepper"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="-1">−</button><input type="number" class="input-sm" id="t-r${i}" value="${ex.reps}" min="1"><button type="button" class="step-btn" data-target="t-r${i}" data-delta="1">+</button></div></div>${runEx?gridPaceCol:gridLiftCol}<div><label>Outcome</label><select id="t-o${i}" class="input-sm"><option value="ok">Completed</option><option value="fail">Failed rep target</option><option value="time">Time-capped</option></select></div><button type="button" class="btn btn-sm btn-secondary-solid ex-copyprev" data-i="${i}">Copy previous set</button><button type="button" class="btn btn-cta btn-sm ex-save" data-i="${i}">Save all</button></div></details><div id="expdf-${i}" class="ex-pdf-area"></div></div></div>`;
+  return{i,eid:ex.eid,originalEid:ex.originalEid||ex.eid,num:i+1,done,exNm,rxText:formatPrescribedRx(ex),reason:ex.reason||"",repLab,restHuman,restTitle,unit:massUnitLabel(),feelLead,runEx,sets:ex.sets,reps:ex.reps,activeSet,wStep,quickWVal:runEx?paceQuick:String(loadInputDisplayFromLb(lwLb)),gridWVal:runEx?paceGrid:String(loadInputDisplayFromLb(Number(ex.target)||0)),savedNote,hasShoe:runEx&&!!shoeHtml,plateMathHtml:inlinePlateMathHtml(ex),ghostHtml,cueRowHtml:cueRow,mainVideoHtml,quickVideoHtml,howBlockHtml:howBlock,anatomyHtml:anatomyContainer(mm),runRpeSelectHtml:runRpeSelect,shoeHtml,lastLine};
 }
+let _trainCardProps=new Map();
+function cardHost(ex,i){const pr=buildExerciseCardProps(ex,i);_trainCardProps.set(i,pr);return`<div class="exercise-card-host" data-card-i="${i}"></div>`;}
+function mountTrainCards(){document.querySelectorAll(".exercise-card-host").forEach(h=>{const i=+h.dataset.cardI;const pr=_trainCardProps.get(i);if(!pr){h.remove();return}mountExerciseCard(h,pr);const card=h.firstElementChild;if(card)h.replaceWith(card);else h.remove();});}
+// ↑ Unwrap the host: the rendered .ex-card replaces the placeholder so its DOM
+// position is identical to the old string output — preserving descendant and
+// :last-child CSS (e.g. .superset-group .ex-card:last-child) and flex/grid gaps.
+// Safe because the card is stateless and never re-renders after mount.
 function renderToday(){
+  _trainCardProps.clear();
   const dayIso=activeTrainIso();
   const plan=todayPlanFiltered();
   const d=parseIsoNoon(dayIso),w=plan.blockWeek!=null?plan.blockWeek:S.program.week;
@@ -4361,7 +4369,7 @@ function renderToday(){
   if(trainFocusIdx!==null&&plan.exs.length){
     const n=plan.exs.length,idx=trainFocusIdx,tx=-(idx*100)/n;
     const focusDots=plan.exs.map((_,i)=>`<span class="${i===idx?"on":""}" title="Exercise ${i+1} of ${n}"></span>`).join("");
-    const slides=plan.exs.map((ex,i)=>`<div class="focus-session-slide" style="width:${100/n}%;flex-shrink:0">${renderExerciseCardHtml(ex,i)}</div>`).join("");
+    const slides=plan.exs.map((ex,i)=>`<div class="focus-session-slide" style="width:${100/n}%;flex-shrink:0">${cardHost(ex,i)}</div>`).join("");
     return`<div id="p-today" class="train-focus-mode train-session-active">
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
@@ -4441,7 +4449,7 @@ function renderToday(){
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">Posture / prehab add-on</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
   ${wuBlock}
   ${plan.quickNote?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Minimum session:</b> first two lifts keep your streak honest. Finisher below is optional — add it if you have bandwidth.</div></div>`:""}
-  <div class="stack">${plan.exs.length?(()=>{const wuSets=generateWarmupSets(plan);const wuHtml=wuSets.length?`<div class="warmup-sets-group"><div class="warmup-sets-label">Warm-up ramp</div>${wuSets.map((wu,wi)=>renderExerciseCardHtml(wu,900+wi)).join("")}</div>`:"";return wuHtml+renderExerciseStack(plan.exs)})():`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>${activeRecoveryCardHtml()}`}</div>
+  <div class="stack">${plan.exs.length?(()=>{const wuSets=generateWarmupSets(plan);const wuHtml=wuSets.length?`<div class="warmup-sets-group"><div class="warmup-sets-label">Warm-up ramp</div>${wuSets.map((wu,wi)=>cardHost(wu,900+wi)).join("")}</div>`:"";return wuHtml+renderExerciseStack(plan.exs)})():`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>${activeRecoveryCardHtml()}`}</div>
   ${skipped.length?`<div class="card section" style="font-size:12px;color:var(--text2)">Skipped today: <b style="color:var(--text)">${skippedLbl||"—"}</b> · <button type="button" class="details-toggle" id="skip-restore">Restore skipped lifts</button></div>`:""}
   ${plan.exs.length?`<div class="card section" id="session-after-card"><div style="font-size:13px;font-weight:600;margin-bottom:4px">Rate intensity</div><p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45">Rough session RPE — pairs with <b style="color:var(--text)">Complete session</b> below so tomorrow's targets stay honest.</p>${sf?`<div style="font-size:12px;color:var(--mint);margin-bottom:6px">Saved: <b>${sfSavedLbl}</b></div>`:""}<div class="row" style="flex-wrap:wrap;gap:8px"><button type="button" class="btn btn-sm ${sf==="easy"?"btn-fire":"btn-secondary-solid"}" data-sfeel="easy">Light · ~RPE 6</button><button type="button" class="btn btn-sm ${sf==="ok"?"btn-fire":"btn-secondary-solid"}" data-sfeel="ok">Solid · ~RPE 7–8</button><button type="button" class="btn btn-sm ${sf==="hard"?"btn-fire":"btn-secondary-solid"}" data-sfeel="hard">Hard · ~RPE 9+</button>${sf?`<button type="button" class="btn btn-sm btn-ghost" id="sfeel-clear">Clear</button>`:""}</div>${finalized?`<p style="font-size:11px;color:var(--mint);margin-top:10px;margin-bottom:0">Adaptation applied for ${dayIso}.</p>`:`<p style="font-size:11px;color:var(--text3);margin-top:10px;margin-bottom:0">When you're done lifting, tap Complete session in the bar below.</p>`}</div>`:""}
   ${plan.exs.length?`<div class="card section" id="train-ease-panel"><div style="font-size:13px;font-weight:600;margin-bottom:4px">Program feels too heavy?</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Nudge all lift/run adaptation down ~5% and add 5 minutes to your session budget (max 75 min) — right from here, no Settings detour.</p><button type="button" class="btn btn-secondary-solid btn-sm" id="train-ease-toggle">Show ease options</button><div class="ease-wizard" id="train-ease-wiz"><p style="font-size:12px;color:var(--text2);margin-bottom:8px">Targets ease until your logs show you're ahead of prescription again.</p><button type="button" class="btn btn-cta btn-sm" id="train-ease-go">Ease my program</button></div></div>`:""}
@@ -4520,9 +4528,9 @@ function renderExerciseStack(exs){
     if(supersetPairs.has(i)){
       const j=supersetPairs.get(i);
       skip.add(j);
-      html+=`<div class="superset-group"><div class="superset-label">Superset</div>${renderExerciseCardHtml(exs[i],i)}${renderExerciseCardHtml(exs[j],j)}</div>`;
+      html+=`<div class="superset-group"><div class="superset-label">Superset</div>${cardHost(exs[i],i)}${cardHost(exs[j],j)}</div>`;
     }else{
-      html+=renderExerciseCardHtml(exs[i],i);
+      html+=cardHost(exs[i],i);
     }
   }
   return html;
@@ -4610,6 +4618,7 @@ async function releaseWorkoutWakeLock(){
 }
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
+  mountTrainCards();
   ensureWorkoutWakeLock();
   enhanceNumericInputs(document.getElementById("p-today")||document);
   const wSlot=document.getElementById("weather-slot");
@@ -5799,4 +5808,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
