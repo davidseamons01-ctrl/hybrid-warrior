@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610c";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=20260610d";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -7,7 +7,7 @@ import {
   rankPlans, bestPlanId, whyPlan, toEmbedUrl,
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx
-} from "./programming.js?v=20260610c";
+} from "./programming.js?v=20260610d";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3132,28 +3132,58 @@ function liftRatePerWeek(exName){
   if(weeks<1)return null;
   return (byDate[dates[dates.length-1]]-byDate[dates[0]])/weeks;
 }
+// Single source of truth for a lift's displayed estimated 1RM = best logged
+// e1RM (the same number Trophy Room and the chart use). 0 if never logged.
+function bestLoggedE1RM(exName){
+  try{const s=e1rmSeries(S.logs||[],exName);return s.length?Math.round(Math.max.apply(null,s)):0;}catch(x){return 0;}
+}
+// Recent direction using the SAME recent-vs-older avg-e1RM method as the AI
+// insights, so the projection's wording agrees with the insight card.
+function recentLiftDirection(exName){
+  try{
+    const exLogs=(S.logs||[]).filter(l=>l.exercise===exName);
+    if(exLogs.length<8)return null;
+    const recent=exLogs.slice(-6),older=exLogs.slice(-12,-6);
+    if(older.length<3)return null;
+    const avg=arr=>{let s=0,c=0;for(const l of arr){const e=epley(Number(l.aW)||0,Number(l.aR)||0);if(e>0){s+=e;c++}}return c?s/c:0;};
+    const r=avg(recent),o=avg(older);
+    if(!r||!o)return null;
+    if(r<o*0.95)return"down";if(r>o*1.03)return"up";return"flat";
+  }catch(x){return null;}
+}
 // "Goal projections" card: project ETA from logged trend toward each set goal.
+// "Current" uses best LOGGED e1RM so it matches Trophy Room / the chart /
+// AI insights (was using the stored profile max, which disagreed with them).
 function goalEtaCardHtml(){
   const rows=[];
   const fmtEta=weeks=>{const d=new Date();d.setDate(d.getDate()+Math.round(weeks*7));return d.toLocaleDateString(undefined,{month:"short",day:"numeric"});};
-  const lift=(label,curMax,goal,exName)=>{
-    const cur=Number(curMax)||0,tgt=Number(goal)||0;
+  const lift=(label,exName,profileMax,goal)=>{
+    const best=bestLoggedE1RM(exName);
+    const cur=best>0?best:(Number(profileMax)||0);
+    const tgt=Number(goal)||0;
     if(!cur||!tgt||tgt<=cur)return;
     const rate=liftRatePerWeek(exName);
-    if(rate==null||rate<=0){rows.push({label,detail:`${cur}→${tgt} lb`,eta:"log more to project"});return;}
+    if(rate==null){
+      const dir=recentLiftDirection(exName);
+      const eta=dir==="down"?"trending down — deload?":dir==="up"?"rising — keep logging":"log more to project";
+      rows.push({label,detail:`${cur}→${tgt} lb`,eta});return;
+    }
+    if(rate<=0){rows.push({label,detail:`${cur}→${tgt} lb · ${rate.toFixed(1)}/wk`,eta:rate<0?"trending down — deload?":"flat"});return;}
     const proj=projectWeeksToGoal(cur,tgt,rate);
     rows.push({label,detail:`${cur}→${tgt} lb · +${rate.toFixed(1)}/wk`,eta:proj?(proj.weeks<=0?"reached 🎉":`~${proj.weeks} wk · ${fmtEta(proj.weeks)}`):"—"});
   };
-  lift("Bench",S.profile.bench1RM,S.goals.bench,(exById("bench")||{}).name);
-  lift("Squat",S.profile.squat1RM,S.goals.squat,(exById("squat")||{}).name);
-  lift("Deadlift",S.profile.dead1RM,S.goals.deadlift,(exById("deadlift")||{}).name);
+  lift("Bench",(exById("bench")||{}).name,S.profile.bench1RM,S.goals.bench);
+  lift("Squat",(exById("squat")||{}).name,S.profile.squat1RM,S.goals.squat);
+  lift("Deadlift",(exById("deadlift")||{}).name,S.profile.dead1RM,S.goals.deadlift);
   const wt=weightTrend();
   if(S.profile.goalWt&&S.profile.weight&&Math.abs(S.profile.weight-S.profile.goalWt)>=1&&wt&&Math.abs(wt.perWeek)>0.05){
     const proj=projectWeeksToGoal(S.profile.weight,S.profile.goalWt,wt.perWeek);
-    rows.push({label:"Bodyweight",detail:`${Math.round(S.profile.weight)}→${S.profile.goalWt} lb · ${wt.perWeek>0?"+":""}${wt.perWeek.toFixed(1)}/wk`,eta:proj?(proj.weeks<=0?"reached 🎉":`~${proj.weeks} wk · ${fmtEta(proj.weeks)}`):"trend off-target"});
+    const losing=S.profile.goalWt<S.profile.weight;
+    const eta=proj?(proj.weeks<=0?"reached 🎉":`~${proj.weeks} wk · ${fmtEta(proj.weeks)}`):`off-target — ${wt.perWeek>0?"gaining":"losing"}, goal is to ${losing?"lose":"gain"}`;
+    rows.push({label:"Bodyweight",detail:`${Math.round(S.profile.weight)}→${S.profile.goalWt} lb · ${wt.perWeek>0?"+":""}${wt.perWeek.toFixed(1)}/wk`,eta});
   }
   if(!rows.length)return"";
-  return`<div class="card section" style="padding:14px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">🎯 Goal projections</div>${rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600;color:var(--text)">${r.label}</div><div style="font-size:10px;color:var(--text3)">${escPlanChip(r.detail)}</div></div><div style="font-size:12px;color:var(--text2);text-align:right;align-self:center">${escPlanChip(r.eta)}</div></div>`).join("")}<div style="font-size:10px;color:var(--text3);margin-top:8px">Projected from your logged trend — keep logging to sharpen the estimate.</div></div>`;
+  return`<div class="card section" style="padding:14px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">🎯 Goal projections</div>${rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600;color:var(--text)">${r.label}</div><div style="font-size:10px;color:var(--text3)">${escPlanChip(r.detail)}</div></div><div style="font-size:12px;color:var(--text2);text-align:right;align-self:center">${escPlanChip(r.eta)}</div></div>`).join("")}<div style="font-size:10px;color:var(--text3);margin-top:8px">"Current" = your best logged e1RM (same number as Trophy Room). Projected from your logged trend.</div></div>`;
 }
 function renderDash(){
   autoWeek();
