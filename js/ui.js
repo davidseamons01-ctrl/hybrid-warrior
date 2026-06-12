@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h232509e41cf4";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h4bfabd2149d0";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h232509e41cf4";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist } from "./ui-components.js?v=h232509e41cf4";
+} from "./programming.js?v=h4bfabd2149d0";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard } from "./ui-components.js?v=h4bfabd2149d0";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4406,18 +4406,7 @@ function renderToday(){
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does catch-up work?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p></details><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">Why am I seeing this?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p></details><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today" style="margin-top:8px">Add to today</button></div>`:""}
-  <details class="train-tools section">
-    <summary class="train-tools-summary">Workout tools</summary>
-    <div class="train-tools-body">
-      <button type="button" class="btn btn-secondary-solid ${((S.profile.prefs||{}).equipment||"gym")==="home"?"btn-fire":""}" id="train-eq-toggle">${((S.profile.prefs||{}).equipment||"gym")==="home"?"Equipment: Home":"Equipment: Gym"}</button>
-      <button type="button" class="btn btn-secondary-solid ${qm>0?"btn-fire":""}" id="train-quick">${qm>0?"15-min mode on":"Minimum session (~15 min)"}</button>
-      <button type="button" class="btn btn-ghost" id="train-open-plates">Plate helper</button>
-      <button type="button" class="btn btn-ghost" id="train-open-health">Health metrics</button>
-      <button type="button" class="btn btn-ghost" id="train-open-ease">Ease load…</button>
-      <button type="button" class="btn btn-ghost btn-sm" id="train-adjust-schedule" title="Re-open choices for missed sessions">Adjust schedule</button>
-      <div class="caffeine-timer-row"><button type="button" class="btn btn-secondary-solid btn-sm" id="caffeine-start">☕ Pre-workout (45 min)</button><span id="caffeine-time" class="caffeine-time-label"></span></div>
-    </div>
-  </details>
+  <div id="train-tools-mount"></div>
   <details class="train-music-player section" id="train-music-player">
     <summary class="train-music-summary"><span class="train-music-icon">♫</span> Workout Music</summary>
     <div class="train-music-body">
@@ -4647,10 +4636,19 @@ async function warmupToggle(idx,checked){const day=activeTrainIso();if(!S.warmup
 function mountReadiness(){const c=document.getElementById("readiness-mount");if(!c)return;const plan=todayPlanFiltered();mountReadinessCard(c,{readiness:plan.readiness||"",onSelect:readinessSelect});}
 function mountSessionFeel(){const c=document.getElementById("session-feel-mount");if(!c)return;const day=activeTrainIso();const sf=(S.sessionFeelByDate&&S.sessionFeelByDate[day])||"";const finalized=!!((S.sessionAdaptedByDate||{})[day]);const savedLbl=sf==="easy"?"Light (~RPE 6)":sf==="hard"?"Hard (~RPE 9+)":sf==="ok"?"Solid (~RPE 7–8)":"";mountSessionFeelCard(c,{sf,savedLbl,finalized,dayIso:day,onFeel:sessionFeelSelect,onClear:sessionFeelClear});}
 function mountWarmup(){const c=document.getElementById("warmup-mount");if(!c)return;const plan=todayPlanFiltered();if(!plan.warmup)return;const day=activeTrainIso();const wuSteps=warmupStepsFromPlan(plan.warmup);const wuState=(S.warmupDoneByDate&&S.warmupDoneByDate[day])||{};if(wuSteps.length){mountWarmupChecklist(c,{mode:"list",items:wuSteps.map((line,wi)=>({idx:wi,line,checked:!!wuState[String(wi)]})),text:"",onToggle:warmupToggle});}else{mountWarmupChecklist(c,{mode:"text",items:[],text:plan.warmup,onToggle:warmupToggle});}}
+// ── Workout-tools fold (UI rebuild #4d): actions + mount into render slot ──
+async function toolsEqToggle(){const h=((S.profile.prefs||{}).equipment||"gym")==="home";S.profile.prefs={...(S.profile.prefs||{}),equipment:h?"gym":"home"};await persist();render();toast(S.profile.prefs.equipment==="home"?"Home equipment — DB / bodyweight swaps.":"Gym equipment — barbell-friendly session.");}
+async function toolsQuickToggle(){const cur=Number((S.profile.prefs||{}).quickSessionMin)||0;S.profile.prefs={...(S.profile.prefs||{}),quickSessionMin:cur>0?0:15};await persist();render();toast(cur>0?"Showing full session":"15-min mode — first two lifts");}
+function toolsOpenPlates(){const tpb=document.getElementById("train-plates-body");if(tpb&&!tpb.classList.contains("open"))tpb.classList.add("open");document.getElementById("train-plates-card")?.scrollIntoView({behavior:"smooth",block:"start"});}
+function toolsOpenHealth(){tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-health");render();}
+function toolsOpenEase(){document.getElementById("train-ease-panel")?.scrollIntoView({behavior:"smooth",block:"center"});document.getElementById("train-ease-wiz")?.classList.add("show");}
+function toolsCaffeineToggle(btn){if(caffeineTimerId){stopCaffeineTimer();const lbl=document.getElementById("caffeine-time");if(lbl){lbl.textContent="";lbl.style.color=""}btn.textContent="☕ Pre-workout (45 min)";toast("Caffeine timer cancelled")}else{startCaffeineTimer();btn.textContent="Cancel timer";toast("Pre-workout timer started — 45 min to peak caffeine")}}
+const workoutToolsActions={eqToggle:toolsEqToggle,quickToggle:toolsQuickToggle,openPlates:toolsOpenPlates,openHealth:toolsOpenHealth,openEase:toolsOpenEase,caffeineToggle:toolsCaffeineToggle};
+function mountWorkoutTools(){const c=document.getElementById("train-tools-mount");if(!c)return;const eqHome=((S.profile.prefs||{}).equipment||"gym")==="home";const qmOn=(Number((S.profile.prefs||{}).quickSessionMin)||0)>0;mountWorkoutToolsCard(c,{eqHome,qmOn,actions:workoutToolsActions});if(caffeineTimerId&&caffeineEndMs>Date.now()){const lbl=document.getElementById("caffeine-time");if(lbl){const left=caffeineEndMs-Date.now();const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);lbl.textContent=`☕ Peak in ${m}:${String(s).padStart(2,"0")}`;lbl.style.color="var(--gold)"}const b=document.getElementById("caffeine-start");if(b)b.textContent="Cancel timer";}}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountTrainCards();
-  mountReadiness();mountSessionFeel();mountWarmup();
+  mountReadiness();mountSessionFeel();mountWarmup();mountWorkoutTools();
   ensureWorkoutWakeLock();
   enhanceNumericInputs(document.getElementById("p-today")||document);
   const wSlot=document.getElementById("weather-slot");
@@ -4669,16 +4667,6 @@ function bindToday(){
     btn.disabled=true;
     triggerHaptic("light");
   });
-  const cafBtn=document.getElementById("caffeine-start");
-  if(cafBtn)cafBtn.onclick=()=>{
-    if(caffeineTimerId){stopCaffeineTimer();const lbl=document.getElementById("caffeine-time");if(lbl){lbl.textContent="";lbl.style.color=""}cafBtn.textContent="☕ Pre-workout (45 min)";toast("Caffeine timer cancelled")}
-    else{startCaffeineTimer();cafBtn.textContent="Cancel timer";toast("Pre-workout timer started — 45 min to peak caffeine")}
-  };
-  if(caffeineTimerId&&caffeineEndMs>Date.now()){
-    const lbl=document.getElementById("caffeine-time");
-    if(lbl){const left=caffeineEndMs-Date.now();const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);lbl.textContent=`☕ Peak in ${m}:${String(s).padStart(2,"0")}`;lbl.style.color="var(--gold)"}
-    if(cafBtn)cafBtn.textContent="Cancel timer";
-  }
   const tcd=document.getElementById("train-clear-date");
   if(tcd)tcd.onclick=()=>{trainSessionDate=null;render()};
   const pfb=document.getElementById("power-focus-btn");
@@ -4697,12 +4685,8 @@ function bindToday(){
   const wt=document.getElementById("why-toggle"),wb=document.getElementById("why-body");
   if(wt&&wb)wt.onclick=()=>{wb.classList.toggle("open");wt.textContent=wb.classList.contains("open")?"Why this session? (hide)":"Why this session? (coaching notes)"};
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
-  const tq=document.getElementById("train-quick");if(tq)tq.onclick=async()=>{const cur=Number((S.profile.prefs||{}).quickSessionMin)||0;S.profile.prefs={...(S.profile.prefs||{}),quickSessionMin:cur>0?0:15};await persist();render();toast(cur>0?"Showing full session":"15-min mode — first two lifts")};
-  const teq=document.getElementById("train-eq-toggle");if(teq)teq.onclick=async()=>{const h=((S.profile.prefs||{}).equipment||"gym")==="home";S.profile.prefs={...(S.profile.prefs||{}),equipment:h?"gym":"home"};await persist();render();toast(S.profile.prefs.equipment==="home"?"Home equipment — DB / bodyweight swaps.":"Gym equipment — barbell-friendly session.")};
   const tpt=document.getElementById("train-plates-toggle"),tpb=document.getElementById("train-plates-body");
   if(tpt&&tpb)tpt.onclick=()=>{tpb.classList.toggle("open");tpt.textContent=tpb.classList.contains("open")?"Bar load helper (hide)":"Bar load helper (in-workout)"};
-  const tpo=document.getElementById("train-open-plates");
-  if(tpo)tpo.onclick=()=>{if(tpb&&!tpb.classList.contains("open"))tpb.classList.add("open");document.getElementById("train-plates-card")?.scrollIntoView({behavior:"smooth",block:"start"})};
   if(sessionStorage.getItem("hw-open-plates")==="1"){sessionStorage.removeItem("hw-open-plates");if(tpb)tpb.classList.add("open");requestAnimationFrame(()=>document.getElementById("train-plates-card")?.scrollIntoView({behavior:"smooth",block:"start"}))}
   const tpCalc=document.getElementById("tw-pl-calc"),tpOut=document.getElementById("tw-pl-out");
   if(tpCalc&&tpOut)tpCalc.onclick=()=>{const total=Number(document.getElementById("tw-pl-total").value)||0,bar=Number(document.getElementById("tw-pl-bar").value)||(useMetric()?20:45);const o=runPlateCalc(total,bar);if(o.err){tpOut.textContent=o.err;return}tpOut.textContent=o.text};
@@ -4725,8 +4709,6 @@ function bindToday(){
   if(slUse&&slt)slUse.onclick=()=>{if(slTargetIdx===null)return;const totalIn=Number(slt.value)||0;if(totalIn<=0){toast("Enter a target load first.");return}const totalLb=useMetric()?totalIn*LB_PER_KG:totalIn;const disp=loadInputDisplayFromLb(totalLb);const w=document.getElementById("tq-w"+slTargetIdx),w2=document.getElementById("t-w"+slTargetIdx);if(w)w.value=String(disp);if(w2)w2.value=String(disp);closeSetLoad();toast("Load applied to current set.")};
   if(slClose)slClose.onclick=closeSetLoad;
   if(slo)slo.onclick=e=>{if(e.target===slo)closeSetLoad()};
-  const th=document.getElementById("train-open-health");if(th)th.onclick=()=>{tab=TAB_YOU;youSub="settings";sessionStorage.setItem("hw-scroll","#settings-health");render()};
-  const te=document.getElementById("train-open-ease");if(te)te.onclick=()=>{document.getElementById("train-ease-panel")?.scrollIntoView({behavior:"smooth",block:"center"});document.getElementById("train-ease-wiz")?.classList.add("show")};
   const tet=document.getElementById("train-ease-toggle"),tew=document.getElementById("train-ease-wiz");
   if(tet&&tew)tet.onclick=()=>tew.classList.add("show");
   const teg=document.getElementById("train-ease-go");

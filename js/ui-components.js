@@ -1289,6 +1289,28 @@ function WarmupChecklist({ mode, items, text, onToggle }) {
 function mountWarmupChecklist(container, props) {
   R(/* @__PURE__ */ u3(WarmupChecklist, { ...props }), container);
 }
+
+// src/ui/workout-tools.tsx
+function WorkoutTools({ eqHome, qmOn, actions: a3 }) {
+  return /* @__PURE__ */ u3("details", { class: "train-tools section", children: [
+    /* @__PURE__ */ u3("summary", { class: "train-tools-summary", children: "Workout tools" }),
+    /* @__PURE__ */ u3("div", { class: "train-tools-body", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid" + (eqHome ? " btn-fire" : ""), id: "train-eq-toggle", onClick: () => a3.eqToggle(), children: eqHome ? "Equipment: Home" : "Equipment: Gym" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid" + (qmOn ? " btn-fire" : ""), id: "train-quick", onClick: () => a3.quickToggle(), children: qmOn ? "15-min mode on" : "Minimum session (~15 min)" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost", id: "train-open-plates", onClick: () => a3.openPlates(), children: "Plate helper" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost", id: "train-open-health", onClick: () => a3.openHealth(), children: "Health metrics" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost", id: "train-open-ease", onClick: () => a3.openEase(), children: "Ease load\u2026" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-sm", id: "train-adjust-schedule", title: "Re-open choices for missed sessions", children: "Adjust schedule" }),
+      /* @__PURE__ */ u3("div", { class: "caffeine-timer-row", children: [
+        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-sm", id: "caffeine-start", onClick: (e3) => a3.caffeineToggle(e3.currentTarget), children: "\u2615 Pre-workout (45 min)" }),
+        /* @__PURE__ */ u3("span", { id: "caffeine-time", class: "caffeine-time-label" })
+      ] })
+    ] })
+  ] });
+}
+function mountWorkoutToolsCard(container, props) {
+  R(/* @__PURE__ */ u3(WorkoutTools, { ...props }), container);
+}
 export {
   ExerciseCard,
   PlanView,
@@ -1297,11 +1319,13 @@ export {
   SessionFeelCard,
   SocialView,
   WarmupChecklist,
+  WorkoutTools,
   mountExerciseCard,
   mountPlan,
   mountProfileSettings,
   mountReadinessCard,
   mountSessionFeelCard,
   mountSocial,
-  mountWarmupChecklist
+  mountWarmupChecklist,
+  mountWorkoutToolsCard
 };
