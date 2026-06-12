@@ -94,6 +94,16 @@ describe("ExerciseCard markup contract", () => {
     expect(ta.querySelector("b")).toBeNull();
   });
 
+  it("renders rxText as HTML (rx-tag badges), not escaped text", () => {
+    // formatPrescribedRx returns trusted markup (warm-up/tempo/set-type spans).
+    const el = mount({ rxText: '<span class="rx-tag rx-tag-warmup">Warm-up</span> 1×8 @ 75 lb' });
+    const tag = el.querySelector(".ex-rx-lg .rx-tag") as HTMLElement;
+    expect(tag).toBeTruthy();
+    expect(tag.textContent).toBe("Warm-up");
+    expect(el.querySelector(".ex-rx-lg")!.textContent).toContain("1×8 @ 75 lb");
+    expect(el.querySelector(".ex-rx-lg")!.innerHTML).not.toContain("&lt;span"); // not escaped to literal text
+  });
+
   it("passes through trusted helper HTML (video, anatomy, plate math, cue)", () => {
     const el = mount();
     expect(el.querySelector(".lite-video")).toBeTruthy();

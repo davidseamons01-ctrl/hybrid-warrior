@@ -858,7 +858,7 @@ function ExRow({ ex, day, drag, setDrag, over, setOver, reorder }) {
         /* @__PURE__ */ u3("span", { class: `pw-phase-tag ${day.phaseClass}`, title: day.phaseName, children: day.phaseAbbrev }),
         /* @__PURE__ */ u3("div", { class: "pw-ex-main", children: [
           /* @__PURE__ */ u3("b", { children: ex.name }),
-          /* @__PURE__ */ u3("span", { children: ex.rx })
+          /* @__PURE__ */ u3("span", { dangerouslySetInnerHTML: { __html: ex.rx } })
         ] })
       ]
     }
@@ -1139,7 +1139,7 @@ function ExerciseCard(p3) {
       /* @__PURE__ */ u3("div", { class: "ex-num", children: p3.num }),
       /* @__PURE__ */ u3("div", { class: "ex-info", children: [
         /* @__PURE__ */ u3("div", { class: "ex-name-lg", children: p3.exNm }),
-        /* @__PURE__ */ u3("div", { class: "ex-rx-lg", children: p3.rxText }),
+        /* @__PURE__ */ u3("div", { class: "ex-rx-lg", dangerouslySetInnerHTML: { __html: p3.rxText } }),
         /* @__PURE__ */ u3(Html2, { html: p3.plateMathHtml }),
         p3.lastLine ? /* @__PURE__ */ u3("div", { class: "ex-last-inline", style: "font-size:11px;color:var(--ice);margin-top:2px", children: p3.lastLine }) : null,
         /* @__PURE__ */ u3(Html2, { html: p3.ghostHtml }),

@@ -129,7 +129,8 @@ function ExerciseCard(p: ExerciseCardProps) {
         <div class="ex-num">{p.num}</div>
         <div class="ex-info">
           <div class="ex-name-lg">{p.exNm}</div>
-          <div class="ex-rx-lg">{p.rxText}</div>
+          {/* rxText is trusted app-generated HTML (rx-tag spans for warm-up/tempo/set-type) */}
+          <div class="ex-rx-lg" dangerouslySetInnerHTML={{ __html: p.rxText }} />
           <Html html={p.plateMathHtml} />
           {p.lastLine ? <div class="ex-last-inline" style="font-size:11px;color:var(--ice);margin-top:2px">{p.lastLine}</div> : null}
           <Html html={p.ghostHtml} />

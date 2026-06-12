@@ -100,7 +100,7 @@ function ExRow({ ex, day, drag, setDrag, over, setOver, reorder }: {
     >
       <span class="pw-ex-drag-hint" aria-hidden="true" title="Drag to reorder">⋮⋮</span>
       <span class={`pw-phase-tag ${day.phaseClass}`} title={day.phaseName}>{day.phaseAbbrev}</span>
-      <div class="pw-ex-main"><b>{ex.name}</b><span>{ex.rx}</span></div>
+      <div class="pw-ex-main"><b>{ex.name}</b><span dangerouslySetInnerHTML={{ __html: ex.rx }} /></div>
     </div>
   );
 }
