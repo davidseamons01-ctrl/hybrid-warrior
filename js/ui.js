@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h58113bfa99ee";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h6cca520e023e";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h58113bfa99ee";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard } from "./ui-components.js?v=h58113bfa99ee";
+} from "./programming.js?v=h6cca520e023e";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard } from "./ui-components.js?v=h6cca520e023e";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4324,7 +4324,7 @@ function buildExerciseCardProps(ex,i){
   const gridPaceCol=`<div><label>Pace (mm:ss/mi)</label><input type="text" class="input-sm input-mmss" id="t-w${i}" value="${paceGrid}" placeholder="8:42" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Pace per mile"></div>`;
   const gridLiftCol=`<div><label>Load (${massUnitLabel()})</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${-wStep}">−</button><input type="number" class="input-sm" id="t-w${i}" value="${loadInputDisplayFromLb(Number(ex.target)||0)}" min="0" step="any"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${wStep}">+</button><button type="button" class="icon-btn q-load-helper" data-i="${i}" title="Open bar load helper" aria-label="Plate calculator">🏋️</button></div></div>`;
   const ghostHtml=ghostLineHtml(ex.eid,activeTrainIso());
-  return{i,eid:ex.eid,originalEid:ex.originalEid||ex.eid,num:i+1,done,exNm,rxText:formatPrescribedRx(ex),reason:ex.reason||"",repLab,restHuman,restTitle,unit:massUnitLabel(),feelLead,runEx,sets:ex.sets,reps:ex.reps,activeSet,wStep,quickWVal:runEx?paceQuick:String(loadInputDisplayFromLb(lwLb)),gridWVal:runEx?paceGrid:String(loadInputDisplayFromLb(Number(ex.target)||0)),savedNote,hasShoe:runEx&&!!shoeHtml,plateMathHtml:inlinePlateMathHtml(ex),ghostHtml,cueRowHtml:cueRow,mainVideoHtml,quickVideoHtml,howBlockHtml:howBlock,anatomyHtml:anatomyContainer(mm),runRpeSelectHtml:runRpeSelect,shoeHtml,lastLine};
+  return{i,eid:ex.eid,originalEid:ex.originalEid||ex.eid,num:i+1,done,exNm,rxText:formatPrescribedRx(ex),reason:ex.reason||"",repLab,restHuman,restTitle,unit:massUnitLabel(),feelLead,runEx,sets:ex.sets,reps:ex.reps,activeSet,wStep,quickWVal:runEx?paceQuick:String(loadInputDisplayFromLb(lwLb)),gridWVal:runEx?paceGrid:String(loadInputDisplayFromLb(Number(ex.target)||0)),savedNote,hasShoe:runEx&&!!shoeHtml,plateMathHtml:inlinePlateMathHtml(ex),ghostHtml,cueRowHtml:cueRow,mainVideoHtml,quickVideoHtml,howBlockHtml:howBlock,anatomyHtml:anatomyContainer(mm),runRpeSelectHtml:runRpeSelect,shoeHtml,lastLine,actions:cardActions};
 }
 let _trainCardProps=new Map();
 function cardHost(ex,i){const pr=buildExerciseCardProps(ex,i);_trainCardProps.set(i,pr);return`<div class="exercise-card-host" data-card-i="${i}"></div>`;}
@@ -4616,6 +4616,32 @@ async function ensureWorkoutWakeLock(){
 async function releaseWorkoutWakeLock(){
   try{if(workoutWakeLock){await workoutWakeLock.release();workoutWakeLock=null}}catch{}
 }
+// ── Exercise-card handlers (UI rebuild #4b): lifted out of bindToday so the
+// <ExerciseCard> component owns its wiring declaratively. Bodies are verbatim;
+// each takes the clicked/edited element, so logging/PR/adaptation logic and the
+// DOM-id reads are unchanged. quick-video/lite-video/q-load-helper/ex-swap stay
+// in bindToday (they live in passthrough HTML or use overlay closures).
+function cardNoteInput(ta){
+  clearTimeout(ta._noteT);
+  ta._noteT=setTimeout(async()=>{
+    if(!S.exerciseNotes)S.exerciseNotes={};
+    const val=ta.value.trim();
+    if(val)S.exerciseNotes[ta.dataset.eid]=val;else delete S.exerciseNotes[ta.dataset.eid];
+    await persist();
+    const badge=ta.parentElement?.querySelector(".ex-note-saved");
+    if(badge){badge.textContent="Saved";badge.style.opacity="1";setTimeout(()=>{badge.style.opacity=".6"},1200)}
+    else if(val){const s=document.createElement("span");s.className="ex-note-saved";s.textContent="Saved";ta.parentElement.appendChild(s)}
+  },600);
+}
+function cardFeelClick(chip){const i=chip.dataset.i;document.querySelectorAll(`#p-today .feel-chip[data-i="${i}"]`).forEach(c=>c.classList.toggle("on",c===chip));const fc=chip.closest(".feel-chips");if(!fc)return;let tip=fc.querySelector(".rpe-guidance");if(chip.dataset.feel==="easy"&&chip.classList.contains("on")){if(!tip){tip=document.createElement("div");tip.className="rpe-guidance";fc.appendChild(tip)}const step=useMetric()?"2–5 kg":"5–10 lbs";tip.textContent=`Feels light! Consider increasing by ${step} next set.`}else if(tip){tip.remove()}}
+async function cardSkip(b){const eid=b.dataset.eid,day=activeTrainIso();if(!S.skippedEidsByDate)S.skippedEidsByDate={};const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate));const skip=new Set(S.skippedEidsByDate[day]||[]);skip.add(eid);S.skippedEidsByDate[day]=[...skip];await persist();if(trainFocusIdx!==null){const p=todayPlanFiltered();if(!p.exs.length)trainFocusIdx=null;else trainFocusIdx=Math.min(trainFocusIdx,p.exs.length-1)}toast("Skipped for today",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()}
+function cardRest(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const sec=parseRestSec(e&&e.rest);startRestTimer(sec,e?e.name:ex.eid);try{b.blur()}catch{}}
+async function cardToggleBody(b){const i=b.dataset.i;const body=document.getElementById("exb-"+i);const opening=!body.classList.contains("open");body.classList.toggle("open");if(opening)await loadExercisePdfPreview(i)}
+function cardStep(b){const t=document.getElementById(b.dataset.target);if(!t)return;if(t.classList&&t.classList.contains("input-mmss"))return;const d=Number(b.dataset.delta)||0;const min=(t.min!==""?Number(t.min):-Infinity);const step=(t.step&&t.step!=="any")?Number(t.step):1;const cur=Number(t.value)||0;const next=Math.max(min,cur+d);t.value=String(step>=1?Math.round(next):+next.toFixed(2));hapticPulse(8)}
+async function cardLogSet(b){hapticKey();const i=+b.dataset.i;const result=await logSingleSetForExercise(i);if(!result.ok)return;const e=exById(result.ex.eid);let sub="";try{const loggedNow=(S.logs||[]).filter(l=>l.date===activeTrainIso()&&l.exercise===result.name).length;const totalSets=Math.max(1,Number(result.ex.sets)||1);if(loggedNow<totalSets){const tgt=Number(result.ex.target)||0;const wTxt=(!isRunExerciseName(result.name)&&tgt>0)?` · next ${formatLoadLbText(tgt)}`:"";sub=`Set ${loggedNow+1} of ${totalSets}${wTxt}`;}else{sub=`All ${totalSets} sets done ✓`;}}catch(err){}startRestTimer(parseRestSec(e&&e.rest),result.name,sub);const nextSet=Math.min(result.maxSets,result.setNo+1);const setLbl=document.getElementById("tq-set-lbl"+i);if(setLbl)setLbl.textContent=`Set ${nextSet} of ${result.maxSets}`;const tS=document.getElementById("t-s"+i),tR=document.getElementById("t-r"+i),tW=document.getElementById("t-w"+i),tqR=document.getElementById("tq-r"+i),tqW=document.getElementById("tq-w"+i),tqO=document.getElementById("tq-o"+i),tO=document.getElementById("t-o"+i);if(tS)tS.value="1";if(tR)tR.value=String(result.aR);if(tqR)tqR.value=String(result.aR);const wSync=isRunExerciseName(result.name)?paceSecPerMiDisplay(result.aW):String(loadInputDisplayFromLb(result.aW));if(tW)tW.value=wSync;if(tqW)tqW.value=wSync;if(tO&&tqO)tO.value=tqO.value;const run=isRunExerciseName(result.name);const prevLogs=(S.logs||[]).slice(0,-1);const qIsPR=!run&&result.aW>0&&!prevLogs.some(l=>l.exercise===result.name&&(l.aW||0)>=result.aW&&(l.aR||0)>=result.aR);if(qIsPR){triggerHaptic("pr");celebrateFinish()}if(result.setNo>=result.maxSets){toast(`${result.name}: all sets logged for today.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});if(powerFocusOn)applyPowerFocusActive()}else toast(`${result.name} saved — ready for set ${nextSet}.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});}
+function cardCopyPrev(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const name=e?e.name:ex.eid;const row=[...S.logs].reverse().find(l=>l.exercise===name);if(!row){toast("No previous set yet for this exercise.");return}const run=isRunExerciseName(name);const wVal=run?paceSecPerMiDisplay(Number(row.aW)||0):String(loadInputDisplayFromLb(Number(row.aW)||0));document.getElementById("t-s"+i).value=Number(row.aS)||1;document.getElementById("t-r"+i).value=Number(row.aR)||ex.reps||1;document.getElementById("t-w"+i).value=wVal;const tqW=document.getElementById("tq-w"+i);if(tqW)tqW.value=wVal;const o=document.getElementById("t-o"+i);if(o&&row.outcome)o.value=row.outcome;hapticPulse(12);toast("Copied previous set")}
+async function cardSaveAll(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const prevEv=Array.isArray(S.events)?S.events.slice():[];const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);recordLoggedSet(log);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}const isPR=!run&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);if(isPR){triggerHaptic("pr");celebrateFinish();toastMsg+=" — 🏆 New Record!"}else{triggerHaptic("tick")}toast(toastMsg,{undo:()=>{S.events=prevEv;reprojectLogs();delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});const restSec=e&&e.rest?parseRestSec(e.rest):90;startRestTimer(restSec,name);render()}
+const cardActions={noteInput:cardNoteInput,feelClick:cardFeelClick,skip:cardSkip,rest:cardRest,toggleBody:cardToggleBody,step:cardStep,logSet:cardLogSet,copyPrev:cardCopyPrev,saveAll:cardSaveAll};
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountTrainCards();
@@ -4670,19 +4696,6 @@ function bindToday(){
   const wt=document.getElementById("why-toggle"),wb=document.getElementById("why-body");
   if(wt&&wb)wt.onclick=()=>{wb.classList.toggle("open");wt.textContent=wb.classList.contains("open")?"Why this session? (hide)":"Why this session? (coaching notes)"};
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
-  document.querySelectorAll(".ex-note-input").forEach(ta=>{
-    let debounce=null;
-    ta.addEventListener("input",()=>{clearTimeout(debounce);debounce=setTimeout(async()=>{
-      if(!S.exerciseNotes)S.exerciseNotes={};
-      const val=ta.value.trim();
-      if(val)S.exerciseNotes[ta.dataset.eid]=val;else delete S.exerciseNotes[ta.dataset.eid];
-      await persist();
-      const badge=ta.parentElement?.querySelector(".ex-note-saved");
-      if(badge){badge.textContent="Saved";badge.style.opacity="1";setTimeout(()=>{badge.style.opacity=".6"},1200)}
-      else if(val){const s=document.createElement("span");s.className="ex-note-saved";s.textContent="Saved";ta.parentElement.appendChild(s)}
-    },600)});
-  });
-  document.querySelectorAll("#p-today .feel-chip").forEach(chip=>{chip.onclick=()=>{const i=chip.dataset.i;document.querySelectorAll(`#p-today .feel-chip[data-i="${i}"]`).forEach(c=>c.classList.toggle("on",c===chip));const fc=chip.closest(".feel-chips");if(!fc)return;let tip=fc.querySelector(".rpe-guidance");if(chip.dataset.feel==="easy"&&chip.classList.contains("on")){if(!tip){tip=document.createElement("div");tip.className="rpe-guidance";fc.appendChild(tip)}const step=useMetric()?"2–5 kg":"5–10 lbs";tip.textContent=`Feels light! Consider increasing by ${step} next set.`}else if(tip){tip.remove()}}});
   const tq=document.getElementById("train-quick");if(tq)tq.onclick=async()=>{const cur=Number((S.profile.prefs||{}).quickSessionMin)||0;S.profile.prefs={...(S.profile.prefs||{}),quickSessionMin:cur>0?0:15};await persist();render();toast(cur>0?"Showing full session":"15-min mode — first two lifts")};
   const teq=document.getElementById("train-eq-toggle");if(teq)teq.onclick=async()=>{const h=((S.profile.prefs||{}).equipment||"gym")==="home";S.profile.prefs={...(S.profile.prefs||{}),equipment:h?"gym":"home"};await persist();render();toast(S.profile.prefs.equipment==="home"?"Home equipment — DB / bodyweight swaps.":"Gym equipment — barbell-friendly session.")};
   const tpt=document.getElementById("train-plates-toggle"),tpb=document.getElementById("train-plates-body");
@@ -4733,19 +4746,7 @@ function bindToday(){
   if(sfc)sfc.onclick=async()=>{const day=activeTrainIso();const prev=(S.sessionFeelByDate||{})[day];if(!prev)return;revertSessionFeelNudge(prev);delete S.sessionFeelByDate[day];await persist();render();toast("Session feel cleared.")};
   document.querySelectorAll(".session-finalize-sync").forEach(sfz=>{sfz.onclick=async()=>{const day=activeTrainIso();if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return}const snapAdapt=JSON.parse(JSON.stringify(S.adapt));const snapProfile=JSON.parse(JSON.stringify(S.profile));const snapAdapted=JSON.parse(JSON.stringify(S.sessionAdaptedByDate));triggerHaptic("success");const n=applyDayAdaptation(day);S.sessionAdaptedByDate[day]=true;celebrateFinish();save();render();toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.",{undo:async()=>{S.adapt=snapAdapt;S.profile=snapProfile;S.sessionAdaptedByDate=snapAdapted;await persist();render()},duration:5000});await persist()}});
   document.querySelectorAll(".wu-step-cb").forEach(cb=>{cb.onchange=async()=>{const day=activeTrainIso();if(!S.warmupDoneByDate)S.warmupDoneByDate={};if(!S.warmupDoneByDate[day])S.warmupDoneByDate[day]={};S.warmupDoneByDate[day][String(cb.dataset.wuIdx)]=cb.checked;await persist()}});
-  document.querySelectorAll(".ex-skip").forEach(b=>b.onclick=async()=>{
-    const eid=b.dataset.eid,day=activeTrainIso();if(!S.skippedEidsByDate)S.skippedEidsByDate={};const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate));const skip=new Set(S.skippedEidsByDate[day]||[]);skip.add(eid);S.skippedEidsByDate[day]=[...skip];await persist();if(trainFocusIdx!==null){const p=todayPlanFiltered();if(!p.exs.length)trainFocusIdx=null;else trainFocusIdx=Math.min(trainFocusIdx,p.exs.length-1)}toast("Skipped for today",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()
-  });
   const sr=document.getElementById("skip-restore");if(sr)sr.onclick=async()=>{const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate||{})),day=activeTrainIso();if(S.skippedEidsByDate)delete S.skippedEidsByDate[day];await persist();toast("Restored today's lifts",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()};
-  document.querySelectorAll(".ex-rest").forEach(b=>b.onclick=()=>{
-    const i=+b.dataset.i;
-    const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;
-    const e=exById(ex.eid);
-    const sec=parseRestSec(e&&e.rest);
-    startRestTimer(sec,e?e.name:ex.eid);
-    try{b.blur()}catch{}
-  });
-  document.querySelectorAll(".ex-toggle").forEach(b=>b.onclick=async()=>{const i=b.dataset.i;const body=document.getElementById("exb-"+i);const opening=!body.classList.contains("open");body.classList.toggle("open");if(opening)await loadExercisePdfPreview(i)});
   document.querySelectorAll(".ex-quick-video-toggle").forEach(btn=>{btn.onclick=()=>{const i=btn.dataset.i;const p=document.getElementById("exq-"+i);if(!p)return;const show=p.hidden;p.hidden=!show;btn.setAttribute("aria-expanded",show?"true":"false");btn.textContent=show?"Hide quick video":"Show quick video"}});
   document.querySelectorAll(".lite-video").forEach(wrap=>{
     const playBtn=wrap.querySelector(".lite-video-play");
@@ -4762,45 +4763,6 @@ function bindToday(){
     };
   });
   document.querySelectorAll("#p-today .input-mmss").forEach(el=>bindMmssPaceInput(el));
-  document.querySelectorAll(".step-btn").forEach(b=>b.onclick=()=>{const t=document.getElementById(b.dataset.target);if(!t)return;if(t.classList&&t.classList.contains("input-mmss"))return;const d=Number(b.dataset.delta)||0;const min=(t.min!==""?Number(t.min):-Infinity);const step=(t.step&&t.step!=="any")?Number(t.step):1;const cur=Number(t.value)||0;const next=Math.max(min,cur+d);t.value=String(step>=1?Math.round(next):+next.toFixed(2));hapticPulse(8)});
-  document.querySelectorAll(".q-save").forEach(b=>b.onclick=async()=>{
-    hapticKey();
-    const i=+b.dataset.i;
-    const result=await logSingleSetForExercise(i);
-    if(!result.ok)return;
-    const e=exById(result.ex.eid);
-    // Rest-bar context: how many sets remain + the next target weight.
-    let sub="";
-    try{
-      const loggedNow=(S.logs||[]).filter(l=>l.date===activeTrainIso()&&l.exercise===result.name).length;
-      const totalSets=Math.max(1,Number(result.ex.sets)||1);
-      if(loggedNow<totalSets){
-        const tgt=Number(result.ex.target)||0;
-        const wTxt=(!isRunExerciseName(result.name)&&tgt>0)?` · next ${formatLoadLbText(tgt)}`:"";
-        sub=`Set ${loggedNow+1} of ${totalSets}${wTxt}`;
-      }else{sub=`All ${totalSets} sets done ✓`;}
-    }catch(err){}
-    startRestTimer(parseRestSec(e&&e.rest),result.name,sub);
-    const nextSet=Math.min(result.maxSets,result.setNo+1);
-    const setLbl=document.getElementById("tq-set-lbl"+i);
-    if(setLbl)setLbl.textContent=`Set ${nextSet} of ${result.maxSets}`;
-    const tS=document.getElementById("t-s"+i),tR=document.getElementById("t-r"+i),tW=document.getElementById("t-w"+i),tqR=document.getElementById("tq-r"+i),tqW=document.getElementById("tq-w"+i),tqO=document.getElementById("tq-o"+i),tO=document.getElementById("t-o"+i);
-    if(tS)tS.value="1";
-    if(tR)tR.value=String(result.aR);
-    if(tqR)tqR.value=String(result.aR);
-    const wSync=isRunExerciseName(result.name)?paceSecPerMiDisplay(result.aW):String(loadInputDisplayFromLb(result.aW));
-    if(tW)tW.value=wSync;
-    if(tqW)tqW.value=wSync;
-    if(tO&&tqO)tO.value=tqO.value;
-    const run=isRunExerciseName(result.name);
-    const prevLogs=(S.logs||[]).slice(0,-1);
-    const qIsPR=!run&&result.aW>0&&!prevLogs.some(l=>l.exercise===result.name&&(l.aW||0)>=result.aW&&(l.aR||0)>=result.aR);
-    if(qIsPR){triggerHaptic("pr");celebrateFinish()}
-    if(result.setNo>=result.maxSets){toast(`${result.name}: all sets logged for today.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});if(powerFocusOn)applyPowerFocusActive()}
-    else toast(`${result.name} saved — ready for set ${nextSet}.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});
-  });
-  document.querySelectorAll(".ex-copyprev").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const name=e?e.name:ex.eid;const row=[...S.logs].reverse().find(l=>l.exercise===name);if(!row){toast("No previous set yet for this exercise.");return}const run=isRunExerciseName(name);const wVal=run?paceSecPerMiDisplay(Number(row.aW)||0):String(loadInputDisplayFromLb(Number(row.aW)||0));document.getElementById("t-s"+i).value=Number(row.aS)||1;document.getElementById("t-r"+i).value=Number(row.aR)||ex.reps||1;document.getElementById("t-w"+i).value=wVal;const tqW=document.getElementById("tq-w"+i);if(tqW)tqW.value=wVal;const o=document.getElementById("t-o"+i);if(o&&row.outcome)o.value=row.outcome;hapticPulse(12);toast("Copied previous set")});
-  document.querySelectorAll(".ex-save").forEach(b=>b.onclick=async()=>{const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const prevEv=Array.isArray(S.events)?S.events.slice():[];const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);recordLoggedSet(log);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}const isPR=!run&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);if(isPR){triggerHaptic("pr");celebrateFinish();toastMsg+=" — 🏆 New Record!"}else{triggerHaptic("tick")}toast(toastMsg,{undo:()=>{S.events=prevEv;reprojectLogs();delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});const restSec=e&&e.rest?parseRestSec(e.rest):90;startRestTimer(restSec,name);render()});
   const mm=document.getElementById("miss-move"),ms=document.getElementById("miss-skip"),mp=document.getElementById("miss-pick"),ml=document.getElementById("miss-later"),cu=document.getElementById("catchup-add-today"),tas=document.getElementById("train-adjust-schedule");
   if(mm)mm.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const pl=rollingPlanForDate(m.date);const due=nextTrainingIso(m.date);if(!due){toast("Could not find a next training day.");return}const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:due});a.missChoices[m.date]={choice:"move"};await persist();render();toast(`Queued for ${DAYS[parseIsoNoon(due).getDay()]} (${due}).`)};
   if(ms)ms.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();render();toast("Session skipped for this block week.")};

@@ -1075,17 +1075,17 @@ function mountPlan(container, props) {
 function Html2({ html }) {
   return /* @__PURE__ */ u3("div", { style: "display:contents", dangerouslySetInnerHTML: { __html: html } });
 }
-function Stepper({ id, value, delta, min, step, label, repLab }) {
+function Stepper({ id, value, delta, min, step, label, repLab, onStep }) {
   return /* @__PURE__ */ u3("div", { children: [
     /* @__PURE__ */ u3("label", { children: label ?? repLab }),
     /* @__PURE__ */ u3("div", { class: "stepper", children: [
-      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": -delta, children: "\u2212" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": -delta, onClick: (e3) => onStep(e3.currentTarget), children: "\u2212" }),
       /* @__PURE__ */ u3("input", { type: "number", class: "input-sm", id, value, min, step }),
-      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": delta, children: "+" })
+      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": delta, onClick: (e3) => onStep(e3.currentTarget), children: "+" })
     ] })
   ] });
 }
-function LoadCol({ id, val, wStep, unit, i: i4 }) {
+function LoadCol({ id, val, wStep, unit, i: i4, onStep }) {
   return /* @__PURE__ */ u3("div", { children: [
     /* @__PURE__ */ u3("label", { children: [
       "Load (",
@@ -1093,9 +1093,9 @@ function LoadCol({ id, val, wStep, unit, i: i4 }) {
       ")"
     ] }),
     /* @__PURE__ */ u3("div", { class: "stepper", children: [
-      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": -wStep, children: "\u2212" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": -wStep, onClick: (e3) => onStep(e3.currentTarget), children: "\u2212" }),
       /* @__PURE__ */ u3("input", { type: "number", class: "input-sm", id, value: val, min: "0", step: "any" }),
-      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": wStep, children: "+" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "step-btn", "data-target": id, "data-delta": wStep, onClick: (e3) => onStep(e3.currentTarget), children: "+" }),
       /* @__PURE__ */ u3("button", { type: "button", class: "icon-btn q-load-helper", "data-i": i4, title: "Open bar load helper", "aria-label": "Open bar load helper for load", children: "\u{1F3CB}\uFE0F" })
     ] })
   ] });
@@ -1118,6 +1118,7 @@ function OutcomeSelect({ id }) {
 }
 function ExerciseCard(p3) {
   const { i: i4, unit } = p3;
+  const a3 = p3.actions;
   return /* @__PURE__ */ u3("div", { class: "ex-card" + (p3.done ? " ex-done" : ""), id: "exc-" + i4, "data-eid": p3.eid, children: [
     /* @__PURE__ */ u3("div", { class: "ex-top ex-top-row", children: [
       /* @__PURE__ */ u3("div", { class: "ex-check", children: p3.done ? "\u2713" : "" }),
@@ -1133,14 +1134,14 @@ function ExerciseCard(p3) {
       ] }),
       /* @__PURE__ */ u3("div", { class: "ex-actions ex-actions-stack", children: [
         /* @__PURE__ */ u3("div", { class: "ex-actions-primary", children: [
-          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-rest", "data-i": i4, title: `Rest timer (${p3.restTitle})`, children: [
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-rest", "data-i": i4, title: `Rest timer (${p3.restTitle})`, onClick: (e3) => a3.rest(e3.currentTarget), children: [
             "Rest \xB7 ",
             p3.restHuman
           ] }),
-          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-cta ex-toggle", "data-i": i4, children: "Details & video" })
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-cta ex-toggle", "data-i": i4, onClick: (e3) => a3.toggleBody(e3.currentTarget), children: "Details & video" })
         ] }),
         /* @__PURE__ */ u3("div", { class: "ex-actions-secondary", children: [
-          /* @__PURE__ */ u3("button", { type: "button", class: "ex-link-btn ex-skip", "data-eid": p3.eid, title: "Remove from today's checklist", children: "Skip" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "ex-link-btn ex-skip", "data-eid": p3.eid, title: "Remove from today's checklist", onClick: (e3) => a3.skip(e3.currentTarget), children: "Skip" }),
           /* @__PURE__ */ u3("span", { class: "ex-actions-sep", "aria-hidden": "true", children: "\xB7" }),
           /* @__PURE__ */ u3("button", { type: "button", class: "ex-link-btn ex-swap", "data-orig": p3.originalEid, title: "Replace with a similar movement", children: "Swap" })
         ] })
@@ -1176,9 +1177,9 @@ function ExerciseCard(p3) {
       ] }),
       /* @__PURE__ */ u3("div", { class: "feel-chips", children: [
         /* @__PURE__ */ u3("span", { children: p3.feelLead }),
-        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "easy", "data-i": i4, children: "Too easy (RPE < 7)" }),
-        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip on", "data-feel": "ok", "data-i": i4, children: "Just right (RPE 7-8)" }),
-        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "hard", "data-i": i4, children: "Too hard (RPE 9+)" })
+        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "easy", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Too easy (RPE < 7)" }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip on", "data-feel": "ok", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Just right (RPE 7-8)" }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "hard", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Too hard (RPE 9+)" })
       ] }),
       /* @__PURE__ */ u3(Html2, { html: p3.runRpeSelectHtml }),
       /* @__PURE__ */ u3("div", { class: "ex-note-wrap", children: [
@@ -1186,7 +1187,7 @@ function ExerciseCard(p3) {
           "My notes for ",
           p3.exNm
         ] }),
-        /* @__PURE__ */ u3("textarea", { class: "ex-note-input", "data-eid": p3.eid, placeholder: "Cues, grip width, stance notes\u2026", rows: 2, maxlength: 500, value: p3.savedNote }),
+        /* @__PURE__ */ u3("textarea", { class: "ex-note-input", "data-eid": p3.eid, placeholder: "Cues, grip width, stance notes\u2026", rows: 2, maxlength: 500, value: p3.savedNote, onInput: (e3) => a3.noteInput(e3.currentTarget) }),
         p3.savedNote ? /* @__PURE__ */ u3("span", { class: "ex-note-saved", children: "Saved" }) : null
       ] }),
       /* @__PURE__ */ u3("div", { class: "quick-log-row", children: [
@@ -1196,21 +1197,21 @@ function ExerciseCard(p3) {
           " of ",
           p3.sets
         ] }),
-        /* @__PURE__ */ u3(Stepper, { id: "tq-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab }),
-        p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "tq-w" + i4, val: p3.quickWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "tq-w" + i4, val: p3.quickWVal, wStep: p3.wStep, unit, i: i4 }),
+        /* @__PURE__ */ u3(Stepper, { id: "tq-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab, onStep: a3.step }),
+        p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "tq-w" + i4, val: p3.quickWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "tq-w" + i4, val: p3.quickWVal, wStep: p3.wStep, unit, i: i4, onStep: a3.step }),
         /* @__PURE__ */ u3(OutcomeSelect, { id: "tq-o" + i4 }),
         p3.runEx && p3.hasShoe ? /* @__PURE__ */ u3("div", { id: "shoe-pick-" + i4, children: /* @__PURE__ */ u3(Html2, { html: p3.shoeHtml }) }) : null,
-        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block q-save", "data-i": i4, children: "Complete set & start rest" })
+        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block q-save", "data-i": i4, onClick: (e3) => a3.logSet(e3.currentTarget), children: "Complete set & start rest" })
       ] }),
       /* @__PURE__ */ u3("details", { class: "ex-logall-details", style: "margin-top:6px", children: [
         /* @__PURE__ */ u3("summary", { style: "font-size:11px;color:var(--text3);cursor:pointer", children: "Log all sets at once" }),
         /* @__PURE__ */ u3("div", { class: "ex-log-grid", style: "margin-top:8px", children: [
-          /* @__PURE__ */ u3(Stepper, { id: "t-s" + i4, value: p3.sets, delta: 1, min: 1, label: "Sets" }),
-          /* @__PURE__ */ u3(Stepper, { id: "t-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab }),
-          p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "t-w" + i4, val: p3.gridWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "t-w" + i4, val: p3.gridWVal, wStep: p3.wStep, unit, i: i4 }),
+          /* @__PURE__ */ u3(Stepper, { id: "t-s" + i4, value: p3.sets, delta: 1, min: 1, label: "Sets", onStep: a3.step }),
+          /* @__PURE__ */ u3(Stepper, { id: "t-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab, onStep: a3.step }),
+          p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "t-w" + i4, val: p3.gridWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "t-w" + i4, val: p3.gridWVal, wStep: p3.wStep, unit, i: i4, onStep: a3.step }),
           /* @__PURE__ */ u3(OutcomeSelect, { id: "t-o" + i4 }),
-          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-copyprev", "data-i": i4, children: "Copy previous set" }),
-          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm ex-save", "data-i": i4, children: "Save all" })
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-copyprev", "data-i": i4, onClick: (e3) => a3.copyPrev(e3.currentTarget), children: "Copy previous set" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm ex-save", "data-i": i4, onClick: (e3) => a3.saveAll(e3.currentTarget), children: "Save all" })
         ] })
       ] }),
       /* @__PURE__ */ u3("div", { id: "expdf-" + i4, class: "ex-pdf-area" })

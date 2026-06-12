@@ -1,11 +1,18 @@
 // @vitest-environment happy-dom
-// Binding-contract test: the card is mounted once and bindToday (in ui.js) wires
-// every control by id/class/data-attr. These assertions pin that exact surface so
-// a markup change can never silently break a handler. If you rename/remove any
-// selector here, update bindToday in lockstep.
-import { describe, it, expect } from "vitest";
+// Two contracts pinned here:
+//  1. The component dispatches every interaction to its `actions` (lifted out of
+//     bindToday) — q-save, save-all, copy-prev, skip, rest, toggle, feel, steppers, notes.
+//  2. The markup still exposes the ids/classes/data-attrs that bindToday STILL
+//     wires (q-load-helper, ex-swap, quick-video, lite-video) and that the
+//     enhancers need (input-mmss, numeric inputs, anatomy). Don't rename without
+//     updating bindToday in lockstep.
+import { describe, it, expect, vi } from "vitest";
 import { render } from "preact";
-import { ExerciseCard, type ExerciseCardProps } from "./exercise-card";
+import { ExerciseCard, type ExerciseCardProps, type ExerciseCardActions } from "./exercise-card";
+
+function noopActions(): ExerciseCardActions {
+  return { noteInput() {}, feelClick() {}, skip() {}, rest() {}, toggleBody() {}, step() {}, logSet() {}, copyPrev() {}, saveAll() {} };
+}
 
 function baseProps(over: Partial<ExerciseCardProps> = {}): ExerciseCardProps {
   return {
@@ -21,6 +28,7 @@ function baseProps(over: Partial<ExerciseCardProps> = {}): ExerciseCardProps {
     howBlockHtml: "<div class='ex-howto'><ol><li>Set up</li></ol></div>",
     anatomyHtml: "<div class='anatomy'>svg</div>", runRpeSelectHtml: "", shoeHtml: "",
     lastLine: "Last: 200 lb × 5",
+    actions: noopActions(),
     ...over,
   };
 }
@@ -116,5 +124,66 @@ describe("ExerciseCard markup contract", () => {
     const el = mount({ done: true });
     expect((el.querySelector(".ex-card") as HTMLElement).classList.contains("ex-done")).toBe(true);
     expect((el.querySelector(".ex-check") as HTMLElement).textContent).toBe("✓");
+  });
+});
+
+describe("ExerciseCard interaction wiring", () => {
+  function mountWithSpies() {
+    const actions = { ...noopActions() };
+    for (const k of Object.keys(actions) as (keyof ExerciseCardActions)[]) actions[k] = vi.fn();
+    const el = document.createElement("div");
+    render(<ExerciseCard {...baseProps({ actions })} />, el);
+    return { el, actions };
+  }
+  const click = (el: Element | null) => el && el.dispatchEvent(new Event("click", { bubbles: true }));
+
+  it("Complete-set button dispatches logSet with its element", () => {
+    const { el, actions } = mountWithSpies();
+    const btn = el.querySelector(".q-save") as HTMLButtonElement;
+    click(btn);
+    expect(actions.logSet).toHaveBeenCalledTimes(1);
+    expect((actions.logSet as any).mock.calls[0][0]).toBe(btn);
+  });
+
+  it("log-all Save/Copy dispatch saveAll/copyPrev", () => {
+    const { el, actions } = mountWithSpies();
+    click(el.querySelector(".ex-save"));
+    click(el.querySelector(".ex-copyprev"));
+    expect(actions.saveAll).toHaveBeenCalledTimes(1);
+    expect(actions.copyPrev).toHaveBeenCalledTimes(1);
+  });
+
+  it("skip / rest / details dispatch skip / rest / toggleBody", () => {
+    const { el, actions } = mountWithSpies();
+    click(el.querySelector(".ex-skip"));
+    click(el.querySelector(".ex-rest"));
+    click(el.querySelector(".ex-toggle"));
+    expect(actions.skip).toHaveBeenCalledTimes(1);
+    expect(actions.rest).toHaveBeenCalledTimes(1);
+    expect(actions.toggleBody).toHaveBeenCalledTimes(1);
+  });
+
+  it("feel chips dispatch feelClick with the clicked chip", () => {
+    const { el, actions } = mountWithSpies();
+    const chips = [...el.querySelectorAll(".feel-chip")];
+    click(chips[0]);
+    click(chips[2]);
+    expect(actions.feelClick).toHaveBeenCalledTimes(2);
+    expect((actions.feelClick as any).mock.calls[1][0]).toBe(chips[2]);
+  });
+
+  it("steppers dispatch step for both quick-log and log-all inputs", () => {
+    const { el, actions } = mountWithSpies();
+    el.querySelectorAll(".step-btn").forEach((b) => click(b));
+    // 2 (tq-r) + 2 (tq-w load) + 2 (t-s) + 2 (t-r) + 2 (t-w load) = 10 step buttons on a lift card
+    expect(actions.step).toHaveBeenCalledTimes(10);
+  });
+
+  it("editing a note dispatches noteInput with the textarea", () => {
+    const { el, actions } = mountWithSpies();
+    const ta = el.querySelector(".ex-note-input") as HTMLTextAreaElement;
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(actions.noteInput).toHaveBeenCalledTimes(1);
+    expect((actions.noteInput as any).mock.calls[0][0]).toBe(ta);
   });
 });
