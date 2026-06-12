@@ -1595,3 +1595,59 @@ body.power-focus .fab-voice-log{display:none!important}
 .dash-overview-grid>.dash-span-full{grid-column:1/-1}
 .dash-overview-grid>*{margin-top:0!important;margin-bottom:0!important}
 @media (max-width:760px){.dash-overview-grid{grid-template-columns:1fr;gap:10px}}
+
+/* ════════════════════════════════════════════════════════════════════
+   PREMIUM VISUAL REFRESH (v2026.6) — layered on top via source order.
+   Adds depth, motion, glow and richer accents across every theme.
+   Pure CSS, no markup changes; delete this block to revert entirely.
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  --radius:16px;
+  --radius-sm:11px;
+  --radius-lg:22px;
+  --elev-soft:0 1px 2px rgba(0,0,0,.16),0 6px 18px rgba(0,0,0,.22);
+  --elev:0 2px 10px rgba(0,0,0,.24),0 18px 44px rgba(0,0,0,.36);
+  --ring:0 0 0 3px color-mix(in srgb,var(--ice) 36%,transparent);
+  --ease-spring:cubic-bezier(.34,1.4,.64,1);
+  /* richer default (neutral/onboarding) accents */
+  --fire:#e0825a;--ice:#74aef0;--mint:#46d6a0;--gold:#e7b54e;
+}
+/* Richer accents per theme — keep each palette's personality, boost luminance */
+body.theme-masculine{--fire:#d98e4a;--ice:#6f93ad;--mint:#56a473;--gold:#caa86f}
+body.theme-neutral{--fire:#cf8060;--ice:#7ba6c8;--mint:#5fc098;--gold:#cead78}
+
+/* Cards & surfaces: rounder, real elevation, springy hover lift */
+.card,.hero-card,.pw-card{box-shadow:var(--elev-soft);transition:transform .24s var(--ease-spring),box-shadow .24s ease,border-color .2s ease}
+.card:hover,.hero-card:hover,.pw-card:hover{transform:translateY(-3px);box-shadow:var(--elev)}
+.ex-card{box-shadow:var(--elev-soft);transition:transform .2s var(--ease-spring),box-shadow .2s ease,border-color .2s ease}
+.ex-card:hover{box-shadow:var(--elev)}
+
+/* Buttons: tactile press; primary CTA gets a gradient sheen, all solids glow */
+.btn{transition:transform .12s ease,filter .15s ease,box-shadow .2s ease,background .2s ease,border-color .2s ease}
+.btn:active{transform:scale(.96)}
+.btn-cta{background:linear-gradient(180deg,color-mix(in srgb,var(--fire) 82%,#fff 18%),var(--fire));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 18px color-mix(in srgb,var(--fire) 42%,transparent)}
+.btn-fire{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 6px 18px color-mix(in srgb,var(--fire) 40%,transparent)}
+.btn-mint{background:linear-gradient(180deg,color-mix(in srgb,var(--mint) 82%,#fff 18%),var(--mint));box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 6px 18px color-mix(in srgb,var(--mint) 42%,transparent)}
+.btn-ice{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 6px 18px color-mix(in srgb,var(--ice) 40%,transparent)}
+.btn-cta:hover{filter:brightness(1.06) saturate(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 10px 26px color-mix(in srgb,var(--fire) 54%,transparent)}
+.btn-mint:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 10px 26px color-mix(in srgb,var(--mint) 54%,transparent)}
+
+/* Inputs: soft glow focus ring */
+input:focus,select:focus,textarea:focus{box-shadow:var(--ring)}
+
+/* Nav: deeper glass + active-pill glow */
+.nav{backdrop-filter:blur(24px) saturate(1.4)}
+.nav-btn{transition:.18s var(--ease-spring)}
+.nav-btn.active{box-shadow:0 2px 12px color-mix(in srgb,var(--ice) 34%,transparent)}
+
+/* Subtabs + FAB polish */
+.subtab{transition:.16s var(--ease-spring)}
+.subtab.on{box-shadow:0 2px 9px rgba(0,0,0,.2)}
+.fab-quick-log{box-shadow:0 10px 26px color-mix(in srgb,var(--fire) 46%,transparent),0 2px 8px rgba(0,0,0,.32);transition:transform .15s var(--ease-spring),box-shadow .2s}
+.fab-quick-log:active{transform:scale(.93)}
+
+/* Headings: tighter, bolder hierarchy */
+.hero-title{font-weight:700;letter-spacing:-0.03em}
+
+/* Slightly more pronounced pane entrance */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
