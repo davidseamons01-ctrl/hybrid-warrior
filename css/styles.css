@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
 :root{--card-padding:20px;--bg:#17171d;--surface:#1f2028;--card:#262730;--card-hover:#2e303c;--border:#3d3f4d;--border-lit:#585b70;--text:#f4f4f7;--text2:#b8b8c4;--text3:#8b8b9a;--fire:#d4795a;--ice:#82a8c4;--mint:#7ebf9e;--gold:#c9ae7a;--red:#d06868;--radius:12px;--radius-sm:8px;--elev:0 2px 6px rgba(0,0,0,.12),0 8px 24px rgba(0,0,0,.22);--elev-soft:0 1px 3px rgba(0,0,0,.08),0 4px 14px rgba(0,0,0,.14);--elev-0:var(--bg);--elev-1:var(--surface);--elev-2:var(--card);--elev-3:var(--card-hover)}
 body.theme-neutral{--fire:#b56b58;--ice:#6f92a8;--mint:#6fa08c;--gold:#b89a72;--border-lit:#5c5f73}
 /* Feminine — fun bright palette (Pink Punch, Violet Syrup, Lemon Drop, Lime Wedge, Orange Paloma, Blue Crystal) */
@@ -1651,3 +1652,46 @@ input:focus,select:focus,textarea:focus{box-shadow:var(--ring)}
 
 /* Slightly more pronounced pane entrance */
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ════════════════════════════════════════════════════════════════════
+   BLACKOUT PRO (v2026.6b) — true-black performance look (dark mode only).
+   One bold accent (power-orange), monochrome surfaces, athletic display
+   type, tabular stats. Gated by the body.blackout class (JS adds it in dark
+   mode), so light mode and per-theme identities return when toggled. Every
+   rule is body.blackout-scoped so it ties/beats the per-theme rules by order.
+   ════════════════════════════════════════════════════════════════════ */
+body.blackout{
+  --bg:#000000;--surface:#0b0c10;--card:#101218;--card-hover:#181b23;
+  --border:#1c2029;--border-lit:#2c313d;--text:#f6f7f9;--text2:#99a1b0;--text3:#5b626e;
+  --fire:#ff5a36;--ice:#5f8fd6;--mint:#23d49b;--gold:#ecb444;--red:#ff5247;
+  --ring:0 0 0 3px color-mix(in srgb,var(--fire) 42%,transparent);
+  --elev-soft:0 1px 2px rgba(0,0,0,.5),0 8px 22px rgba(0,0,0,.6);
+  --elev:0 2px 10px rgba(0,0,0,.55),0 22px 50px rgba(0,0,0,.7);
+  background:radial-gradient(120% 72% at 50% -12%,rgba(255,90,54,.07),transparent 56%),#000000;
+  background-attachment:fixed;
+  font-variant-numeric:tabular-nums;
+}
+/* Cover the feminine colorful gradient canvas too */
+body.blackout.theme-feminine{background:radial-gradient(120% 72% at 50% -12%,rgba(255,90,54,.07),transparent 56%),#000000;background-attachment:fixed}
+/* Athletic display type for headings + stat numbers */
+body.blackout .logo,body.blackout .hero-title,body.blackout .card-h h2,body.blackout .gauge-val,
+body.blackout h1,body.blackout h2,body.blackout h3,body.blackout .plan-context-title{
+  font-family:'Space Grotesk','DM Sans',system-ui,sans-serif;letter-spacing:-0.02em}
+body.blackout .hero-title,body.blackout .gauge-val{font-weight:700;letter-spacing:-0.03em}
+body.blackout label{letter-spacing:.09em}
+/* Surfaces: crisp hairline + faint top highlight read as depth on pure black */
+body.blackout .card,body.blackout .ex-card,body.blackout .hero-card,body.blackout .pw-card{
+  border-color:var(--border-lit);box-shadow:inset 0 1px 0 rgba(255,255,255,.045),var(--elev-soft)}
+body.blackout .card:hover,body.blackout .hero-card:hover,body.blackout .pw-card:hover{
+  border-color:color-mix(in srgb,var(--fire) 32%,var(--border-lit));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),var(--elev)}
+body.blackout .ex-card:hover{border-color:color-mix(in srgb,var(--fire) 28%,var(--border-lit))}
+/* Signature orange on the chrome */
+body.blackout .nav{background:rgba(0,0,0,.72);backdrop-filter:blur(26px) saturate(1.3)}
+body.blackout .nav-btn.active{background:color-mix(in srgb,var(--fire) 15%,var(--surface));border-color:color-mix(in srgb,var(--fire) 46%,var(--border-lit));box-shadow:0 2px 16px color-mix(in srgb,var(--fire) 30%,transparent);color:var(--text)}
+body.blackout .nav-btn[data-t].active .nav-lb{color:var(--fire)}
+body.blackout .subtab.on{border-color:color-mix(in srgb,var(--fire) 42%,var(--border-lit));color:var(--text);background:color-mix(in srgb,var(--fire) 8%,var(--surface))}
+/* Inputs + focus take the signature */
+body.blackout input:focus,body.blackout select:focus,body.blackout textarea:focus{border-color:var(--fire);box-shadow:var(--ring)}
+body.blackout .nav-btn:focus-visible,body.blackout .btn:focus-visible,body.blackout .subtab:focus-visible{outline-color:var(--fire)}
+/* Badges + chips read cleaner outlined on black */
+body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transparent)}

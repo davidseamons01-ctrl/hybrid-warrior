@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hfbd5f481af7c";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=haff1fc7fdb56";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=hfbd5f481af7c";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell } from "./ui-components.js?v=hfbd5f481af7c";
+} from "./programming.js?v=haff1fc7fdb56";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell } from "./ui-components.js?v=haff1fc7fdb56";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -958,17 +958,19 @@ function applyAppearanceMeta(m){
   m=m||document.getElementById("meta-theme");
   if(!m)return;
   const light=(S.profile.prefs||{}).appearance==="light";
-  m.setAttribute("content",light?"#e8eaef":"#17171d");
+  m.setAttribute("content",light?"#e8eaef":"#000000");
 }
 function applyVisualTheme(forceNeutral=false){
   const b=document.body;
   if(!b)return;
-  b.classList.remove("theme-neutral","theme-feminine","theme-masculine","women-vivid","appearance-light","theme-oled");
+  b.classList.remove("theme-neutral","theme-feminine","theme-masculine","women-vivid","appearance-light","theme-oled","blackout");
   if(forceNeutral||!S.profile.onboarded)b.classList.add("theme-neutral");
   else if(S.profile.sex==="female"){b.classList.add("theme-feminine");b.classList.add("women-vivid")}
   else b.classList.add("theme-masculine");
   if(!forceNeutral&&S.profile.onboarded&&(S.profile.prefs||{}).appearance==="light")b.classList.add("appearance-light");
   if(!forceNeutral&&S.profile.onboarded&&(S.profile.prefs||{}).oledMode)b.classList.add("theme-oled");
+  // Blackout Pro: true-black performance look in dark mode (light mode opts out).
+  if(!b.classList.contains("appearance-light"))b.classList.add("blackout");
   applyAppearanceMeta();
 }
 function useWomenSoftUi(){
