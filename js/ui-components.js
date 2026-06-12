@@ -1485,6 +1485,62 @@ function PersonalRecords(p3) {
 function mountPersonalRecords(container, props) {
   R(/* @__PURE__ */ u3(PersonalRecords, { ...props }), container);
 }
+
+// src/ui/strength-progress.tsx
+function Sparkline({ points }) {
+  const W = 100, H2 = 32, P2 = 3;
+  const min = Math.min(...points), max = Math.max(...points), range = max - min || 1;
+  const X = (i4) => P2 + (points.length < 2 ? 0 : i4 / (points.length - 1) * (W - 2 * P2));
+  const Y = (v3) => P2 + (1 - (v3 - min) / range) * (H2 - 2 * P2);
+  const line = points.map((v3, i4) => `${X(i4).toFixed(2)},${Y(v3).toFixed(2)}`).join(" ");
+  const area = `${X(0).toFixed(2)},${H2 - P2} ${line} ${X(points.length - 1).toFixed(2)},${H2 - P2}`;
+  return /* @__PURE__ */ u3("svg", { class: "sp-spark", viewBox: `0 0 ${W} ${H2}`, preserveAspectRatio: "none", "aria-hidden": "true", children: [
+    /* @__PURE__ */ u3("polygon", { class: "sp-spark-area", points: area }),
+    /* @__PURE__ */ u3("polyline", { class: "sp-spark-line", points: line }),
+    /* @__PURE__ */ u3("circle", { class: "sp-spark-dot", cx: X(points.length - 1), cy: Y(points[points.length - 1]), r: "2" })
+  ] });
+}
+function StrengthProgress(p3) {
+  const lifts = p3.lifts.filter((l3) => l3.has);
+  return /* @__PURE__ */ u3("div", { class: "sp-board card dash-span-full", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: [
+      /* @__PURE__ */ u3("h2", { children: "Strength Progress" }),
+      /* @__PURE__ */ u3("span", { class: "badge badge-ice", children: "e1RM" })
+    ] }),
+    lifts.length ? /* @__PURE__ */ u3("div", { class: "sp-lifts", children: lifts.map((l3) => /* @__PURE__ */ u3("div", { class: "sp-lift", children: [
+      /* @__PURE__ */ u3("div", { class: "sp-lift-head", children: [
+        /* @__PURE__ */ u3("span", { class: "sp-lift-label", children: l3.label }),
+        /* @__PURE__ */ u3("span", { class: "sp-lift-cur", children: [
+          l3.current,
+          /* @__PURE__ */ u3("span", { class: "sp-unit", children: [
+            " ",
+            p3.unit
+          ] })
+        ] }),
+        l3.deltaPct !== 0 ? /* @__PURE__ */ u3("span", { class: "sp-delta " + (l3.deltaPct > 0 ? "up" : "down"), children: [
+          l3.deltaPct > 0 ? "\u25B2" : "\u25BC",
+          " ",
+          Math.abs(l3.deltaPct),
+          "%"
+        ] }) : null
+      ] }),
+      /* @__PURE__ */ u3(Sparkline, { points: l3.points })
+    ] }, l3.label)) }) : /* @__PURE__ */ u3("p", { class: "sp-empty", children: "Log a main lift across two sessions to see your trend." }),
+    p3.volumeBars.length ? /* @__PURE__ */ u3("div", { class: "sp-vol-section", children: [
+      /* @__PURE__ */ u3("div", { class: "sp-section-lbl", children: [
+        "Weekly volume \xB7 ",
+        p3.unit
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "sp-vol", children: p3.volumeBars.map((b2, i4) => /* @__PURE__ */ u3("div", { class: "sp-vol-col-wrap", title: `${b2.week}: ${b2.value.toLocaleString()} ${p3.unit}`, children: [
+        /* @__PURE__ */ u3("div", { class: "sp-vol-col", style: `height:${p3.volumeMax > 0 ? Math.max(3, b2.value / p3.volumeMax * 100) : 3}%` }),
+        /* @__PURE__ */ u3("div", { class: "sp-vol-x", children: b2.week })
+      ] }, i4)) })
+    ] }) : null
+  ] });
+}
+function mountStrengthProgress(container, props) {
+  R(/* @__PURE__ */ u3(StrengthProgress, { ...props }), container);
+}
 export {
   ExerciseCard,
   FocusShell,
@@ -1495,6 +1551,7 @@ export {
   SessionFeelCard,
   SessionSummary,
   SocialView,
+  StrengthProgress,
   WarmupChecklist,
   WorkoutTools,
   mountExerciseCard,
@@ -1506,6 +1563,7 @@ export {
   mountSessionFeelCard,
   mountSessionSummary,
   mountSocial,
+  mountStrengthProgress,
   mountWarmupChecklist,
   mountWorkoutToolsCard
 };

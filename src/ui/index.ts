@@ -8,3 +8,4 @@ export * from "./workout-tools";
 export * from "./focus-shell";
 export * from "./session-summary";
 export * from "./personal-records";
+export * from "./strength-progress";

@@ -1746,3 +1746,24 @@ body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transpa
 .pr-row-meta{font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums}
 .pr-row-meta b{color:var(--fire);font-weight:700}
 @media(max-width:420px){.pr-big3{gap:6px}.pr-lift{padding:12px 6px}.pr-lift-e1rm{font-size:23px}}
+
+/* ── Strength Progress charts (You / Overview) ── */
+.sp-lifts{display:flex;flex-direction:column;gap:14px}
+.sp-lift-head{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
+.sp-lift-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2)}
+.sp-lift-cur{font-family:'Space Grotesk','DM Sans',sans-serif;font-size:18px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;margin-left:auto}
+.sp-unit{font-size:11px;font-weight:600;color:var(--text3)}
+.sp-delta{font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.sp-delta.up{color:var(--mint)}
+.sp-delta.down{color:var(--red)}
+.sp-spark{width:100%;height:38px;display:block;overflow:visible}
+.sp-spark-area{fill:color-mix(in srgb,var(--fire) 14%,transparent)}
+.sp-spark-line{fill:none;stroke:var(--fire);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.sp-spark-dot{fill:var(--fire)}
+.sp-empty{font-size:12px;color:var(--text3);text-align:center;padding:10px 0}
+.sp-vol-section{margin-top:16px;border-top:1px solid var(--border);padding-top:14px}
+.sp-section-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.sp-vol{display:flex;align-items:flex-end;gap:5px;height:92px}
+.sp-vol-col-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;min-width:0}
+.sp-vol-col{width:100%;max-width:26px;background:linear-gradient(180deg,var(--fire),color-mix(in srgb,var(--fire) 45%,transparent));border-radius:4px 4px 2px 2px;min-height:3px;transition:height .45s cubic-bezier(.34,1.4,.64,1)}
+.sp-vol-x{font-size:9px;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap}

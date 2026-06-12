@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hc90da89a7dfd";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h410874c45151";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=hc90da89a7dfd";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords } from "./ui-components.js?v=hc90da89a7dfd";
+} from "./programming.js?v=h410874c45151";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress } from "./ui-components.js?v=h410874c45151";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3344,6 +3344,7 @@ function renderDash(){
     </div>
   </div>
   <div id="pr-board-mount"></div>
+  <div id="sp-board-mount"></div>
   <details class="card section" style="padding:14px">
     <summary style="font-size:13px;font-weight:600;cursor:pointer">Your metrics <span style="font-size:11px;color:var(--text3);font-weight:400">· ${p.weight>0?formatLoadLbText(p.weight):"—"}${p.goalWt>0?" → "+formatLoadLbText(p.goalWt):""} · tap to expand</span></summary>
     <div class="grid3" style="gap:10px;margin-top:12px">
@@ -3532,6 +3533,7 @@ function renderDash(){
 }
 function bindDash(){
   mountPersonalRecordsTab();
+  mountStrengthProgressTab();
   const clearTrainDate=()=>{trainSessionDate=null;trainFocusIdx=null};
   const st=document.getElementById("dash-start-workout");if(st)st.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
@@ -4705,6 +4707,45 @@ function mountPersonalRecordsTab(){
   mountPersonalRecords(c,props);
   const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
 }
+// ── Strength Progress charts (feature) ──
+function liftE1rmSeries(aliases){
+  const set=new Set(aliases.map(a=>a.toLowerCase()));const byDate={};
+  for(const l of S.logs||[]){
+    if(!l||!l.exercise||!set.has(String(l.exercise).toLowerCase()))continue;
+    const w=Number(l.aW)||0,r=Number(l.aR)||0;if(w<=0||r<=0)continue;
+    const e=epley(w,r);if(!byDate[l.date]||e>byDate[l.date])byDate[l.date]=e;
+  }
+  return Object.keys(byDate).sort().map(d=>byDate[d]);
+}
+function buildStrengthProgressProps(){
+  const unit=massUnitLabel();
+  const defs=[{label:"Bench",aliases:["Barbell Bench Press","Bench Press","Bench"]},{label:"Squat",aliases:["Back Squat","Squat"]},{label:"Deadlift",aliases:["Conventional Deadlift","Deadlift","Sumo Deadlift","Trap Bar Deadlift"]}];
+  const lifts=defs.map(d=>{
+    const seriesLb=liftE1rmSeries(d.aliases);
+    const points=seriesLb.map(v=>Math.round(loadInputDisplayFromLb(v)));
+    const has=points.length>=2;
+    const deltaPct=(has&&seriesLb[0]>0)?Math.round(((seriesLb[seriesLb.length-1]-seriesLb[0])/seriesLb[0])*100):0;
+    return{label:d.label,has,points,current:String(points.length?points[points.length-1]:0),deltaPct};
+  });
+  const volByWeek={};
+  for(const l of S.logs||[]){
+    if(!l||!l.exercise||isRunExerciseName(l.exercise))continue;
+    const wk=Number(l.week)||0;if(wk<=0)continue;
+    const s=Number(l.aS)||1,r=Number(l.aR)||0,w=Number(l.aW)||0;if(w<=0||r<=0)continue;
+    volByWeek[wk]=(volByWeek[wk]||0)+s*r*w;
+  }
+  const weeks=Object.keys(volByWeek).map(Number).sort((a,b)=>a-b);
+  const volumeBars=weeks.map(wk=>({week:"W"+wk,value:Math.round(loadInputDisplayFromLb(volByWeek[wk]))}));
+  const volumeMax=Math.max(0,...volumeBars.map(b=>b.value));
+  return{unit,lifts,volumeBars,volumeMax,hasAny:lifts.some(l=>l.has)||volumeBars.length>0};
+}
+function mountStrengthProgressTab(){
+  const c=document.getElementById("sp-board-mount");if(!c)return;
+  const props=buildStrengthProgressProps();
+  if(!props.hasAny){c.remove();return;}
+  mountStrengthProgress(c,props);
+  const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
+}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountFocusShellTab();
@@ -5781,4 +5822,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };

@@ -168,5 +168,15 @@ t("buildPersonalRecordsProps builds a PR board from the log (e1RM big-3 + total)
   if (typeof vm.hasAny !== "boolean") throw new Error("hasAny flag missing");
 });
 
+t("buildStrengthProgressProps builds e1RM series + weekly volume from the log", () => {
+  if (typeof ui.buildStrengthProgressProps !== "function") throw new Error("buildStrengthProgressProps not exported");
+  const vm = ui.buildStrengthProgressProps();
+  if (!Array.isArray(vm.lifts) || vm.lifts.length !== 3) throw new Error("expected 3 lift series");
+  const bench = vm.lifts.find((l) => /bench/i.test(l.label));
+  if (!bench || !bench.has || bench.points.length < 2) throw new Error("bench should have a 2+ point e1RM trend");
+  if (typeof vm.volumeMax !== "number" || !Array.isArray(vm.volumeBars)) throw new Error("volume series malformed");
+  if (typeof vm.hasAny !== "boolean") throw new Error("hasAny flag missing");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
