@@ -190,5 +190,18 @@ t("buildTrainingHeatmapProps builds a 13-week grid + streak stats from the log",
   if (typeof vm.hasAny !== "boolean") throw new Error("hasAny flag missing");
 });
 
+t("buildAchievementsProps builds the badge wall (earned/locked + progress)", () => {
+  if (typeof ui.buildAchievementsProps !== "function") throw new Error("buildAchievementsProps not exported");
+  const vm = ui.buildAchievementsProps();
+  if (!Array.isArray(vm.badges) || vm.badges.length < 8) throw new Error("expected the full badge set");
+  if (typeof vm.earnedCount !== "number" || typeof vm.totalCount !== "number") throw new Error("counts missing");
+  if (vm.totalCount !== vm.badges.length) throw new Error("totalCount should match badge count");
+  for (const b of vm.badges) {
+    if (typeof b.earned !== "boolean" || typeof b.progressPct !== "number" || typeof b.progressLabel !== "string") throw new Error("malformed badge");
+    if (b.progressPct < 0 || b.progressPct > 100) throw new Error("progressPct out of range");
+  }
+  if (typeof vm.hasAny !== "boolean") throw new Error("hasAny flag missing");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -1587,7 +1587,35 @@ function TrainingHeatmap(p3) {
 function mountTrainingHeatmap(container, props) {
   R(/* @__PURE__ */ u3(TrainingHeatmap, { ...props }), container);
 }
+
+// src/ui/achievements.tsx
+function AchievementsWall(p3) {
+  return /* @__PURE__ */ u3("div", { class: "ach-board card dash-span-full", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: [
+      /* @__PURE__ */ u3("h2", { children: "Achievements" }),
+      /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: [
+        p3.earnedCount,
+        "/",
+        p3.totalCount,
+        " unlocked"
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "ach-grid", children: p3.badges.map((b2, i4) => /* @__PURE__ */ u3("div", { class: "ach-item " + (b2.earned ? "ach-earned" : "ach-locked"), children: [
+      /* @__PURE__ */ u3("div", { class: "ach-icon", children: b2.icon }),
+      /* @__PURE__ */ u3("div", { class: "ach-title", children: b2.title }),
+      /* @__PURE__ */ u3("div", { class: "ach-desc", children: b2.desc }),
+      b2.earned ? /* @__PURE__ */ u3("div", { class: "ach-status", children: "\u2713 Unlocked" }) : /* @__PURE__ */ u3("div", { class: "ach-progress", children: [
+        /* @__PURE__ */ u3("div", { class: "ach-bar", children: /* @__PURE__ */ u3("div", { class: "ach-bar-fill", style: `width:${b2.progressPct}%` }) }),
+        /* @__PURE__ */ u3("div", { class: "ach-prog-lbl", children: b2.progressLabel })
+      ] })
+    ] }, i4)) })
+  ] });
+}
+function mountAchievements(container, props) {
+  R(/* @__PURE__ */ u3(AchievementsWall, { ...props }), container);
+}
 export {
+  AchievementsWall,
   ExerciseCard,
   FocusShell,
   PersonalRecords,
@@ -1601,6 +1629,7 @@ export {
   TrainingHeatmap,
   WarmupChecklist,
   WorkoutTools,
+  mountAchievements,
   mountExerciseCard,
   mountFocusShell,
   mountPersonalRecords,

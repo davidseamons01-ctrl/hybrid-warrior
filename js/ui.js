@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h165ff522fe14";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h94e020655be9";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h165ff522fe14";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap } from "./ui-components.js?v=h165ff522fe14";
+} from "./programming.js?v=h94e020655be9";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements } from "./ui-components.js?v=h94e020655be9";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3346,6 +3346,7 @@ function renderDash(){
   <div id="pr-board-mount"></div>
   <div id="sp-board-mount"></div>
   <div id="hm-board-mount"></div>
+  <div id="ach-board-mount"></div>
   <details class="card section" style="padding:14px">
     <summary style="font-size:13px;font-weight:600;cursor:pointer">Your metrics <span style="font-size:11px;color:var(--text3);font-weight:400">· ${p.weight>0?formatLoadLbText(p.weight):"—"}${p.goalWt>0?" → "+formatLoadLbText(p.goalWt):""} · tap to expand</span></summary>
     <div class="grid3" style="gap:10px;margin-top:12px">
@@ -3536,6 +3537,7 @@ function bindDash(){
   mountPersonalRecordsTab();
   mountStrengthProgressTab();
   mountTrainingHeatmapTab();
+  mountAchievementsTab();
   const clearTrainDate=()=>{trainSessionDate=null;trainFocusIdx=null};
   const st=document.getElementById("dash-start-workout");if(st)st.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
@@ -4781,6 +4783,43 @@ function mountTrainingHeatmapTab(){
   mountTrainingHeatmap(c,props);
   const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
 }
+// ── Achievements wall (feature) ──
+function achLongestStreak(){
+  const dates=[...new Set((S.logs||[]).map(l=>l.date).filter(Boolean))].sort();
+  let longest=0,run=0,prev=null;
+  for(const ds of dates){if(prev){const diff=Math.round((Date.parse(ds)-Date.parse(prev))/86400000);run=diff===1?run+1:1;}else run=1;if(run>longest)longest=run;prev=ds;}
+  return longest;
+}
+function buildAchievementsProps(){
+  const vol=(typeof calcLifetimeVolume==="function")?calcLifetimeVolume():0;
+  const sessions=new Set((S.logs||[]).map(l=>l.date).filter(Boolean)).size;
+  const lifts=new Set((S.logs||[]).filter(l=>l&&l.exercise&&!isRunExerciseName(l.exercise)&&(Number(l.aW)||0)>0).map(l=>l.exercise)).size;
+  const longest=achLongestStreak();
+  const blocks=((S.profile.prefs||{}).completedBlocks||[]).length;
+  const unit=massUnitLabel();
+  const fmtVol=v=>Math.round(loadInputDisplayFromLb(v)).toLocaleString();
+  const mk=(icon,title,desc,cur,target,fmt)=>{const earned=cur>=target;return{icon,title,desc,earned,progressPct:earned?100:Math.max(2,Math.min(99,Math.round(cur/target*100))),progressLabel:earned?"Unlocked":((fmt?fmt(cur):cur)+" / "+(fmt?fmt(target):target))};};
+  const badges=[
+    ...VOLUME_MILESTONES.map(m=>mk(m.medal,m.label+" "+unit,"Lifetime volume",vol,m.threshold,fmtVol)),
+    mk("🔥","7-Day Streak","Train 7 days running",longest,7),
+    mk("⚡","14-Day Streak","Two weeks straight",longest,14),
+    mk("🦾","30-Day Streak","A full month",longest,30),
+    mk("📋","10 Sessions","Log 10 training days",sessions,10),
+    mk("🗓️","50 Sessions","Log 50 training days",sessions,50),
+    mk("🏛️","Centurion","Log 100 training days",sessions,100),
+    mk("🤸","Versatile","Log 10 different lifts",lifts,10),
+    mk("🏅","Block Finisher","Finish a 13-week block",blocks,1)
+  ];
+  badges.sort((a,b)=>(Number(b.earned)-Number(a.earned))||(b.progressPct-a.progressPct));
+  return{earnedCount:badges.filter(b=>b.earned).length,totalCount:badges.length,badges,hasAny:sessions>0};
+}
+function mountAchievementsTab(){
+  const c=document.getElementById("ach-board-mount");if(!c)return;
+  const props=buildAchievementsProps();
+  if(!props.hasAny){c.remove();return;}
+  mountAchievements(c,props);
+  const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
+}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountFocusShellTab();
@@ -5857,4 +5896,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, buildTrainingHeatmapProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, buildTrainingHeatmapProps, buildAchievementsProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };

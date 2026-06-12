@@ -1786,3 +1786,18 @@ body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transpa
 .hm-caption{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3)}
 .hm-legend{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3)}
 .hm-legend .hm-cell{width:11px;height:11px}
+
+/* ── Achievements wall (You / Overview) ── */
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.ach-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 12px;text-align:center}
+.ach-earned{border-color:color-mix(in srgb,var(--fire) 45%,var(--border));background:color-mix(in srgb,var(--fire) 9%,var(--surface));box-shadow:0 0 18px color-mix(in srgb,var(--fire) 13%,transparent)}
+.ach-locked{opacity:.82}
+.ach-icon{font-size:30px;line-height:1}
+.ach-locked .ach-icon{filter:grayscale(.9) brightness(.85)}
+.ach-title{font-size:12px;font-weight:700;color:var(--text);margin-top:8px;letter-spacing:-0.01em}
+.ach-desc{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.32}
+.ach-status{font-size:10px;font-weight:700;color:var(--fire);margin-top:9px;text-transform:uppercase;letter-spacing:.06em}
+.ach-progress{margin-top:10px}
+.ach-bar{height:5px;border-radius:99px;background:var(--border);overflow:hidden}
+.ach-bar-fill{height:100%;background:var(--fire);border-radius:99px;transition:width .5s ease}
+.ach-prog-lbl{font-size:9px;color:var(--text3);margin-top:4px;font-variant-numeric:tabular-nums}
