@@ -203,5 +203,15 @@ t("buildAchievementsProps builds the badge wall (earned/locked + progress)", () 
   if (typeof vm.hasAny !== "boolean") throw new Error("hasAny flag missing");
 });
 
+t("buildBodyMetricsProps builds a weight trend from the seeded weight log", () => {
+  if (typeof ui.buildBodyMetricsProps !== "function") throw new Error("buildBodyMetricsProps not exported");
+  const vm = ui.buildBodyMetricsProps();
+  if (!vm.hasWeight) throw new Error("seeded weightLog should yield a weight section");
+  if (!Array.isArray(vm.weightPoints) || vm.weightPoints.length < 2) throw new Error("expected a 2+ point weight series");
+  if (typeof vm.currentWeight !== "string" || !vm.currentWeight) throw new Error("currentWeight missing");
+  if (typeof vm.deltaLabel !== "string") throw new Error("deltaLabel should be a string");
+  if (!Array.isArray(vm.comp)) throw new Error("comp should be an array");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

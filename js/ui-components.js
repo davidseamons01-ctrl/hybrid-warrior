@@ -1614,8 +1614,61 @@ function AchievementsWall(p3) {
 function mountAchievements(container, props) {
   R(/* @__PURE__ */ u3(AchievementsWall, { ...props }), container);
 }
+
+// src/ui/body-metrics.tsx
+function Spark({ points }) {
+  const W = 100, H2 = 34, P2 = 3;
+  const min = Math.min(...points), max = Math.max(...points), range = max - min || 1;
+  const X = (i4) => P2 + i4 / (points.length - 1) * (W - 2 * P2);
+  const Y = (v3) => P2 + (1 - (v3 - min) / range) * (H2 - 2 * P2);
+  const line = points.map((v3, i4) => `${X(i4).toFixed(1)},${Y(v3).toFixed(1)}`).join(" ");
+  const area = `${X(0).toFixed(1)},${H2 - P2} ${line} ${X(points.length - 1).toFixed(1)},${H2 - P2}`;
+  return /* @__PURE__ */ u3("svg", { class: "bm-spark", viewBox: `0 0 ${W} ${H2}`, preserveAspectRatio: "none", "aria-hidden": "true", children: [
+    /* @__PURE__ */ u3("polygon", { class: "bm-spark-area", points: area }),
+    /* @__PURE__ */ u3("polyline", { class: "bm-spark-line", points: line }),
+    /* @__PURE__ */ u3("circle", { class: "bm-spark-dot", cx: X(points.length - 1), cy: Y(points[points.length - 1]), r: "2" })
+  ] });
+}
+function BodyMetrics(p3) {
+  const dir = p3.deltaDir > 0 ? "up" : p3.deltaDir < 0 ? "down" : "flat";
+  return /* @__PURE__ */ u3("div", { class: "bm-board card dash-span-full", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Body Metrics" }) }),
+    p3.hasWeight ? /* @__PURE__ */ u3("div", { class: "bm-weight", children: [
+      /* @__PURE__ */ u3("div", { class: "bm-weight-num", children: [
+        p3.currentWeight,
+        /* @__PURE__ */ u3("span", { class: "bm-unit", children: [
+          " ",
+          p3.unit
+        ] })
+      ] }),
+      p3.deltaLabel ? /* @__PURE__ */ u3("div", { class: "bm-delta " + dir, children: p3.deltaLabel }) : null,
+      p3.weightPoints.length >= 2 ? /* @__PURE__ */ u3(Spark, { points: p3.weightPoints }) : null,
+      p3.goalLabel ? /* @__PURE__ */ u3("div", { class: "bm-goal", children: [
+        /* @__PURE__ */ u3("div", { class: "bm-goal-bar", children: /* @__PURE__ */ u3("div", { class: "bm-goal-fill", style: `width:${p3.goalPct}%` }) }),
+        /* @__PURE__ */ u3("div", { class: "bm-goal-lbl", children: [
+          p3.goalLabel,
+          " \xB7 ",
+          p3.goalPct,
+          "%"
+        ] })
+      ] }) : null
+    ] }) : null,
+    p3.comp.length ? /* @__PURE__ */ u3("div", { class: "bm-comp" + (p3.hasWeight ? "" : " bm-comp-top"), children: [
+      /* @__PURE__ */ u3("div", { class: "bm-section-lbl", children: "Composition" }),
+      /* @__PURE__ */ u3("div", { class: "bm-comp-grid", children: p3.comp.map((c3, i4) => /* @__PURE__ */ u3("div", { class: "bm-tile", children: [
+        /* @__PURE__ */ u3("div", { class: "bm-tile-val", children: c3.value }),
+        /* @__PURE__ */ u3("div", { class: "bm-tile-lbl", children: c3.label }),
+        c3.sub ? /* @__PURE__ */ u3("div", { class: "bm-tile-sub", children: c3.sub }) : null
+      ] }, i4)) })
+    ] }) : null
+  ] });
+}
+function mountBodyMetrics(container, props) {
+  R(/* @__PURE__ */ u3(BodyMetrics, { ...props }), container);
+}
 export {
   AchievementsWall,
+  BodyMetrics,
   ExerciseCard,
   FocusShell,
   PersonalRecords,
@@ -1630,6 +1683,7 @@ export {
   WarmupChecklist,
   WorkoutTools,
   mountAchievements,
+  mountBodyMetrics,
   mountExerciseCard,
   mountFocusShell,
   mountPersonalRecords,

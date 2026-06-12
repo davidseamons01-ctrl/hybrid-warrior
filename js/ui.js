@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h94e020655be9";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hed26c6356394";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h94e020655be9";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements } from "./ui-components.js?v=h94e020655be9";
+} from "./programming.js?v=hed26c6356394";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics } from "./ui-components.js?v=hed26c6356394";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3347,6 +3347,7 @@ function renderDash(){
   <div id="sp-board-mount"></div>
   <div id="hm-board-mount"></div>
   <div id="ach-board-mount"></div>
+  <div id="bm-board-mount"></div>
   <details class="card section" style="padding:14px">
     <summary style="font-size:13px;font-weight:600;cursor:pointer">Your metrics <span style="font-size:11px;color:var(--text3);font-weight:400">· ${p.weight>0?formatLoadLbText(p.weight):"—"}${p.goalWt>0?" → "+formatLoadLbText(p.goalWt):""} · tap to expand</span></summary>
     <div class="grid3" style="gap:10px;margin-top:12px">
@@ -3518,16 +3519,6 @@ function renderDash(){
     <div class="dash-chart-wrap"><canvas id="dash-strength-chart" class="dash-canvas" height="220" aria-label="Strength trend chart"></canvas><div class="dash-chart-caption">Tap or hover a point for exact date, lift, and estimated 1RM.</div></div>
   </div></div>
   <div class="section"><div class="card"><div class="card-h"><h2>Total volume by week</h2></div>    <div class="dash-chart-wrap"><canvas id="dash-volume-chart" class="dash-canvas" height="220" aria-label="Total weekly volume chart"></canvas><div class="dash-chart-caption">${useMetric()?"Weekly barbell volume (kg-equivalent); running work is excluded.":"Total pounds lifted per week (set × reps × load); runs excluded."} Progressive overload visibility.</div></div></div></div>
-  <div class="section"><div class="card" style="padding:14px"><div class="card-h"><h2>Volume heatmap</h2></div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Daily total ${useMetric()?"kg":"lb"} lifted — last 13 weeks. Darker = higher volume.</div>
-    ${volumeHeatmapHtml(13)}
-  </div></div>
-  <div class="section"><div class="card trophy-room-card" style="padding:14px"><div class="card-h"><h2>Trophy Room</h2></div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45">All-time personal records and earned badges. Keep training to unlock more.</div>
-    ${(()=>{const vol=calcLifetimeVolume();const nextM=VOLUME_MILESTONES.find(m=>vol<m.threshold);const pct=nextM?Math.min(100,Math.round(vol/nextM.threshold*100)):100;return`<div class="milestone-tracker-card"><div class="milestone-tracker-header"><span class="milestone-tracker-label">Lifetime volume</span><span class="milestone-tracker-value">${vol.toLocaleString()} lb</span></div><div class="milestone-bar"><div class="milestone-bar-fill" style="width:${pct}%"></div></div><div class="milestone-bar-targets">${VOLUME_MILESTONES.map(m=>`<span class="${vol>=m.threshold?"milestone-reached":"milestone-upcoming"}">${m.medal} ${m.label}</span>`).join("")}</div>${nextM?`<div class="milestone-next">Next: ${nextM.label} — ${(nextM.threshold-vol).toLocaleString()} lb to go</div>`:`<div class="milestone-next milestone-complete">All milestones achieved! 🎉</div>`}</div>`})()}
-    ${(()=>{const bests=allTimeBests();const entries=Object.entries(bests).sort((a,b)=>b[1].est-a[1].est).slice(0,8);if(!entries.length)return`<p style="font-size:12px;color:var(--text2)">Log lifts to see your all-time bests here.</p>`;return`<div class="trophy-grid">${entries.map(([name,pr])=>`<div class="trophy-item"><div class="trophy-name">${name}</div><div class="trophy-val">${formatLoadLbText(Math.round(pr.est))} <span class="trophy-est">est. 1RM</span></div><div class="trophy-detail">${formatLoadLbText(pr.weight)} × ${pr.reps} · ${pr.date}</div></div>`).join("")}</div>`})()}
-    ${(()=>{const cb=completedBlockBadges();if(!cb.length)return"";return`<div style="margin-top:14px;font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">Program completion medals</div><div class="completed-block-badges">${cb.map(b=>`<div class="completed-block-badge"><span class="completed-block-svg">${b.svg}</span><span class="completed-block-label">${b.label}</span><span class="completed-block-date">${b.date}</span></div>`).join("")}</div>`})()}
-  </div></div>
   ${recentDates.length?`<div class="section"><div class="card"><div class="card-h"><h2>Recent logs</h2></div>
     ${recentDates.map(ds=>`<div class="dash-log-day-group"><div class="dash-log-day-head">${dashLogDayHeader(ds)}</div>${recentByDate[ds].map(l=>{const sc=l.score||0;const cls=sc>=1.02?"score-good":sc>=.9?"score-ok":"score-low";return`<div class="log-entry dash-log-entry-compact"><div class="log-entry-head"><span class="log-date">${l.exercise}</span><span class="log-score ${cls}">${sc.toFixed(2)}</span></div><div class="log-detail">${formatLogPerfSummary(l)}</div></div>`}).join("")}</div>`).join("")}</div></div>`:""}
     </div>
@@ -3538,6 +3529,7 @@ function bindDash(){
   mountStrengthProgressTab();
   mountTrainingHeatmapTab();
   mountAchievementsTab();
+  mountBodyMetricsTab();
   const clearTrainDate=()=>{trainSessionDate=null;trainFocusIdx=null};
   const st=document.getElementById("dash-start-workout");if(st)st.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
@@ -4820,6 +4812,41 @@ function mountAchievementsTab(){
   mountAchievements(c,props);
   const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
 }
+// ── Body Metrics (feature) ──
+function buildBodyMetricsProps(){
+  const p=S.profile;const unit=massUnitLabel();
+  const wl=S.weightLog||[];
+  const curLb=wl.length?Number(wl[wl.length-1].wt)||0:Number(p.weight)||0;
+  const hasWeight=curLb>0;
+  const startLb=Number(p.startWt)||(wl.length?Number(wl[0].wt)||curLb:curLb);
+  const goalLb=Number(p.goalWt)||0;
+  const weightPoints=wl.slice(-20).map(w=>Math.round(loadInputDisplayFromLb(Number(w.wt)||0)*10)/10);
+  const changeDisp=Math.round((loadInputDisplayFromLb(curLb)-loadInputDisplayFromLb(startLb))*10)/10;
+  let deltaLabel="",deltaDir=0,goalLabel="",goalPct=0;
+  const haveStart=(Number(p.startWt)>0)||wl.length>=2;
+  if(hasWeight&&haveStart){
+    deltaLabel=(changeDisp>0?"+":"")+changeDisp+" "+unit+" since start";
+    if(goalLb>0&&Math.abs(goalLb-startLb)>0.5){
+      goalPct=Math.max(0,Math.min(100,Math.round(((curLb-startLb)/(goalLb-startLb))*100)));
+      goalLabel="Goal "+Math.round(loadInputDisplayFromLb(goalLb))+" "+unit;
+      deltaDir=changeDisp===0?0:(Math.sign(curLb-startLb)===Math.sign(goalLb-startLb)?1:-1);
+    }
+  }
+  const comp=[];const num=v=>Number(v)||0;
+  if(num(p.bodyFat)>0)comp.push({label:"Body Fat",value:p.bodyFat+"%"});
+  if(num(p.waist)>0&&num(p.hips)>0)comp.push({label:"Waist / Hip",value:(p.waist/p.hips).toFixed(2),sub:"lower = leaner"});
+  if(num(p.shoulders)>0&&num(p.waist)>0)comp.push({label:"V-Taper",value:(p.shoulders/p.waist).toFixed(2),sub:"shoulder ÷ waist"});
+  if(num(p.waist)>0)comp.push({label:"Waist",value:p.waist+" in"});
+  if(num(p.neckCirc)>0)comp.push({label:"Neck",value:p.neckCirc+" in"});
+  return{unit,hasWeight,weightPoints,currentWeight:String(Math.round(loadInputDisplayFromLb(curLb)*10)/10),deltaLabel,deltaDir,goalLabel,goalPct,comp,hasAny:hasWeight||comp.length>0};
+}
+function mountBodyMetricsTab(){
+  const c=document.getElementById("bm-board-mount");if(!c)return;
+  const props=buildBodyMetricsProps();
+  if(!props.hasAny){c.remove();return;}
+  mountBodyMetrics(c,props);
+  const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
+}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountFocusShellTab();
@@ -5896,4 +5923,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, buildTrainingHeatmapProps, buildAchievementsProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, buildTrainingHeatmapProps, buildAchievementsProps, buildBodyMetricsProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };

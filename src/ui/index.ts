@@ -11,3 +11,4 @@ export * from "./personal-records";
 export * from "./strength-progress";
 export * from "./training-heatmap";
 export * from "./achievements";
+export * from "./body-metrics";

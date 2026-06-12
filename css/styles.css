@@ -1801,3 +1801,27 @@ body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transpa
 .ach-bar{height:5px;border-radius:99px;background:var(--border);overflow:hidden}
 .ach-bar-fill{height:100%;background:var(--fire);border-radius:99px;transition:width .5s ease}
 .ach-prog-lbl{font-size:9px;color:var(--text3);margin-top:4px;font-variant-numeric:tabular-nums}
+
+/* ── Body Metrics (You / Overview) ── */
+.bm-weight-num{font-family:'Space Grotesk','DM Sans',sans-serif;font-size:34px;font-weight:700;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.bm-unit{font-size:14px;color:var(--text3);font-weight:600}
+.bm-delta{font-size:12px;font-weight:600;margin-top:4px}
+.bm-delta.up{color:var(--mint)}
+.bm-delta.down{color:var(--gold)}
+.bm-delta.flat{color:var(--text3)}
+.bm-spark{width:100%;height:42px;display:block;overflow:visible;margin-top:10px}
+.bm-spark-area{fill:color-mix(in srgb,var(--ice) 15%,transparent)}
+.bm-spark-line{fill:none;stroke:var(--ice);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.bm-spark-dot{fill:var(--ice)}
+.bm-goal{margin-top:14px}
+.bm-goal-bar{height:6px;border-radius:99px;background:var(--border);overflow:hidden}
+.bm-goal-fill{height:100%;background:linear-gradient(90deg,var(--ice),var(--mint));border-radius:99px;transition:width .5s ease}
+.bm-goal-lbl{font-size:10px;color:var(--text3);margin-top:5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.bm-comp{margin-top:16px;border-top:1px solid var(--border);padding-top:14px}
+.bm-comp-top{border-top:none;padding-top:0;margin-top:2px}
+.bm-section-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.bm-comp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:10px}
+.bm-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 8px;text-align:center}
+.bm-tile-val{font-family:'Space Grotesk','DM Sans',sans-serif;font-size:20px;font-weight:700;color:var(--ice);font-variant-numeric:tabular-nums}
+.bm-tile-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin-top:4px}
+.bm-tile-sub{font-size:8.5px;color:var(--text3);margin-top:2px}
