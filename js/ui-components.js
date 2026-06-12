@@ -134,13 +134,13 @@ function V(n2) {
   };
 }
 function q(n2, u4, t3, i4, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y2, d3, _2, k3, x2, M, $2, I2, P2, A2, H2, T2 = u4.type;
+  var s3, h3, p3, v3, y2, d3, _2, k3, x2, M, $2, I2, P2, A3, H2, T3 = u4.type;
   if (void 0 !== u4.constructor) return null;
   128 & t3.__u && (c3 = !!(32 & t3.__u), o3 = [f4 = u4.__e = t3.__e]), (s3 = l.__b) && s3(u4);
-  n: if ("function" == typeof T2) try {
-    if (k3 = u4.props, x2 = T2.prototype && T2.prototype.render, M = (s3 = T2.contextType) && i4[s3.__c], $2 = s3 ? M ? M.props.value : s3.__ : i4, t3.__c ? _2 = (h3 = u4.__c = t3.__c).__ = h3.__E : (x2 ? u4.__c = h3 = new T2(k3, $2) : (u4.__c = h3 = new C(k3, $2), h3.constructor = T2, h3.render = Q), M && M.sub(h3), h3.state || (h3.state = {}), h3.__n = i4, p3 = h3.__d = true, h3.__h = [], h3._sb = []), x2 && null == h3.__s && (h3.__s = h3.state), x2 && null != T2.getDerivedStateFromProps && (h3.__s == h3.state && (h3.__s = m({}, h3.__s)), m(h3.__s, T2.getDerivedStateFromProps(k3, h3.__s))), v3 = h3.props, y2 = h3.state, h3.__v = u4, p3) x2 && null == T2.getDerivedStateFromProps && null != h3.componentWillMount && h3.componentWillMount(), x2 && null != h3.componentDidMount && h3.__h.push(h3.componentDidMount);
+  n: if ("function" == typeof T3) try {
+    if (k3 = u4.props, x2 = T3.prototype && T3.prototype.render, M = (s3 = T3.contextType) && i4[s3.__c], $2 = s3 ? M ? M.props.value : s3.__ : i4, t3.__c ? _2 = (h3 = u4.__c = t3.__c).__ = h3.__E : (x2 ? u4.__c = h3 = new T3(k3, $2) : (u4.__c = h3 = new C(k3, $2), h3.constructor = T3, h3.render = Q), M && M.sub(h3), h3.state || (h3.state = {}), h3.__n = i4, p3 = h3.__d = true, h3.__h = [], h3._sb = []), x2 && null == h3.__s && (h3.__s = h3.state), x2 && null != T3.getDerivedStateFromProps && (h3.__s == h3.state && (h3.__s = m({}, h3.__s)), m(h3.__s, T3.getDerivedStateFromProps(k3, h3.__s))), v3 = h3.props, y2 = h3.state, h3.__v = u4, p3) x2 && null == T3.getDerivedStateFromProps && null != h3.componentWillMount && h3.componentWillMount(), x2 && null != h3.componentDidMount && h3.__h.push(h3.componentDidMount);
     else {
-      if (x2 && null == T2.getDerivedStateFromProps && k3 !== v3 && null != h3.componentWillReceiveProps && h3.componentWillReceiveProps(k3, $2), u4.__v == t3.__v || !h3.__e && null != h3.shouldComponentUpdate && false === h3.shouldComponentUpdate(k3, h3.__s, $2)) {
+      if (x2 && null == T3.getDerivedStateFromProps && k3 !== v3 && null != h3.componentWillReceiveProps && h3.componentWillReceiveProps(k3, $2), u4.__v == t3.__v || !h3.__e && null != h3.shouldComponentUpdate && false === h3.shouldComponentUpdate(k3, h3.__s, $2)) {
         u4.__v != t3.__v && (h3.props = k3, h3.state = h3.__s, h3.__d = false), u4.__e = t3.__e, u4.__k = t3.__k, u4.__k.some(function(n3) {
           n3 && (n3.__ = u4);
         }), w.push.apply(h3.__h, h3._sb), h3._sb = [], h3.__h.length && e3.push(h3);
@@ -154,7 +154,7 @@ function q(n2, u4, t3, i4, r3, o3, e3, f4, c3, a3) {
     else do {
       h3.__d = false, I2 && I2(u4), s3 = h3.render(h3.props, h3.state, h3.context), h3.state = h3.__s;
     } while (h3.__d && ++P2 < 25);
-    h3.state = h3.__s, null != h3.getChildContext && (i4 = m(m({}, i4), h3.getChildContext())), x2 && !p3 && null != h3.getSnapshotBeforeUpdate && (d3 = h3.getSnapshotBeforeUpdate(v3, y2)), A2 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(A2) ? A2 : [A2], u4, t3, i4, r3, o3, e3, f4, c3, a3), h3.base = u4.__e, u4.__u &= -161, h3.__h.length && e3.push(h3), _2 && (h3.__E = h3.__ = null);
+    h3.state = h3.__s, null != h3.getChildContext && (i4 = m(m({}, i4), h3.getChildContext())), x2 && !p3 && null != h3.getSnapshotBeforeUpdate && (d3 = h3.getSnapshotBeforeUpdate(v3, y2)), A3 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(A3) ? A3 : [A3], u4, t3, i4, r3, o3, e3, f4, c3, a3), h3.base = u4.__e, u4.__u &= -161, h3.__h.length && e3.push(h3), _2 && (h3.__E = h3.__ = null);
   } catch (n3) {
     if (u4.__v = null, c3 || null != o3) if (n3.then) {
       for (u4.__u |= c3 ? 160 : 128; f4 && 8 == f4.nodeType && f4.nextSibling; ) f4 = f4.nextSibling;
@@ -314,6 +314,15 @@ function h2(n2, u4, i4) {
   }
   return o3.__N || o3.__;
 }
+function A2(n2) {
+  return o2 = 5, T2(function() {
+    return { current: n2 };
+  }, []);
+}
+function T2(n2, r3) {
+  var u4 = p2(t2++, 7);
+  return C2(u4.__H, r3) && (u4.__ = n2(), u4.__H = r3, u4.__h = n2), u4.__;
+}
 function j2() {
   for (var n2; n2 = f2.shift(); ) {
     var t3 = n2.__H;
@@ -377,6 +386,11 @@ function z2(n2) {
 function B2(n2) {
   var t3 = r2;
   n2.__c = n2.__(), r2 = t3;
+}
+function C2(n2, t3) {
+  return !n2 || n2.length !== t3.length || t3.some(function(t4, r3) {
+    return t4 !== n2[r3];
+  });
 }
 function D2(n2, t3) {
   return "function" == typeof t3 ? t3(n2) : t3;
@@ -1311,8 +1325,76 @@ function WorkoutTools({ eqHome, qmOn, actions: a3 }) {
 function mountWorkoutToolsCard(container, props) {
   R(/* @__PURE__ */ u3(WorkoutTools, { ...props }), container);
 }
+
+// src/ui/focus-shell.tsx
+var BLOCK_SEL = "button,a,input,select,textarea,label,iframe,.ex-log-grid,.quick-log-row,.feel-chips";
+function FocusShell(p3) {
+  const a3 = p3.actions;
+  const n2 = p3.n, idx = p3.idx, tx = -(idx * 100) / n2;
+  const sx = A2(null);
+  return /* @__PURE__ */ u3("div", { id: "p-today", class: "train-focus-mode train-session-active", children: [
+    p3.showClearDate ? /* @__PURE__ */ u3("div", { class: "session-banner", role: "status", children: [
+      /* @__PURE__ */ u3("span", { children: [
+        "Viewing ",
+        /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: p3.trainSessionDate }),
+        " \u2014 not today on the calendar."
+      ] }),
+      " ",
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid", id: "train-clear-date", children: "Back to today" })
+    ] }) : null,
+    p3.showCatchBanner ? /* @__PURE__ */ u3("div", { class: "session-banner", role: "status", children: "Catch-up session loaded \u2014 this is the workout that moved from a missed day. Log when done; the queue clears after you train." }) : null,
+    /* @__PURE__ */ u3("div", { class: "focus-session-bar", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-sm", id: "focus-exit", onClick: () => a3.exit(), children: "\u2190 Full session" }),
+      /* @__PURE__ */ u3("span", { class: "focus-session-title", children: "Focused workout" }),
+      /* @__PURE__ */ u3("div", { class: "focus-session-dots-wrap", "aria-label": "Exercise pagination", role: "status", children: /* @__PURE__ */ u3("div", { class: "focus-session-dots", children: Array.from({ length: n2 }, (_2, i4) => /* @__PURE__ */ u3("span", { class: i4 === idx ? "on" : "", title: `Exercise ${i4 + 1} of ${n2}` }, i4)) }) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "hero-title", style: "font-size:17px;margin-bottom:2px", children: p3.day }),
+    /* @__PURE__ */ u3("div", { class: "breadcrumb", style: "font-size:12px;margin-bottom:8px", children: p3.breadcrumb }),
+    /* @__PURE__ */ u3(
+      "div",
+      {
+        class: "focus-session-viewport",
+        onPointerDown: (e3) => {
+          if (!e3.isPrimary) return;
+          const t3 = e3.target;
+          if (t3.closest && t3.closest(BLOCK_SEL)) return;
+          sx.current = e3.clientX;
+        },
+        onPointerUp: (e3) => {
+          if (!e3.isPrimary || sx.current === null) return;
+          const d3 = e3.clientX - sx.current;
+          sx.current = null;
+          if (Math.abs(d3) < 50) return;
+          if (d3 < 0) a3.next();
+          else a3.prev();
+        },
+        onPointerCancel: () => {
+          sx.current = null;
+        },
+        children: /* @__PURE__ */ u3("div", { class: "focus-session-track", style: `width:${n2 * 100}%;transform:translateX(${tx}%)`, children: Array.from({ length: n2 }, (_2, i4) => /* @__PURE__ */ u3("div", { class: "focus-session-slide", style: `width:${100 / n2}%;flex-shrink:0`, children: /* @__PURE__ */ u3("div", { class: "exercise-card-host", "data-card-i": i4 }) }, i4)) })
+      }
+    ),
+    /* @__PURE__ */ u3("div", { class: "focus-nav-row", children: [
+      idx > 0 ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-sm", id: "focus-prev", "aria-label": "Previous exercise", onClick: () => a3.prev(), children: "\u2039 Previous" }) : null,
+      idx < n2 - 1 ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-sm", id: "focus-next-skip", "aria-label": "Next exercise", onClick: () => a3.next(), children: "Next \u203A" }) : null
+    ] }),
+    /* @__PURE__ */ u3("p", { class: "focus-hint", children: [
+      "Use ",
+      /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: "\u2039 \u203A" }),
+      " to change lifts. Tap ",
+      /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: "Save all" }),
+      " to log this exercise."
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "train-session-footer", children: /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-mint btn-block session-finalize-sync", children: p3.finalized ? "Session complete" : "Complete session" }) }),
+    /* @__PURE__ */ u3("div", { style: "display:contents", dangerouslySetInnerHTML: { __html: p3.overlayHtml } })
+  ] });
+}
+function mountFocusShell(container, props) {
+  R(/* @__PURE__ */ u3(FocusShell, { ...props }), container);
+}
 export {
   ExerciseCard,
+  FocusShell,
   PlanView,
   ProfileSettings,
   ReadinessCard,
@@ -1321,6 +1403,7 @@ export {
   WarmupChecklist,
   WorkoutTools,
   mountExerciseCard,
+  mountFocusShell,
   mountPlan,
   mountProfileSettings,
   mountReadinessCard,

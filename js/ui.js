@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h4bfabd2149d0";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h1a1dfe205476";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h4bfabd2149d0";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard } from "./ui-components.js?v=h4bfabd2149d0";
+} from "./programming.js?v=h1a1dfe205476";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell } from "./ui-components.js?v=h1a1dfe205476";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4364,32 +4364,8 @@ function renderToday(){
     else trainFocusIdx=clamp(trainFocusIdx,0,plan.exs.length-1);
   }
   if(trainFocusIdx!==null&&plan.exs.length){
-    const n=plan.exs.length,idx=trainFocusIdx,tx=-(idx*100)/n;
-    const focusDots=plan.exs.map((_,i)=>`<span class="${i===idx?"on":""}" title="Exercise ${i+1} of ${n}"></span>`).join("");
-    const slides=plan.exs.map((ex,i)=>`<div class="focus-session-slide" style="width:${100/n}%;flex-shrink:0">${cardHost(ex,i)}</div>`).join("");
-    return`<div id="p-today" class="train-focus-mode train-session-active">
-  ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
-  ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
-  <div class="focus-session-bar">
-    <button type="button" class="btn btn-ghost btn-sm" id="focus-exit">← Full session</button>
-    <span class="focus-session-title">Focused workout</span>
-    <div class="focus-session-dots-wrap" aria-label="Exercise pagination" role="status"><div class="focus-session-dots">${focusDots}</div></div>
-  </div>
-  <div class="hero-title" style="font-size:17px;margin-bottom:2px">${DAYS[d.getDay()]}</div>
-  <div class="breadcrumb" style="font-size:12px;margin-bottom:8px">${bc}</div>
-  <div class="focus-session-viewport">
-    <div class="focus-session-track" style="width:${n*100}%;transform:translateX(${tx}%)">
-      ${slides}
-    </div>
-  </div>
-  <div class="focus-nav-row">
-    ${idx>0?`<button type="button" class="btn btn-secondary-solid btn-sm" id="focus-prev" aria-label="Previous exercise">‹ Previous</button>`:""}
-    ${idx<n-1?`<button type="button" class="btn btn-ghost btn-sm" id="focus-next-skip" aria-label="Next exercise">Next ›</button>`:""}
-  </div>
-  <p class="focus-hint">Use <b style="color:var(--text)">‹ ›</b> to change lifts. Tap <b style="color:var(--text)">Save all</b> to log this exercise.</p>
-  <div class="train-session-footer"><button type="button" class="btn btn-mint btn-block session-finalize-sync">${finalized?"Session complete":"Complete session"}</button></div>
-  ${setLoadOverlayHtml()}
-  </div>`;
+    plan.exs.forEach((ex,i)=>cardHost(ex,i));
+    return`<div id="focus-shell-mount"></div>`;
   }
   return`<div id="p-today" class="${plan.exs.length?"train-session-active":""}">
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
@@ -4645,8 +4621,15 @@ function toolsOpenEase(){document.getElementById("train-ease-panel")?.scrollInto
 function toolsCaffeineToggle(btn){if(caffeineTimerId){stopCaffeineTimer();const lbl=document.getElementById("caffeine-time");if(lbl){lbl.textContent="";lbl.style.color=""}btn.textContent="☕ Pre-workout (45 min)";toast("Caffeine timer cancelled")}else{startCaffeineTimer();btn.textContent="Cancel timer";toast("Pre-workout timer started — 45 min to peak caffeine")}}
 const workoutToolsActions={eqToggle:toolsEqToggle,quickToggle:toolsQuickToggle,openPlates:toolsOpenPlates,openHealth:toolsOpenHealth,openEase:toolsOpenEase,caffeineToggle:toolsCaffeineToggle};
 function mountWorkoutTools(){const c=document.getElementById("train-tools-mount");if(!c)return;const eqHome=((S.profile.prefs||{}).equipment||"gym")==="home";const qmOn=(Number((S.profile.prefs||{}).quickSessionMin)||0)>0;mountWorkoutToolsCard(c,{eqHome,qmOn,actions:workoutToolsActions});if(caffeineTimerId&&caffeineEndMs>Date.now()){const lbl=document.getElementById("caffeine-time");if(lbl){const left=caffeineEndMs-Date.now();const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);lbl.textContent=`☕ Peak in ${m}:${String(s).padStart(2,"0")}`;lbl.style.color="var(--gold)"}const b=document.getElementById("caffeine-start");if(b)b.textContent="Cancel timer";}}
+// ── Focus-mode shell (UI rebuild #4e): actions + mount with host-unwrap ──
+function focusExit(){trainFocusIdx=null;render();}
+function focusPrev(){if(trainFocusIdx>0){trainFocusIdx--;render();}}
+function focusNext(){const p=todayPlanFiltered();if(trainFocusIdx!==null&&trainFocusIdx<p.exs.length-1){trainFocusIdx++;render();}}
+const focusShellActions={exit:focusExit,prev:focusPrev,next:focusNext};
+function mountFocusShellTab(){const c=document.getElementById("focus-shell-mount");if(!c||trainFocusIdx===null)return;const plan=todayPlanFiltered();if(!plan.exs.length)return;const dayIso=activeTrainIso();const w=plan.blockWeek!=null?plan.blockWeek:S.program.week;mountFocusShell(c,{n:plan.exs.length,idx:trainFocusIdx,day:DAYS[parseIsoNoon(dayIso).getDay()],breadcrumb:sessionBreadcrumb(w,plan),finalized:!!((S.sessionAdaptedByDate||{})[dayIso]),showClearDate:!!(trainSessionDate&&trainSessionDate!==iso()),trainSessionDate:trainSessionDate||"",showCatchBanner:!!(plan._catchUpDue||plan._catchUpExtra),overlayHtml:setLoadOverlayHtml(),actions:focusShellActions});const pt=c.firstElementChild;if(pt)c.replaceWith(pt);else c.remove();}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
+  mountFocusShellTab();
   mountTrainCards();
   mountReadiness();mountSessionFeel();mountWarmup();mountWorkoutTools();
   ensureWorkoutWakeLock();
@@ -4676,12 +4659,6 @@ function bindToday(){
   if(gmb)gmb.onclick=()=>{ghostModeOn=!ghostModeOn;gmb.classList.toggle("on",ghostModeOn);gmb.innerHTML=`👻 ${ghostModeOn?"Ghost On":"Ghost"}`;triggerHaptic("light");render()}
   const tbs=document.getElementById("train-begin-session");
   if(tbs)tbs.onclick=()=>{trainFocusIdx=0;render()};
-  const fex=document.getElementById("focus-exit");
-  if(fex)fex.onclick=()=>{trainFocusIdx=null;render()};
-  const fpr=document.getElementById("focus-prev");
-  if(fpr)fpr.onclick=()=>{if(trainFocusIdx>0){trainFocusIdx--;render()}};
-  const fnx=document.getElementById("focus-next-skip");
-  if(fnx)fnx.onclick=()=>{const p=todayPlanFiltered();if(trainFocusIdx!==null&&trainFocusIdx<p.exs.length-1){trainFocusIdx++;render()}};
   const wt=document.getElementById("why-toggle"),wb=document.getElementById("why-body");
   if(wt&&wb)wt.onclick=()=>{wb.classList.toggle("open");wt.textContent=wb.classList.contains("open")?"Why this session? (hide)":"Why this session? (coaching notes)"};
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
@@ -4788,23 +4765,6 @@ function bindToday(){
   if(exOv)exOv.onclick=e=>{if(e.target===exOv)closeExSwap()};
   const exSc=document.getElementById("ex-swap-close");if(exSc)exSc.onclick=closeExSwap;
   document.querySelectorAll(".ex-swap").forEach(b=>{b.onclick=()=>openExSwap(b.dataset.orig)});
-  const fvp=document.querySelector(".focus-session-viewport");
-  if(fvp&&trainFocusIdx!==null){
-    let sx=null;
-    const blockSel="button,a,input,select,textarea,label,iframe,.ex-log-grid,.quick-log-row,.feel-chips";
-    fvp.addEventListener("pointerdown",e=>{if(!e.isPrimary)return;const t=e.target;if(t.closest&&t.closest(blockSel))return;sx=e.clientX},{passive:true});
-    fvp.addEventListener("pointerup",e=>{
-      if(!e.isPrimary||sx===null)return;
-      const d=e.clientX-sx;
-      sx=null;
-      if(Math.abs(d)<50)return;
-      const p=todayPlanFiltered();
-      if(!p.exs.length)return;
-      if(d<0&&trainFocusIdx<p.exs.length-1){trainFocusIdx++;render()}
-      else if(d>0&&trainFocusIdx>0){trainFocusIdx--;render()}
-    },{passive:true});
-    fvp.addEventListener("pointercancel",()=>{sx=null},{passive:true});
-  }
 }
 
 // ═══════════════════════════════════════════════════════════
