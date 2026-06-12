@@ -157,5 +157,16 @@ t("buildSessionSummaryProps recaps a real logged day (volume, counts, PRs)", () 
   if (typeof vm.dateLabel !== "string" || !vm.dateLabel) throw new Error("missing dateLabel");
 });
 
+t("buildPersonalRecordsProps builds a PR board from the log (e1RM big-3 + total)", () => {
+  if (typeof ui.buildPersonalRecordsProps !== "function") throw new Error("buildPersonalRecordsProps not exported");
+  const vm = ui.buildPersonalRecordsProps();
+  if (!Array.isArray(vm.big3) || vm.big3.length !== 3) throw new Error("expected 3 main lifts");
+  const bench = vm.big3.find((b) => /bench/i.test(b.label));
+  if (!bench || !bench.has) throw new Error("seeded bench logs should yield a bench PR");
+  if (!(Number(bench.e1rm) > 0)) throw new Error("bench e1RM should be > 0");
+  if (typeof vm.total !== "string" || !vm.totalHas) throw new Error("big-3 total should be present");
+  if (typeof vm.hasAny !== "boolean") throw new Error("hasAny flag missing");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

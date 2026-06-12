@@ -1441,9 +1441,54 @@ function SessionSummary(p3) {
 function mountSessionSummary(container, props) {
   R(/* @__PURE__ */ u3(SessionSummary, { ...props }), container);
 }
+
+// src/ui/personal-records.tsx
+function PersonalRecords(p3) {
+  return /* @__PURE__ */ u3("div", { class: "pr-board card dash-span-full", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: [
+      /* @__PURE__ */ u3("h2", { children: "Personal Records" }),
+      /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: "e1RM" })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "pr-total", children: [
+      /* @__PURE__ */ u3("div", { class: "pr-total-num", children: p3.totalHas ? p3.total : "\u2014" }),
+      /* @__PURE__ */ u3("div", { class: "pr-total-lbl", children: [
+        p3.unit,
+        " \xB7 Big 3 estimated total"
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "pr-big3", children: p3.big3.map((b2) => /* @__PURE__ */ u3("div", { class: "pr-lift" + (b2.has ? "" : " pr-lift-empty"), children: [
+      /* @__PURE__ */ u3("div", { class: "pr-lift-label", children: b2.label }),
+      /* @__PURE__ */ u3("div", { class: "pr-lift-e1rm", children: [
+        b2.has ? b2.e1rm : "\u2014",
+        b2.has ? /* @__PURE__ */ u3("span", { class: "pr-unit", children: p3.unit }) : null
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "pr-lift-set", children: b2.set }),
+      b2.date ? /* @__PURE__ */ u3("div", { class: "pr-lift-date", children: b2.date }) : null
+    ] }, b2.label)) }),
+    p3.others.length ? /* @__PURE__ */ u3("div", { class: "pr-others", children: [
+      /* @__PURE__ */ u3("div", { class: "pr-others-lbl", children: "More lifts" }),
+      p3.others.map((o3, i4) => /* @__PURE__ */ u3("div", { class: "pr-row", children: [
+        /* @__PURE__ */ u3("span", { class: "pr-row-name", children: o3.name }),
+        /* @__PURE__ */ u3("span", { class: "pr-row-meta", children: [
+          /* @__PURE__ */ u3("b", { children: [
+            o3.e1rm,
+            " ",
+            p3.unit
+          ] }),
+          " \xB7 ",
+          o3.set
+        ] })
+      ] }, i4))
+    ] }) : null
+  ] });
+}
+function mountPersonalRecords(container, props) {
+  R(/* @__PURE__ */ u3(PersonalRecords, { ...props }), container);
+}
 export {
   ExerciseCard,
   FocusShell,
+  PersonalRecords,
   PlanView,
   ProfileSettings,
   ReadinessCard,
@@ -1454,6 +1499,7 @@ export {
   WorkoutTools,
   mountExerciseCard,
   mountFocusShell,
+  mountPersonalRecords,
   mountPlan,
   mountProfileSettings,
   mountReadinessCard,

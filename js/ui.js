@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h4cfe9441cc8e";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hc90da89a7dfd";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h4cfe9441cc8e";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary } from "./ui-components.js?v=h4cfe9441cc8e";
+} from "./programming.js?v=hc90da89a7dfd";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords } from "./ui-components.js?v=hc90da89a7dfd";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3343,6 +3343,7 @@ function renderDash(){
       <button type="button" class="btn btn-ghost btn-sm qa-pill" id="dash-q-ease">Ease load</button>
     </div>
   </div>
+  <div id="pr-board-mount"></div>
   <details class="card section" style="padding:14px">
     <summary style="font-size:13px;font-weight:600;cursor:pointer">Your metrics <span style="font-size:11px;color:var(--text3);font-weight:400">· ${p.weight>0?formatLoadLbText(p.weight):"—"}${p.goalWt>0?" → "+formatLoadLbText(p.goalWt):""} · tap to expand</span></summary>
     <div class="grid3" style="gap:10px;margin-top:12px">
@@ -3530,6 +3531,7 @@ function renderDash(){
   </div>`;
 }
 function bindDash(){
+  mountPersonalRecordsTab();
   const clearTrainDate=()=>{trainSessionDate=null;trainFocusIdx=null};
   const st=document.getElementById("dash-start-workout");if(st)st.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
@@ -4669,6 +4671,40 @@ function showSessionSummary(dayIso){
   mountSessionSummary(c,Object.assign(buildSessionSummaryProps(dayIso),{onClose:close,onViewLog:()=>{close();tab=TAB_TRAIN;trainSub="log";render();}}));
   try{hydrateAnatomyTargets(c);}catch(e){}
 }
+// ── Personal Records board (feature) ──
+function prBestSet(aliases){
+  const set=new Set(aliases.map(a=>a.toLowerCase()));let best=null;
+  for(const l of S.logs||[]){
+    if(!l||!l.exercise||!set.has(String(l.exercise).toLowerCase()))continue;
+    const w=Number(l.aW)||0,r=Number(l.aR)||0;if(w<=0||r<=0)continue;
+    const e=epley(w,r);if(!best||e>best.e1RM)best={e1RM:e,weight:w,reps:r,date:l.date};
+  }
+  return best;
+}
+function prDateLabel(isoStr){try{return parseIsoNoon(isoStr).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});}catch(e){return "";}}
+function buildPersonalRecordsProps(){
+  const unit=massUnitLabel();
+  const defs=[{label:"Bench Press",aliases:["Barbell Bench Press","Bench Press","Bench"]},{label:"Back Squat",aliases:["Back Squat","Squat"]},{label:"Deadlift",aliases:["Conventional Deadlift","Deadlift","Sumo Deadlift","Trap Bar Deadlift"]}];
+  let totalLb=0;
+  const big3=defs.map(d=>{const b=prBestSet(d.aliases);if(b)totalLb+=b.e1RM;return{label:d.label,has:!!b,e1rm:b?String(Math.round(loadInputDisplayFromLb(b.e1RM))):"—",set:b?(loadInputDisplayFromLb(b.weight)+" "+unit+" × "+b.reps):"No logs yet",date:b?prDateLabel(b.date):""};});
+  const big3Names=new Set(defs.flatMap(d=>d.aliases.map(a=>a.toLowerCase())));
+  const others={};
+  for(const l of S.logs||[]){
+    if(!l||!l.exercise)continue;const name=String(l.exercise);
+    if(isRunExerciseName(name)||big3Names.has(name.toLowerCase()))continue;
+    const w=Number(l.aW)||0,r=Number(l.aR)||0;if(w<=0||r<=0)continue;
+    const e=epley(w,r);if(!others[name]||e>others[name].e1RM)others[name]={e1RM:e,weight:w,reps:r,date:l.date};
+  }
+  const otherList=Object.keys(others).map(name=>({name,e1rm:String(Math.round(loadInputDisplayFromLb(others[name].e1RM))),set:loadInputDisplayFromLb(others[name].weight)+" "+unit+" × "+others[name].reps})).sort((a,b)=>Number(b.e1rm)-Number(a.e1rm)).slice(0,12);
+  return{unit,total:Math.round(loadInputDisplayFromLb(totalLb)).toLocaleString(),totalHas:totalLb>0,big3,others:otherList,hasAny:totalLb>0||otherList.length>0};
+}
+function mountPersonalRecordsTab(){
+  const c=document.getElementById("pr-board-mount");if(!c)return;
+  const props=buildPersonalRecordsProps();
+  if(!props.hasAny){c.remove();return;}
+  mountPersonalRecords(c,props);
+  const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
+}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountFocusShellTab();
@@ -5745,4 +5781,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
