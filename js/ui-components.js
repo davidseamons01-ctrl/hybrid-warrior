@@ -1221,13 +1221,87 @@ function ExerciseCard(p3) {
 function mountExerciseCard(container, props) {
   R(/* @__PURE__ */ u3(ExerciseCard, { ...props }), container);
 }
+
+// src/ui/session-cards.tsx
+function ReadinessCard({ readiness, onSelect }) {
+  const Btn = ({ v: v3, emoji, label, on }) => /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm readiness-btn" + (on ? " readiness-on" : ""), "data-ready": v3, onClick: () => onSelect(v3), children: [
+    /* @__PURE__ */ u3("span", { style: "font-size:15px", children: emoji }),
+    " ",
+    label
+  ] });
+  return /* @__PURE__ */ u3("div", { class: "card section readiness-card", children: [
+    /* @__PURE__ */ u3("div", { style: "font-size:13px;font-weight:600;margin-bottom:6px", children: "How are you feeling?" }),
+    /* @__PURE__ */ u3("div", { class: "readiness-row", children: [
+      /* @__PURE__ */ u3(Btn, { v: "strong", emoji: "\u{1F4AA}", label: "Strong", on: readiness === "strong" }),
+      /* @__PURE__ */ u3(Btn, { v: "normal", emoji: "\u{1F44D}", label: "Normal", on: readiness === "normal" || !readiness }),
+      /* @__PURE__ */ u3(Btn, { v: "fatigued", emoji: "\u{1F634}", label: "Fatigued", on: readiness === "fatigued" })
+    ] }),
+    readiness === "fatigued" ? /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--gold);margin-top:8px;line-height:1.45", children: "Loads eased ~5% for this session only \u2014 your program stays intact." }) : readiness === "strong" ? /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--mint);margin-top:8px;line-height:1.45", children: "Targets nudged up ~3% \u2014 push it today." }) : null
+  ] });
+}
+function mountReadinessCard(container, props) {
+  R(/* @__PURE__ */ u3(ReadinessCard, { ...props }), container);
+}
+function SessionFeelCard({ sf, savedLbl, finalized, dayIso, onFeel, onClear }) {
+  const FBtn = ({ v: v3, label }) => /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm " + (sf === v3 ? "btn-fire" : "btn-secondary-solid"), "data-sfeel": v3, onClick: () => onFeel(v3), children: label });
+  return /* @__PURE__ */ u3("div", { class: "card section", id: "session-after-card", children: [
+    /* @__PURE__ */ u3("div", { style: "font-size:13px;font-weight:600;margin-bottom:4px", children: "Rate intensity" }),
+    /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45", children: [
+      "Rough session RPE \u2014 pairs with ",
+      /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: "Complete session" }),
+      " below so tomorrow's targets stay honest."
+    ] }),
+    sf ? /* @__PURE__ */ u3("div", { style: "font-size:12px;color:var(--mint);margin-bottom:6px", children: [
+      "Saved: ",
+      /* @__PURE__ */ u3("b", { children: savedLbl })
+    ] }) : null,
+    /* @__PURE__ */ u3("div", { class: "row", style: "flex-wrap:wrap;gap:8px", children: [
+      /* @__PURE__ */ u3(FBtn, { v: "easy", label: "Light \xB7 ~RPE 6" }),
+      /* @__PURE__ */ u3(FBtn, { v: "ok", label: "Solid \xB7 ~RPE 7\u20138" }),
+      /* @__PURE__ */ u3(FBtn, { v: "hard", label: "Hard \xB7 ~RPE 9+" }),
+      sf ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-ghost", id: "sfeel-clear", onClick: () => onClear(), children: "Clear" }) : null
+    ] }),
+    finalized ? /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--mint);margin-top:10px;margin-bottom:0", children: [
+      "Adaptation applied for ",
+      dayIso,
+      "."
+    ] }) : /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--text3);margin-top:10px;margin-bottom:0", children: "When you're done lifting, tap Complete session in the bar below." })
+  ] });
+}
+function mountSessionFeelCard(container, props) {
+  R(/* @__PURE__ */ u3(SessionFeelCard, { ...props }), container);
+}
+function WarmupChecklist({ mode, items, text, onToggle }) {
+  if (mode === "text") {
+    return /* @__PURE__ */ u3("div", { class: "card section", style: "border-left:3px solid var(--ice)", children: [
+      /* @__PURE__ */ u3("div", { style: "font-size:11px;font-weight:700;color:var(--ice);margin-bottom:4px", children: "Warm-up" }),
+      /* @__PURE__ */ u3("div", { style: "font-size:12px;color:var(--text2)", children: text })
+    ] });
+  }
+  return /* @__PURE__ */ u3("div", { class: "card section wu-card", style: "border-left:3px solid var(--ice)", children: [
+    /* @__PURE__ */ u3("div", { style: "font-size:11px;font-weight:700;color:var(--ice);margin-bottom:8px", children: "Warm-up checklist" }),
+    /* @__PURE__ */ u3("ul", { class: "wu-list", children: items.map((it) => /* @__PURE__ */ u3("li", { class: "wu-item", children: /* @__PURE__ */ u3("label", { class: "wu-label", children: [
+      /* @__PURE__ */ u3("input", { type: "checkbox", class: "wu-step-cb", "data-wu-idx": it.idx, checked: it.checked, onChange: (e3) => onToggle(it.idx, e3.target.checked) }),
+      /* @__PURE__ */ u3("span", { class: "wu-text", children: it.line })
+    ] }) }, it.idx)) })
+  ] });
+}
+function mountWarmupChecklist(container, props) {
+  R(/* @__PURE__ */ u3(WarmupChecklist, { ...props }), container);
+}
 export {
   ExerciseCard,
   PlanView,
   ProfileSettings,
+  ReadinessCard,
+  SessionFeelCard,
   SocialView,
+  WarmupChecklist,
   mountExerciseCard,
   mountPlan,
   mountProfileSettings,
-  mountSocial
+  mountReadinessCard,
+  mountSessionFeelCard,
+  mountSocial,
+  mountWarmupChecklist
 };
