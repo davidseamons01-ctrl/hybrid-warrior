@@ -1695,3 +1695,33 @@ body.blackout input:focus,body.blackout select:focus,body.blackout textarea:focu
 body.blackout .nav-btn:focus-visible,body.blackout .btn:focus-visible,body.blackout .subtab:focus-visible{outline-color:var(--fire)}
 /* Badges + chips read cleaner outlined on black */
 body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transparent)}
+
+/* ── Post-workout Session Summary modal ── */
+.ss-overlay{position:fixed;inset:0;z-index:220;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);animation:fadeUp .22s ease}
+.ss-card{position:relative;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;background:var(--card);border:1px solid var(--border-lit);border-radius:var(--radius-lg,20px);padding:24px 22px 20px;box-shadow:var(--elev);animation:ssPop .34s cubic-bezier(.34,1.4,.64,1)}
+@keyframes ssPop{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+.ss-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;background:var(--surface);color:var(--text2);border-radius:50%;font-size:20px;line-height:1;cursor:pointer;transition:.15s}
+.ss-close:hover{color:var(--text);background:var(--card-hover)}
+.ss-kicker{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--fire)}
+.ss-date{font-size:15px;font-weight:600;color:var(--text2);margin-top:2px}
+.ss-hero{text-align:center;margin:18px 0 20px}
+.ss-hero-num{font-family:'Space Grotesk','DM Sans',sans-serif;font-size:54px;font-weight:700;line-height:1;letter-spacing:-0.04em;color:var(--text);font-variant-numeric:tabular-nums;text-shadow:0 0 32px color-mix(in srgb,var(--fire) 32%,transparent)}
+.ss-hero-lbl{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-top:6px}
+.ss-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ss-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 6px;text-align:center}
+.ss-stat-accent{border-color:color-mix(in srgb,var(--fire) 45%,var(--border));background:color-mix(in srgb,var(--fire) 10%,var(--surface))}
+.ss-stat-val{font-family:'Space Grotesk','DM Sans',sans-serif;font-size:21px;font-weight:700;line-height:1;color:var(--text);font-variant-numeric:tabular-nums}
+.ss-stat-accent .ss-stat-val{color:var(--fire)}
+.ss-stat-lbl{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-top:5px}
+.ss-section{margin-top:16px}
+.ss-section-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.ss-pr-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);background:color-mix(in srgb,var(--gold) 13%,var(--surface));border:1px solid color-mix(in srgb,var(--gold) 38%,var(--border));margin-bottom:6px}
+.ss-pr-name{font-size:13px;font-weight:600;color:var(--text)}
+.ss-pr-detail{font-size:13px;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums}
+.ss-line{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding:0 2px}
+.ss-line-lbl{color:var(--text3);font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.08em}
+.ss-line-val{color:var(--text);font-weight:600;font-size:13px}
+.ss-anatomy{display:flex;justify-content:center}
+.ss-anatomy svg{max-height:180px;width:auto}
+.ss-adapt{font-size:11px;color:var(--mint);margin:14px 0 0;text-align:center;line-height:1.4}
+.ss-actions{display:flex;gap:10px;margin-top:18px}

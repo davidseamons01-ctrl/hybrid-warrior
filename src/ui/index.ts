@@ -6,3 +6,4 @@ export * from "./exercise-card";
 export * from "./session-cards";
 export * from "./workout-tools";
 export * from "./focus-shell";
+export * from "./session-summary";

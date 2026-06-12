@@ -146,5 +146,16 @@ t("buildExerciseCardProps builds a card view-model for a real prescribed exercis
   if (!(vm.sets >= 1) || !(vm.activeSet >= 1)) throw new Error("sets/activeSet should be >= 1");
 });
 
+t("buildSessionSummaryProps recaps a real logged day (volume, counts, PRs)", () => {
+  if (typeof ui.buildSessionSummaryProps !== "function") throw new Error("buildSessionSummaryProps not exported");
+  const vm = ui.buildSessionSummaryProps("2026-06-08"); // seeded: bench 215x3, prior best 205
+  if (typeof vm.volume !== "string" || typeof vm.volumeUnit !== "string") throw new Error("volume not formatted");
+  if (!Array.isArray(vm.stats) || vm.stats.length !== 4) throw new Error("expected 4 stats");
+  if (!Array.isArray(vm.prs)) throw new Error("prs not an array");
+  if (!vm.prs.some((p) => /bench/i.test(p.name))) throw new Error("expected a bench PR (215 > prior 205)");
+  if (typeof vm.anatomyHtml !== "string") throw new Error("anatomyHtml not a string");
+  if (typeof vm.dateLabel !== "string" || !vm.dateLabel) throw new Error("missing dateLabel");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

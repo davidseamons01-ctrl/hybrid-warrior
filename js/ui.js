@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=haff1fc7fdb56";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h4cfe9441cc8e";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=haff1fc7fdb56";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell } from "./ui-components.js?v=haff1fc7fdb56";
+} from "./programming.js?v=h4cfe9441cc8e";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary } from "./ui-components.js?v=h4cfe9441cc8e";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4629,6 +4629,46 @@ function focusPrev(){if(trainFocusIdx>0){trainFocusIdx--;render();}}
 function focusNext(){const p=todayPlanFiltered();if(trainFocusIdx!==null&&trainFocusIdx<p.exs.length-1){trainFocusIdx++;render();}}
 const focusShellActions={exit:focusExit,prev:focusPrev,next:focusNext};
 function mountFocusShellTab(){const c=document.getElementById("focus-shell-mount");if(!c||trainFocusIdx===null)return;const plan=todayPlanFiltered();if(!plan.exs.length)return;const dayIso=activeTrainIso();const w=plan.blockWeek!=null?plan.blockWeek:S.program.week;mountFocusShell(c,{n:plan.exs.length,idx:trainFocusIdx,day:DAYS[parseIsoNoon(dayIso).getDay()],breadcrumb:sessionBreadcrumb(w,plan),finalized:!!((S.sessionAdaptedByDate||{})[dayIso]),showClearDate:!!(trainSessionDate&&trainSessionDate!==iso()),trainSessionDate:trainSessionDate||"",showCatchBanner:!!(plan._catchUpDue||plan._catchUpExtra),overlayHtml:setLoadOverlayHtml(),actions:focusShellActions});const pt=c.firstElementChild;if(pt)c.replaceWith(pt);else c.remove();}
+// ── Post-workout session summary (feature) ──
+function buildSessionSummaryProps(dayIso){
+  const logs=(S.logs||[]).filter(l=>l.date===dayIso);
+  const lifts=logs.filter(l=>!isRunExerciseName(l.exercise));
+  const runs=logs.filter(l=>isRunExerciseName(l.exercise));
+  let volLb=0,reps=0,sets=0;
+  for(const l of lifts){const s=Number(l.aS)||1,r=Number(l.aR)||0,w=Number(l.aW)||0;volLb+=s*r*w;reps+=s*r;sets+=s;}
+  const exNames=[...new Set(logs.map(l=>l.exercise))];
+  const liftNames=exNames.filter(n=>!isRunExerciseName(n));
+  const prs=[];
+  for(const name of liftNames){
+    const todayBest=Math.max(0,...lifts.filter(l=>l.exercise===name).map(l=>Number(l.aW)||0));
+    if(todayBest<=0)continue;
+    const priorBest=Math.max(0,...(S.logs||[]).filter(l=>l.date<dayIso&&l.exercise===name).map(l=>Number(l.aW)||0));
+    if(todayBest>priorBest)prs.push({name,detail:formatLoadLbText(todayBest)});
+  }
+  const volStr=Math.round(loadInputDisplayFromLb(volLb)).toLocaleString();
+  const streak=(typeof getStreak==="function")?(getStreak()||0):0;
+  const stats=[
+    {label:"Sets",value:String(sets)},
+    {label:"Reps",value:String(reps)},
+    {label:"Lifts",value:String(liftNames.length)},
+    {label:"Streak",value:String(streak),accent:streak>0}
+  ];
+  const runLabel=runs.length?(runs.length+" cardio effort"+(runs.length!==1?"s":"")):"";
+  const sf=(S.sessionFeelByDate||{})[dayIso];
+  const feelLabel=sf==="easy"?"Light · ~RPE 6":sf==="ok"?"Solid · ~RPE 7–8":sf==="hard"?"Hard · ~RPE 9+":"";
+  let anatomyHtml="";
+  try{anatomyHtml=anatomyContainer(mergeZones(rollingPlanForDate(dayIso)));}catch(e){anatomyHtml="";}
+  const dateLabel=parseIsoNoon(dayIso).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+  return{dateLabel,volume:volStr,volumeUnit:massUnitLabel(),stats,prs,feelLabel,runLabel,anatomyHtml,adaptationApplied:!!((S.sessionAdaptedByDate||{})[dayIso])};
+}
+function showSessionSummary(dayIso){
+  if(!(S.logs||[]).some(l=>l.date===dayIso))return;
+  const c=document.createElement("div");
+  document.body.appendChild(c);
+  const close=()=>{try{c.remove()}catch(e){}};
+  mountSessionSummary(c,Object.assign(buildSessionSummaryProps(dayIso),{onClose:close,onViewLog:()=>{close();tab=TAB_TRAIN;trainSub="log";render();}}));
+  try{hydrateAnatomyTargets(c);}catch(e){}
+}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountFocusShellTab();
@@ -4697,7 +4737,7 @@ function bindToday(){
     S.schedule.sessionMin=Math.min(75,(Number(S.schedule.sessionMin)||45)+5);
     await persist();render();toast("Program eased — check updated targets on your next session.",{undo:()=>{S.adapt=snapA;S.schedule.sessionMin=snapM;persist();render()}});
   };
-  document.querySelectorAll(".session-finalize-sync").forEach(sfz=>{sfz.onclick=async()=>{const day=activeTrainIso();if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return}const snapAdapt=JSON.parse(JSON.stringify(S.adapt));const snapProfile=JSON.parse(JSON.stringify(S.profile));const snapAdapted=JSON.parse(JSON.stringify(S.sessionAdaptedByDate));triggerHaptic("success");const n=applyDayAdaptation(day);S.sessionAdaptedByDate[day]=true;celebrateFinish();save();render();toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.",{undo:async()=>{S.adapt=snapAdapt;S.profile=snapProfile;S.sessionAdaptedByDate=snapAdapted;await persist();render()},duration:5000});await persist()}});
+  document.querySelectorAll(".session-finalize-sync").forEach(sfz=>{sfz.onclick=async()=>{const day=activeTrainIso();if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return}const snapAdapt=JSON.parse(JSON.stringify(S.adapt));const snapProfile=JSON.parse(JSON.stringify(S.profile));const snapAdapted=JSON.parse(JSON.stringify(S.sessionAdaptedByDate));triggerHaptic("success");const n=applyDayAdaptation(day);S.sessionAdaptedByDate[day]=true;celebrateFinish();save();render();showSessionSummary(day);toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.",{undo:async()=>{S.adapt=snapAdapt;S.profile=snapProfile;S.sessionAdaptedByDate=snapAdapted;await persist();render()},duration:5000});await persist()}});
   const sr=document.getElementById("skip-restore");if(sr)sr.onclick=async()=>{const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate||{})),day=activeTrainIso();if(S.skippedEidsByDate)delete S.skippedEidsByDate[day];await persist();toast("Restored today's lifts",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()};
   document.querySelectorAll(".ex-quick-video-toggle").forEach(btn=>{btn.onclick=()=>{const i=btn.dataset.i;const p=document.getElementById("exq-"+i);if(!p)return;const show=p.hidden;p.hidden=!show;btn.setAttribute("aria-expanded",show?"true":"false");btn.textContent=show?"Hide quick video":"Show quick video"}});
   document.querySelectorAll(".lite-video").forEach(wrap=>{
@@ -5705,4 +5745,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };

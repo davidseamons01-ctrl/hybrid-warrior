@@ -1392,6 +1392,55 @@ function FocusShell(p3) {
 function mountFocusShell(container, props) {
   R(/* @__PURE__ */ u3(FocusShell, { ...props }), container);
 }
+
+// src/ui/session-summary.tsx
+function SessionSummary(p3) {
+  return /* @__PURE__ */ u3("div", { class: "ss-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "ss-title", onClick: (e3) => {
+    if (e3.target === e3.currentTarget) p3.onClose();
+  }, children: /* @__PURE__ */ u3("div", { class: "ss-card", children: [
+    /* @__PURE__ */ u3("button", { type: "button", class: "ss-close", "aria-label": "Close", onClick: () => p3.onClose(), children: "\xD7" }),
+    /* @__PURE__ */ u3("div", { class: "ss-kicker", children: "\u2713 Session Complete" }),
+    /* @__PURE__ */ u3("div", { class: "ss-date", id: "ss-title", children: p3.dateLabel }),
+    /* @__PURE__ */ u3("div", { class: "ss-hero", children: [
+      /* @__PURE__ */ u3("div", { class: "ss-hero-num", children: p3.volume }),
+      /* @__PURE__ */ u3("div", { class: "ss-hero-lbl", children: [
+        p3.volumeUnit,
+        " total volume"
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "ss-stats", children: p3.stats.map((s3) => /* @__PURE__ */ u3("div", { class: "ss-stat" + (s3.accent ? " ss-stat-accent" : ""), children: [
+      /* @__PURE__ */ u3("div", { class: "ss-stat-val", children: s3.value }),
+      /* @__PURE__ */ u3("div", { class: "ss-stat-lbl", children: s3.label })
+    ] }, s3.label)) }),
+    p3.prs.length ? /* @__PURE__ */ u3("div", { class: "ss-section ss-prs", children: [
+      /* @__PURE__ */ u3("div", { class: "ss-section-lbl", children: "\u{1F3C6} Personal Records" }),
+      p3.prs.map((pr, i4) => /* @__PURE__ */ u3("div", { class: "ss-pr-row", children: [
+        /* @__PURE__ */ u3("span", { class: "ss-pr-name", children: pr.name }),
+        /* @__PURE__ */ u3("span", { class: "ss-pr-detail", children: pr.detail })
+      ] }, i4))
+    ] }) : null,
+    p3.runLabel ? /* @__PURE__ */ u3("div", { class: "ss-line", children: [
+      /* @__PURE__ */ u3("span", { class: "ss-line-lbl", children: "Cardio" }),
+      /* @__PURE__ */ u3("span", { class: "ss-line-val", children: p3.runLabel })
+    ] }) : null,
+    p3.feelLabel ? /* @__PURE__ */ u3("div", { class: "ss-line", children: [
+      /* @__PURE__ */ u3("span", { class: "ss-line-lbl", children: "Felt" }),
+      /* @__PURE__ */ u3("span", { class: "ss-line-val", children: p3.feelLabel })
+    ] }) : null,
+    /* @__PURE__ */ u3("div", { class: "ss-section", children: [
+      /* @__PURE__ */ u3("div", { class: "ss-section-lbl", children: "Muscles worked" }),
+      /* @__PURE__ */ u3("div", { class: "ss-anatomy", dangerouslySetInnerHTML: { __html: p3.anatomyHtml } })
+    ] }),
+    p3.adaptationApplied ? /* @__PURE__ */ u3("p", { class: "ss-adapt", children: "Adaptation applied \u2014 tomorrow's targets are updated." }) : null,
+    /* @__PURE__ */ u3("div", { class: "ss-actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-block", onClick: () => p3.onViewLog(), children: "View log" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block", onClick: () => p3.onClose(), children: "Done" })
+    ] })
+  ] }) });
+}
+function mountSessionSummary(container, props) {
+  R(/* @__PURE__ */ u3(SessionSummary, { ...props }), container);
+}
 export {
   ExerciseCard,
   FocusShell,
@@ -1399,6 +1448,7 @@ export {
   ProfileSettings,
   ReadinessCard,
   SessionFeelCard,
+  SessionSummary,
   SocialView,
   WarmupChecklist,
   WorkoutTools,
@@ -1408,6 +1458,7 @@ export {
   mountProfileSettings,
   mountReadinessCard,
   mountSessionFeelCard,
+  mountSessionSummary,
   mountSocial,
   mountWarmupChecklist,
   mountWorkoutToolsCard
