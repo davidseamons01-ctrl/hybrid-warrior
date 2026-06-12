@@ -1767,3 +1767,22 @@ body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transpa
 .sp-vol-col-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:5px;min-width:0}
 .sp-vol-col{width:100%;max-width:26px;background:linear-gradient(180deg,var(--fire),color-mix(in srgb,var(--fire) 45%,transparent));border-radius:4px 4px 2px 2px;min-height:3px;transition:height .45s cubic-bezier(.34,1.4,.64,1)}
 .sp-vol-x{font-size:9px;color:var(--text3);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ── Training Consistency heatmap (You / Overview) ── */
+.hm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.hm-stat{text-align:center}
+.hm-stat-val{font-family:'Space Grotesk','DM Sans',sans-serif;font-size:24px;font-weight:700;line-height:1;color:var(--fire);font-variant-numeric:tabular-nums}
+.hm-stat-lbl{font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-top:4px}
+.hm-grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.hm-grid{display:flex;gap:3px;min-width:max-content}
+.hm-col{display:flex;flex-direction:column;gap:3px}
+.hm-cell{width:13px;height:13px;border-radius:3px;flex:0 0 auto;background:color-mix(in srgb,var(--surface) 75%,var(--bg));border:1px solid color-mix(in srgb,var(--border) 55%,transparent)}
+.hm-l1{background:color-mix(in srgb,var(--fire) 26%,var(--surface));border-color:transparent}
+.hm-l2{background:color-mix(in srgb,var(--fire) 48%,var(--surface));border-color:transparent}
+.hm-l3{background:color-mix(in srgb,var(--fire) 72%,var(--surface));border-color:transparent}
+.hm-l4{background:var(--fire);border-color:transparent;box-shadow:0 0 7px color-mix(in srgb,var(--fire) 55%,transparent)}
+.hm-today{outline:1.5px solid var(--text);outline-offset:1px}
+.hm-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;flex-wrap:wrap}
+.hm-caption{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text3)}
+.hm-legend{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3)}
+.hm-legend .hm-cell{width:11px;height:11px}

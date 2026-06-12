@@ -178,5 +178,17 @@ t("buildStrengthProgressProps builds e1RM series + weekly volume from the log", 
   if (typeof vm.hasAny !== "boolean") throw new Error("hasAny flag missing");
 });
 
+t("buildTrainingHeatmapProps builds a 13-week grid + streak stats from the log", () => {
+  if (typeof ui.buildTrainingHeatmapProps !== "function") throw new Error("buildTrainingHeatmapProps not exported");
+  const vm = ui.buildTrainingHeatmapProps();
+  if (!Array.isArray(vm.weeks) || vm.weeks.length < 1) throw new Error("no week columns");
+  if (vm.windowWeeks !== 13) throw new Error("expected a 13-week window");
+  if (!(vm.totalDays >= 2)) throw new Error("seeded 2 training days should be counted");
+  for (const k of ["currentStreak", "longestStreak", "thisMonth", "totalDays"]) {
+    if (typeof vm[k] !== "number") throw new Error(`stat ${k} should be a number`);
+  }
+  if (typeof vm.hasAny !== "boolean") throw new Error("hasAny flag missing");
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

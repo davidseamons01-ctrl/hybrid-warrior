@@ -1541,6 +1541,52 @@ function StrengthProgress(p3) {
 function mountStrengthProgress(container, props) {
   R(/* @__PURE__ */ u3(StrengthProgress, { ...props }), container);
 }
+
+// src/ui/training-heatmap.tsx
+function Stat({ val, label }) {
+  return /* @__PURE__ */ u3("div", { class: "hm-stat", children: [
+    /* @__PURE__ */ u3("div", { class: "hm-stat-val", children: val }),
+    /* @__PURE__ */ u3("div", { class: "hm-stat-lbl", children: label })
+  ] });
+}
+function TrainingHeatmap(p3) {
+  return /* @__PURE__ */ u3("div", { class: "hm-board card dash-span-full", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: [
+      /* @__PURE__ */ u3("h2", { children: "Training Consistency" }),
+      p3.currentStreak > 0 ? /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: [
+        "\u{1F525} ",
+        p3.currentStreak,
+        " day streak"
+      ] }) : null
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "hm-stats", children: [
+      /* @__PURE__ */ u3(Stat, { val: p3.currentStreak, label: "Current" }),
+      /* @__PURE__ */ u3(Stat, { val: p3.longestStreak, label: "Longest" }),
+      /* @__PURE__ */ u3(Stat, { val: p3.thisMonth, label: "This month" }),
+      /* @__PURE__ */ u3(Stat, { val: p3.totalDays, label: "Total days" })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "hm-grid-wrap", children: /* @__PURE__ */ u3("div", { class: "hm-grid", children: p3.weeks.map((wk, i4) => /* @__PURE__ */ u3("div", { class: "hm-col", children: wk.map((c3, j3) => /* @__PURE__ */ u3("div", { class: "hm-cell hm-l" + c3.level + (c3.isToday ? " hm-today" : ""), title: c3.title }, j3)) }, i4)) }) }),
+    /* @__PURE__ */ u3("div", { class: "hm-foot", children: [
+      /* @__PURE__ */ u3("span", { class: "hm-caption", children: [
+        "Last ",
+        p3.windowWeeks,
+        " weeks"
+      ] }),
+      /* @__PURE__ */ u3("span", { class: "hm-legend", children: [
+        "Less",
+        /* @__PURE__ */ u3("span", { class: "hm-cell hm-l0" }),
+        /* @__PURE__ */ u3("span", { class: "hm-cell hm-l1" }),
+        /* @__PURE__ */ u3("span", { class: "hm-cell hm-l2" }),
+        /* @__PURE__ */ u3("span", { class: "hm-cell hm-l3" }),
+        /* @__PURE__ */ u3("span", { class: "hm-cell hm-l4" }),
+        "More"
+      ] })
+    ] })
+  ] });
+}
+function mountTrainingHeatmap(container, props) {
+  R(/* @__PURE__ */ u3(TrainingHeatmap, { ...props }), container);
+}
 export {
   ExerciseCard,
   FocusShell,
@@ -1552,6 +1598,7 @@ export {
   SessionSummary,
   SocialView,
   StrengthProgress,
+  TrainingHeatmap,
   WarmupChecklist,
   WorkoutTools,
   mountExerciseCard,
@@ -1564,6 +1611,7 @@ export {
   mountSessionSummary,
   mountSocial,
   mountStrengthProgress,
+  mountTrainingHeatmap,
   mountWarmupChecklist,
   mountWorkoutToolsCard
 };

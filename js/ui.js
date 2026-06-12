@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h86c4950fac63";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h165ff522fe14";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h86c4950fac63";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress } from "./ui-components.js?v=h86c4950fac63";
+} from "./programming.js?v=h165ff522fe14";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap } from "./ui-components.js?v=h165ff522fe14";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3345,6 +3345,7 @@ function renderDash(){
   </div>
   <div id="pr-board-mount"></div>
   <div id="sp-board-mount"></div>
+  <div id="hm-board-mount"></div>
   <details class="card section" style="padding:14px">
     <summary style="font-size:13px;font-weight:600;cursor:pointer">Your metrics <span style="font-size:11px;color:var(--text3);font-weight:400">· ${p.weight>0?formatLoadLbText(p.weight):"—"}${p.goalWt>0?" → "+formatLoadLbText(p.goalWt):""} · tap to expand</span></summary>
     <div class="grid3" style="gap:10px;margin-top:12px">
@@ -3534,6 +3535,7 @@ function renderDash(){
 function bindDash(){
   mountPersonalRecordsTab();
   mountStrengthProgressTab();
+  mountTrainingHeatmapTab();
   const clearTrainDate=()=>{trainSessionDate=null;trainFocusIdx=null};
   const st=document.getElementById("dash-start-workout");if(st)st.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
   const wt=document.getElementById("dash-whats-today");if(wt)wt.onclick=()=>{clearTrainDate();tab=TAB_TRAIN;trainSub="workout";render()};
@@ -4746,6 +4748,39 @@ function mountStrengthProgressTab(){
   mountStrengthProgress(c,props);
   const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
 }
+// ── Training Consistency heatmap (feature) ──
+function buildTrainingHeatmapProps(){
+  const setsByDate={};
+  for(const l of S.logs||[]){if(!l||!l.date)continue;const s=Number(l.aS)||1;setsByDate[l.date]=(setsByDate[l.date]||0)+s;}
+  const numWeeks=13;
+  const today=new Date();today.setHours(12,0,0,0);const todayIso=isoFromDate(today);
+  const start=new Date(today);start.setDate(start.getDate()-today.getDay()-(numWeeks-1)*7);
+  const days=[];
+  for(let c=new Date(start);c<=today;c.setDate(c.getDate()+1)){
+    const di=isoFromDate(c);const sets=setsByDate[di]||0;
+    const level=sets===0?0:sets<=4?1:sets<=9?2:sets<=15?3:4;
+    const md=c.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+    days.push({level,isToday:di===todayIso,title:sets>0?(md+" · "+sets+" set"+(sets!==1?"s":"")):(md+" · rest")});
+  }
+  const weeks=[];for(let i=0;i<days.length;i+=7)weeks.push(days.slice(i,i+7));
+  const trainDates=Object.keys(setsByDate).sort();
+  let longest=0,run=0,prev=null;
+  for(const ds of trainDates){
+    if(prev){const diff=Math.round((Date.parse(ds)-Date.parse(prev))/86400000);run=diff===1?run+1:1;}else run=1;
+    if(run>longest)longest=run;prev=ds;
+  }
+  const now=new Date();const ym=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  const thisMonth=trainDates.filter(d=>d.indexOf(ym)===0).length;
+  const currentStreak=(typeof getStreak==="function")?(getStreak()||0):0;
+  return{weeks,windowWeeks:numWeeks,currentStreak,longestStreak:longest,thisMonth,totalDays:trainDates.length,hasAny:trainDates.length>0};
+}
+function mountTrainingHeatmapTab(){
+  const c=document.getElementById("hm-board-mount");if(!c)return;
+  const props=buildTrainingHeatmapProps();
+  if(!props.hasAny){c.remove();return;}
+  mountTrainingHeatmap(c,props);
+  const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
+}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountFocusShellTab();
@@ -5822,4 +5857,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, buildTrainingHeatmapProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
