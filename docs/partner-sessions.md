@@ -224,6 +224,12 @@ friendships/{pairId}  (or prefs.gymBuddies[])   // persistent buddies
 - `partner_invites/{uid}/...` writable by senders, readable/deletable by the owner.
 - Each user's own `hw/{uid}` stream remains private to them (unchanged).
 
+> **Implemented (M2):** version-controlled rules live in [`firestore.rules`](../firestore.rules)
+> — reconcile with the live console rules and test in the emulator before
+> `firebase deploy --only firestore:rules`. The pure session/pairing data model is in
+> `src/core/partner-pairing.ts` (unit-tested); the fbDb create/join/onSnapshot wrappers
+> land in M3 alongside the live runtime.
+
 ## 9. Architecture & fit with the existing app
 - **Engine (pure, tested like the rest):** new `src/core` modules —
   `partner/suggest.ts` (joint-fit scoring), `partner/scale.ts` (load scaling + rounding),

@@ -614,18 +614,132 @@ function mergeSession(users, suggestions, planByUid, opts = {}) {
   }
   return { vibe, shared, splits };
 }
+
+// src/core/partner-pairing.ts
+function participantFromUser(u, opts) {
+  return {
+    uid: u.uid,
+    handle: u.handle,
+    name: u.name || u.handle,
+    role: opts.role,
+    maxes: opts.shareMaxes ? u.maxes || {} : {},
+    maxesShared: !!opts.shareMaxes,
+    ready: false,
+    lastSeen: opts.now ?? Date.now(),
+    progress: { sharedDone: 0, splitDone: 0 }
+  };
+}
+function newPartnerSession(host, opts) {
+  const now = opts.now ?? Date.now();
+  const host0 = participantFromUser(host, { role: "host", shareMaxes: opts.shareMaxes ?? false, now });
+  return {
+    id: opts.id,
+    hostUid: host.uid,
+    status: "lobby",
+    createdAt: now,
+    updatedAt: now,
+    vibe: opts.vibe ?? "hypertrophy",
+    joinCode: opts.code ?? null,
+    participants: { [host.uid]: host0 },
+    sharedLifts: [],
+    liveState: { currentLiftIndex: 0, turn: null, restEndsAt: null }
+  };
+}
+function withParticipant(s, p) {
+  return { ...s, participants: { ...s.participants, [p.uid]: p }, updatedAt: p.lastSeen };
+}
+function setReady(s, uid, ready, now = Date.now()) {
+  const p = s.participants[uid];
+  if (!p) return s;
+  return withParticipant({ ...s, updatedAt: now }, { ...p, ready, lastSeen: now });
+}
+function touchPresence(s, uid, now = Date.now()) {
+  const p = s.participants[uid];
+  if (!p) return s;
+  return { ...s, participants: { ...s.participants, [uid]: { ...p, lastSeen: now } } };
+}
+function isOnline(p, now = Date.now(), staleMs = 3e4) {
+  return !!p && now - p.lastSeen <= staleMs;
+}
+function participantCount(s) {
+  return Object.keys(s.participants || {}).length;
+}
+function allReady(s) {
+  const ps = Object.values(s.participants || {});
+  return ps.length > 0 && ps.every((p) => p.ready);
+}
+var FLOW = {
+  lobby: ["proposing", "abandoned"],
+  proposing: ["active", "lobby", "abandoned"],
+  active: ["split", "abandoned"],
+  split: ["complete", "abandoned"],
+  complete: [],
+  abandoned: []
+};
+function canTransition(from, to) {
+  return to === "abandoned" ? from !== "complete" : (FLOW[from] || []).includes(to);
+}
+var JOIN_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+var DEFAULT_CODE_TTL_MS = 10 * 60 * 1e3;
+function makeJoinCode(len = 6, rand = Math.random) {
+  let s = "";
+  for (let i = 0; i < len; i++) s += JOIN_CODE_ALPHABET[Math.floor(rand() * JOIN_CODE_ALPHABET.length)];
+  return s;
+}
+function normalizeJoinCode(input) {
+  return String(input || "").toUpperCase().replace(/[\s-]+/g, "");
+}
+function isValidJoinCode(input, len = 6) {
+  const c = normalizeJoinCode(input);
+  return c.length === len && [...c].every((ch) => JOIN_CODE_ALPHABET.includes(ch));
+}
+function codeRecord(code, sessionId, hostUid, opts = {}) {
+  const now = opts.now ?? Date.now();
+  return { code: normalizeJoinCode(code), sessionId, hostUid, expiresAt: now + (opts.ttlMs ?? DEFAULT_CODE_TTL_MS) };
+}
+function isCodeExpired(rec, now = Date.now()) {
+  return !rec || now >= rec.expiresAt;
+}
+function joinHash(code) {
+  return "#join=" + normalizeJoinCode(code);
+}
+function parseJoinHash(hash) {
+  const m = String(hash || "").match(/[#&]join=([A-Za-z0-9-]+)/);
+  if (!m) return null;
+  const c = normalizeJoinCode(m[1]);
+  return isValidJoinCode(c) ? c : null;
+}
+function addGymBuddy(list, buddy) {
+  return [...(list || []).filter((b) => b.uid !== buddy.uid), buddy];
+}
+function removeGymBuddy(list, uid) {
+  return (list || []).filter((b) => b.uid !== uid);
+}
+function hasGymBuddy(list, uid) {
+  return (list || []).some((b) => b.uid === uid);
+}
+function makeInvite(from, sessionId, opts = {}) {
+  const now = opts.now ?? Date.now();
+  return { id: opts.id ?? from.uid + "_" + now, fromUid: from.uid, fromHandle: from.handle, sessionId, createdAt: now };
+}
 export {
   ALL_EQUIPMENT,
   ALL_GOALS,
   BASE_GOALS,
+  DEFAULT_CODE_TTL_MS,
+  JOIN_CODE_ALPHABET,
   PARTNER_COMPOUNDS,
   VIBE_SCHEMES,
   accessoryReps,
   accessoryRx,
+  addGymBuddy,
+  allReady,
   bestPlanId,
   buildSharedLiftPlan,
   calibrationToMax,
   canPerform,
+  canTransition,
+  codeRecord,
   detectPlateau,
   e1rmSeries,
   epley,
@@ -636,10 +750,22 @@ export {
   fitScore,
   fromLegacyLogs,
   goalFromFocus,
+  hasGymBuddy,
+  isCodeExpired,
   isDeloadWeek,
+  isOnline,
+  isValidJoinCode,
+  joinHash,
+  makeInvite,
+  makeJoinCode,
   mergeEvents,
   mergeLogSets,
   mergeSession,
+  newPartnerSession,
+  normalizeJoinCode,
+  parseJoinHash,
+  participantCount,
+  participantFromUser,
   peakIsMaxTest,
   phaseLabel,
   phaseRepsFor,
@@ -648,18 +774,22 @@ export {
   projectWeeksToGoal,
   rankPlans,
   recentBestE1RM,
+  removeGymBuddy,
   resolveMax,
   roundToIncrement,
   scaleLoad,
   scorePlan,
   setDeletedEvent,
   setLoggedFromLog,
+  setReady,
   substituteEid,
   suggestSharedLifts,
   toEmbedUrl,
+  touchPresence,
   warmupSets,
   warmupText,
   whyPlan,
+  withParticipant,
   wkFactorFor,
   workingMax
 };

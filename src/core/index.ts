@@ -13,3 +13,4 @@ export * from "./media";
 export * from "./events";
 export * from "./eventlog";
 export * from "./partner";
+export * from "./partner-pairing";
