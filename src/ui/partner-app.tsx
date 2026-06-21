@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo, useRef } from "preact/hooks";
 import { PartnerEntry } from "./partner-entry";
 import { PartnerLobby, type LobbyParticipant } from "./partner-lobby";
 import { SharedBlockProposal, type ProposalLift } from "./shared-block-proposal";
+import { CalibrationSheet } from "./calibration-sheet";
 import {
   suggestSharedLifts, buildSharedLiftPlan, VIBE_SCHEMES, PARTNER_COMPOUNDS,
   type PartnerUser, type Vibe, type Suggestion,
@@ -65,7 +66,17 @@ function PartnerApp(p: PartnerAppProps) {
   const [busy, setBusy] = useState(false);
   const [vibe, setVibe] = useState<Vibe>("hypertrophy");
   const [removed, setRemoved] = useState<Set<string>>(new Set());
+  const [calib, setCalib] = useState<{ eid: string; liftName: string } | null>(null);
   const triedInitial = useRef(false);
+
+  // I calibrate my own missing max → write it into my participant entry; everyone's view recomputes.
+  const onCalibSubmit = (max: number) => {
+    if (calib && session) backend.patchSession(session.id, { participants: { [ctx.uid]: { maxes: { [calib.eid]: max } } } }).catch(() => {});
+    setCalib(null);
+  };
+  const withCalib = (content: any) => (
+    <>{content}{calib ? <CalibrationSheet liftName={calib.liftName} unit={ctx.unit} onSubmit={onCalibSubmit} onCancel={() => setCalib(null)} /> : null}</>
+  );
 
   // Live subscriptions + presence heartbeat, keyed on the session id.
   useEffect(() => {
@@ -153,14 +164,14 @@ function PartnerApp(p: PartnerAppProps) {
 
   if (session.status === "proposing") {
     if (!isHost) return <div class="pn-flow card"><p class="pn-waiting">Your host is choosing the shared lifts…</p></div>;
-    return (
+    return withCalib(
       <SharedBlockProposal
-        vibe={vibe} vibes={VIBES} lifts={proposalLifts}
+        vibe={vibe} vibes={VIBES} lifts={proposalLifts} meUid={ctx.uid}
         actions={{
           setVibe: (v) => setVibe(v as Vibe),
           removeLift: (eid) => setRemoved((s) => new Set([...s, eid])),
           addLift: () => {},
-          calibrate: (eid, uid) => { /* M4b: calibration sheet */ },
+          calibrate: (eid, uid) => { if (uid === ctx.uid) setCalib({ eid, liftName: proposalLifts.find((l) => l.eid === eid)?.name || eid }); },
           confirm: async () => {
             const lifts = proposalLifts.map((l, i) => ({ eid: l.eid, name: l.name, order: i, scheme: l.scheme }));
             await setSharedBlock(backend, session.id, lifts, vibe);
@@ -174,7 +185,7 @@ function PartnerApp(p: PartnerAppProps) {
 
   if (session.status === "active") {
     const users = toUsers(session, ctx);
-    return (
+    return withCalib(
       <div class="pn-live card">
         <div class="card-h"><h2>Shared lifts</h2>{session.liveState.turn ? <span class="badge badge-fire">Up: {session.participants[session.liveState.turn.uid]?.name} · set {session.liveState.turn.setNo}</span> : null}</div>
         {session.sharedLifts.map((lift) => {
@@ -183,13 +194,17 @@ function PartnerApp(p: PartnerAppProps) {
           return (
             <div class="pn-live-lift" key={lift.eid}>
               <div class="pn-live-head"><b>{lift.name}</b><span>{lift.scheme.sets}×{lift.scheme.reps} · {lift.scheme.intensityPct}%</span></div>
-              <div class="pn-live-mine">Your load: <b>{mine?.load || "—"} {ctx.unit}</b></div>
-              <button type="button" class="btn btn-cta btn-sm pn-live-log" disabled={!mine || !mine.load} onClick={async () => {
-                const w = mine!.load, reps = lift.scheme.reps;
-                await logSharedSet(backend, session.id, { id: ctx.uid + "_" + lift.eid + "_" + backend.now(), uid: ctx.uid, handle: ctx.handle, eid: lift.eid, name: lift.name, weight: w, reps });
-                p.onLogSet?.({ eid: lift.eid, name: lift.name, weight: w, reps });
-                await advanceTurn(backend, session.id, Object.keys(session.participants));
-              }}>Log {mine?.load} {ctx.unit} × {lift.scheme.reps}</button>
+              <div class="pn-live-mine">Your load: <b>{mine && !mine.needsCalibration ? mine.load : "—"} {ctx.unit}</b></div>
+              {mine && mine.needsCalibration ? (
+                <button type="button" class="btn btn-secondary-solid btn-sm pn-live-cal" onClick={() => setCalib({ eid: lift.eid, liftName: lift.name })}>Set your max</button>
+              ) : (
+                <button type="button" class="btn btn-cta btn-sm pn-live-log" disabled={!mine || !mine.load} onClick={async () => {
+                  const w = mine!.load, reps = lift.scheme.reps;
+                  await logSharedSet(backend, session.id, { id: ctx.uid + "_" + lift.eid + "_" + backend.now(), uid: ctx.uid, handle: ctx.handle, eid: lift.eid, name: lift.name, weight: w, reps });
+                  p.onLogSet?.({ eid: lift.eid, name: lift.name, weight: w, reps });
+                  await advanceTurn(backend, session.id, Object.keys(session.participants));
+                }}>Log {mine?.load} {ctx.unit} × {lift.scheme.reps}</button>
+              )}
             </div>
           );
         })}

@@ -12,7 +12,7 @@ export interface ProfileFormValues {
   sex: string; lifeStage: string; womenMode: string;
   equipment: string; style: string; units: string; quick: string;
   light: boolean; oled: boolean; womenSimpleUi: boolean;
-  audioCues: boolean; altitude: boolean; biometric: boolean;
+  audioCues: boolean; altitude: boolean; biometric: boolean; shareMaxes: boolean;
 }
 
 export interface ProfileSettingsActions {
@@ -212,6 +212,13 @@ function ProfileSettings(props: ProfileSettingsProps) {
           set("altitude", v);
           a.setAltitude(v);
         }}
+      />
+      <Toggle
+        id="s-share-maxes"
+        checked={f.shareMaxes}
+        title="Share maxes with gym partners"
+        desc="let people you lift with see your strength numbers so shared lifts auto-scale to each person. Off = partners do a quick calibration set instead."
+        onChange={(v) => set("shareMaxes", v)}
       />
       {props.biometricAvailable ? (
         <Toggle

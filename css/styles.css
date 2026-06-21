@@ -1887,3 +1887,14 @@ body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transpa
 .pn-overlay{position:fixed;inset:0;z-index:230;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px;background:var(--bg)}
 .pn-overlay > *{width:100%;max-width:460px}
 .pn-overlay-close{position:fixed;top:14px;right:16px;z-index:231;width:34px;height:34px;border:none;border-radius:50%;background:var(--surface);color:var(--text2);font-size:20px;cursor:pointer}
+.sbp-load-pending{font-size:10px;color:var(--gold);font-style:italic}
+.pn-live-cal{border-color:color-mix(in srgb,var(--gold) 40%,var(--border))!important;color:var(--gold)!important}
+/* Calibration sheet */
+.cal-overlay{position:fixed;inset:0;z-index:240;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.74);backdrop-filter:blur(10px)}
+.cal-sheet{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border-lit);border-radius:var(--radius-lg,20px);padding:22px;box-shadow:var(--elev)}
+.cal-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.02em}
+.cal-sub{font-size:12px;color:var(--text2);line-height:1.5;margin:6px 0 14px}
+.cal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cal-est{font-size:13px;color:var(--text2);text-align:center;margin:14px 0;font-variant-numeric:tabular-nums}
+.cal-est b{color:var(--fire);font-family:'Space Grotesk','DM Sans',sans-serif}
+.cal-actions{display:flex;gap:10px}

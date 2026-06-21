@@ -28,6 +28,7 @@ export interface SharedBlockProposalProps {
   vibes: VibeOption[];
   lifts: ProposalLift[];
   actions: SharedBlockProposalActions;
+  meUid: string;
 }
 
 const SRC_LABEL: Record<ProposalLoad["maxSource"], string> = {
@@ -36,7 +37,8 @@ const SRC_LABEL: Record<ProposalLoad["maxSource"], string> = {
 
 function SharedBlockProposal(p: SharedBlockProposalProps) {
   const a = p.actions;
-  const anyCalib = p.lifts.some((l) => l.loads.some((x) => x.needsCalibration));
+  // Only MY uncalibrated loads block Start — partners set theirs on their own phones.
+  const myCalib = p.lifts.some((l) => l.loads.some((x) => x.needsCalibration && x.uid === p.meUid));
   return (
     <div class="sbp card">
       <div class="card-h"><h2>Shared lifts</h2><span class="badge badge-fire">Together</span></div>
@@ -61,7 +63,9 @@ function SharedBlockProposal(p: SharedBlockProposalProps) {
               <div class={"sbp-load" + (x.needsCalibration ? " sbp-needs-cal" : "")} key={x.uid}>
                 <span class="sbp-load-name">{x.name}</span>
                 {x.needsCalibration ? (
-                  <button type="button" class="sbp-cal-btn" onClick={() => a.calibrate(l.eid, x.uid)}>Set a max</button>
+                  x.uid === p.meUid
+                    ? <button type="button" class="sbp-cal-btn" onClick={() => a.calibrate(l.eid, x.uid)}>Set a max</button>
+                    : <span class="sbp-load-pending">sets on their phone</span>
                 ) : (
                   <span class="sbp-load-val">{x.load}<span class="sbp-load-unit"> {x.unit}</span>{SRC_LABEL[x.maxSource] ? <span class="sbp-load-src"> {SRC_LABEL[x.maxSource]}</span> : null}</span>
                 )}
@@ -75,8 +79,8 @@ function SharedBlockProposal(p: SharedBlockProposalProps) {
 
       <div class="sbp-actions">
         <button type="button" class="btn btn-secondary-solid sbp-back" onClick={() => a.back()}>Back</button>
-        <button type="button" class="btn btn-cta btn-block sbp-confirm" disabled={anyCalib || !p.lifts.length} onClick={() => a.confirm()}>
-          {anyCalib ? "Set everyone's maxes first" : "Start lifting →"}
+        <button type="button" class="btn btn-cta btn-block sbp-confirm" disabled={myCalib || !p.lifts.length} onClick={() => a.confirm()}>
+          {myCalib ? "Set your max first" : "Start lifting →"}
         </button>
       </div>
     </div>

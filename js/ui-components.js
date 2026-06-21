@@ -766,6 +766,16 @@ function ProfileSettings(props) {
         }
       }
     ),
+    /* @__PURE__ */ u3(
+      Toggle,
+      {
+        id: "s-share-maxes",
+        checked: f4.shareMaxes,
+        title: "Share maxes with gym partners",
+        desc: "let people you lift with see your strength numbers so shared lifts auto-scale to each person. Off = partners do a quick calibration set instead.",
+        onChange: (v3) => set("shareMaxes", v3)
+      }
+    ),
     props.biometricAvailable ? /* @__PURE__ */ u3(
       Toggle,
       {
@@ -1758,7 +1768,7 @@ var SRC_LABEL = {
 };
 function SharedBlockProposal(p3) {
   const a3 = p3.actions;
-  const anyCalib = p3.lifts.some((l3) => l3.loads.some((x2) => x2.needsCalibration));
+  const myCalib = p3.lifts.some((l3) => l3.loads.some((x2) => x2.needsCalibration && x2.uid === p3.meUid));
   return /* @__PURE__ */ u3("div", { class: "sbp card", children: [
     /* @__PURE__ */ u3("div", { class: "card-h", children: [
       /* @__PURE__ */ u3("h2", { children: "Shared lifts" }),
@@ -1782,7 +1792,7 @@ function SharedBlockProposal(p3) {
       /* @__PURE__ */ u3("div", { class: "sbp-lift-reason", children: l3.reason }),
       /* @__PURE__ */ u3("div", { class: "sbp-loads", children: l3.loads.map((x2) => /* @__PURE__ */ u3("div", { class: "sbp-load" + (x2.needsCalibration ? " sbp-needs-cal" : ""), children: [
         /* @__PURE__ */ u3("span", { class: "sbp-load-name", children: x2.name }),
-        x2.needsCalibration ? /* @__PURE__ */ u3("button", { type: "button", class: "sbp-cal-btn", onClick: () => a3.calibrate(l3.eid, x2.uid), children: "Set a max" }) : /* @__PURE__ */ u3("span", { class: "sbp-load-val", children: [
+        x2.needsCalibration ? x2.uid === p3.meUid ? /* @__PURE__ */ u3("button", { type: "button", class: "sbp-cal-btn", onClick: () => a3.calibrate(l3.eid, x2.uid), children: "Set a max" }) : /* @__PURE__ */ u3("span", { class: "sbp-load-pending", children: "sets on their phone" }) : /* @__PURE__ */ u3("span", { class: "sbp-load-val", children: [
           x2.load,
           /* @__PURE__ */ u3("span", { class: "sbp-load-unit", children: [
             " ",
@@ -1798,12 +1808,17 @@ function SharedBlockProposal(p3) {
     /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-sm btn-block sbp-add", onClick: () => a3.addLift(), children: "+ Add a lift" }),
     /* @__PURE__ */ u3("div", { class: "sbp-actions", children: [
       /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid sbp-back", onClick: () => a3.back(), children: "Back" }),
-      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block sbp-confirm", disabled: anyCalib || !p3.lifts.length, onClick: () => a3.confirm(), children: anyCalib ? "Set everyone's maxes first" : "Start lifting \u2192" })
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block sbp-confirm", disabled: myCalib || !p3.lifts.length, onClick: () => a3.confirm(), children: myCalib ? "Set your max first" : "Start lifting \u2192" })
     ] })
   ] });
 }
 function mountSharedBlockProposal(container, props) {
   R(/* @__PURE__ */ u3(SharedBlockProposal, { ...props }), container);
+}
+
+// src/core/strength.ts
+function epley(w3, r3) {
+  return r3 <= 0 || w3 <= 0 ? 0 : w3 * (1 + r3 / 30);
 }
 
 // src/core/partner.ts
@@ -1833,6 +1848,9 @@ function roundToIncrement(load, increment) {
 function scaleLoad(max, intensityPct, increment = 5) {
   if (!(max > 0) || !(intensityPct > 0)) return 0;
   return roundToIncrement(max * intensityPct / 100, increment);
+}
+function calibrationToMax(weight, reps) {
+  return Math.round(epley(weight, reps));
 }
 var BW_MULT = {
   squat: 1.4,
@@ -1902,6 +1920,53 @@ function buildSharedLiftPlan(sug, users, scheme, increment = 5) {
     };
   });
   return { eid: sug.eid, name: sug.name, scheme, loads };
+}
+
+// src/ui/calibration-sheet.tsx
+function CalibrationSheet(p3) {
+  const [w3, setW] = d2("");
+  const [r3, setR] = d2("5");
+  const max = calibrationToMax(Number(w3) || 0, Number(r3) || 0);
+  return /* @__PURE__ */ u3("div", { class: "cal-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "cal-title", onClick: (e3) => {
+    if (e3.target === e3.currentTarget) p3.onCancel();
+  }, children: /* @__PURE__ */ u3("div", { class: "cal-sheet", children: [
+    /* @__PURE__ */ u3("div", { class: "cal-title", id: "cal-title", children: [
+      "Set your ",
+      p3.liftName,
+      " max"
+    ] }),
+    /* @__PURE__ */ u3("p", { class: "cal-sub", children: "No logged max yet \u2014 do one solid set and enter it. We'll estimate your working load and refine it as you train." }),
+    /* @__PURE__ */ u3("div", { class: "cal-row", children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: [
+          "Weight (",
+          p3.unit,
+          ")"
+        ] }),
+        /* @__PURE__ */ u3("input", { type: "number", class: "cal-w input-sm", value: w3, min: "0", step: "any", inputmode: "decimal", onInput: (e3) => setW(e3.target.value) })
+      ] }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "Reps" }),
+        /* @__PURE__ */ u3("input", { type: "number", class: "cal-r input-sm", value: r3, min: "1", inputmode: "numeric", onInput: (e3) => setR(e3.target.value) })
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "cal-est", children: max > 0 ? /* @__PURE__ */ u3(S, { children: [
+      "\u2248 ",
+      /* @__PURE__ */ u3("b", { children: [
+        max,
+        " ",
+        p3.unit
+      ] }),
+      " estimated 1RM"
+    ] }) : "Enter a set above" }),
+    /* @__PURE__ */ u3("div", { class: "cal-actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost cal-cancel", onClick: () => p3.onCancel(), children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block cal-submit", disabled: !(max > 0), onClick: () => p3.onSubmit(max), children: "Set max" })
+    ] })
+  ] }) });
+}
+function mountCalibrationSheet(container, props) {
+  R(/* @__PURE__ */ u3(CalibrationSheet, { ...props }), container);
 }
 
 // src/core/partner-pairing.ts
@@ -2059,7 +2124,17 @@ function PartnerApp(p3) {
   const [busy, setBusy] = d2(false);
   const [vibe, setVibe] = d2("hypertrophy");
   const [removed, setRemoved] = d2(/* @__PURE__ */ new Set());
+  const [calib, setCalib] = d2(null);
   const triedInitial = A2(false);
+  const onCalibSubmit = (max) => {
+    if (calib && session) backend.patchSession(session.id, { participants: { [ctx.uid]: { maxes: { [calib.eid]: max } } } }).catch(() => {
+    });
+    setCalib(null);
+  };
+  const withCalib = (content) => /* @__PURE__ */ u3(S, { children: [
+    content,
+    calib ? /* @__PURE__ */ u3(CalibrationSheet, { liftName: calib.liftName, unit: ctx.unit, onSubmit: onCalibSubmit, onCancel: () => setCalib(null) }) : null
+  ] });
   y2(() => {
     if (!sessionId) return;
     const u1 = backend.watchSession(sessionId, (s3) => setSession(s3));
@@ -2175,91 +2250,97 @@ function PartnerApp(p3) {
   }
   if (session.status === "proposing") {
     if (!isHost) return /* @__PURE__ */ u3("div", { class: "pn-flow card", children: /* @__PURE__ */ u3("p", { class: "pn-waiting", children: "Your host is choosing the shared lifts\u2026" }) });
-    return /* @__PURE__ */ u3(
-      SharedBlockProposal,
-      {
-        vibe,
-        vibes: VIBES,
-        lifts: proposalLifts,
-        actions: {
-          setVibe: (v3) => setVibe(v3),
-          removeLift: (eid) => setRemoved((s3) => /* @__PURE__ */ new Set([...s3, eid])),
-          addLift: () => {
-          },
-          calibrate: (eid, uid) => {
-          },
-          confirm: async () => {
-            const lifts = proposalLifts.map((l3, i4) => ({ eid: l3.eid, name: l3.name, order: i4, scheme: l3.scheme }));
-            await setSharedBlock(backend, session.id, lifts, vibe);
-            await transition(backend, session.id, "active");
-          },
-          back: () => transition(backend, session.id, "lobby")
+    return withCalib(
+      /* @__PURE__ */ u3(
+        SharedBlockProposal,
+        {
+          vibe,
+          vibes: VIBES,
+          lifts: proposalLifts,
+          meUid: ctx.uid,
+          actions: {
+            setVibe: (v3) => setVibe(v3),
+            removeLift: (eid) => setRemoved((s3) => /* @__PURE__ */ new Set([...s3, eid])),
+            addLift: () => {
+            },
+            calibrate: (eid, uid) => {
+              if (uid === ctx.uid) setCalib({ eid, liftName: proposalLifts.find((l3) => l3.eid === eid)?.name || eid });
+            },
+            confirm: async () => {
+              const lifts = proposalLifts.map((l3, i4) => ({ eid: l3.eid, name: l3.name, order: i4, scheme: l3.scheme }));
+              await setSharedBlock(backend, session.id, lifts, vibe);
+              await transition(backend, session.id, "active");
+            },
+            back: () => transition(backend, session.id, "lobby")
+          }
         }
-      }
+      )
     );
   }
   if (session.status === "active") {
     const users = toUsers(session, ctx);
-    return /* @__PURE__ */ u3("div", { class: "pn-live card", children: [
-      /* @__PURE__ */ u3("div", { class: "card-h", children: [
-        /* @__PURE__ */ u3("h2", { children: "Shared lifts" }),
-        session.liveState.turn ? /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: [
-          "Up: ",
-          session.participants[session.liveState.turn.uid]?.name,
-          " \xB7 set ",
-          session.liveState.turn.setNo
-        ] }) : null
-      ] }),
-      session.sharedLifts.map((lift) => {
-        const plan = buildSharedLiftPlan({ eid: lift.eid, name: lift.name, jointScore: 0, reason: "" }, users, lift.scheme, incrFor(lift.eid, ctx.catalog ?? PARTNER_COMPOUNDS));
-        const mine = plan.loads.find((l3) => l3.uid === ctx.uid);
-        return /* @__PURE__ */ u3("div", { class: "pn-live-lift", children: [
-          /* @__PURE__ */ u3("div", { class: "pn-live-head", children: [
-            /* @__PURE__ */ u3("b", { children: lift.name }),
-            /* @__PURE__ */ u3("span", { children: [
-              lift.scheme.sets,
-              "\xD7",
-              lift.scheme.reps,
-              " \xB7 ",
-              lift.scheme.intensityPct,
-              "%"
-            ] })
-          ] }),
-          /* @__PURE__ */ u3("div", { class: "pn-live-mine", children: [
-            "Your load: ",
-            /* @__PURE__ */ u3("b", { children: [
-              mine?.load || "\u2014",
+    return withCalib(
+      /* @__PURE__ */ u3("div", { class: "pn-live card", children: [
+        /* @__PURE__ */ u3("div", { class: "card-h", children: [
+          /* @__PURE__ */ u3("h2", { children: "Shared lifts" }),
+          session.liveState.turn ? /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: [
+            "Up: ",
+            session.participants[session.liveState.turn.uid]?.name,
+            " \xB7 set ",
+            session.liveState.turn.setNo
+          ] }) : null
+        ] }),
+        session.sharedLifts.map((lift) => {
+          const plan = buildSharedLiftPlan({ eid: lift.eid, name: lift.name, jointScore: 0, reason: "" }, users, lift.scheme, incrFor(lift.eid, ctx.catalog ?? PARTNER_COMPOUNDS));
+          const mine = plan.loads.find((l3) => l3.uid === ctx.uid);
+          return /* @__PURE__ */ u3("div", { class: "pn-live-lift", children: [
+            /* @__PURE__ */ u3("div", { class: "pn-live-head", children: [
+              /* @__PURE__ */ u3("b", { children: lift.name }),
+              /* @__PURE__ */ u3("span", { children: [
+                lift.scheme.sets,
+                "\xD7",
+                lift.scheme.reps,
+                " \xB7 ",
+                lift.scheme.intensityPct,
+                "%"
+              ] })
+            ] }),
+            /* @__PURE__ */ u3("div", { class: "pn-live-mine", children: [
+              "Your load: ",
+              /* @__PURE__ */ u3("b", { children: [
+                mine && !mine.needsCalibration ? mine.load : "\u2014",
+                " ",
+                ctx.unit
+              ] })
+            ] }),
+            mine && mine.needsCalibration ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-sm pn-live-cal", onClick: () => setCalib({ eid: lift.eid, liftName: lift.name }), children: "Set your max" }) : /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm pn-live-log", disabled: !mine || !mine.load, onClick: async () => {
+              const w3 = mine.load, reps = lift.scheme.reps;
+              await logSharedSet(backend, session.id, { id: ctx.uid + "_" + lift.eid + "_" + backend.now(), uid: ctx.uid, handle: ctx.handle, eid: lift.eid, name: lift.name, weight: w3, reps });
+              p3.onLogSet?.({ eid: lift.eid, name: lift.name, weight: w3, reps });
+              await advanceTurn(backend, session.id, Object.keys(session.participants));
+            }, children: [
+              "Log ",
+              mine?.load,
               " ",
-              ctx.unit
+              ctx.unit,
+              " \xD7 ",
+              lift.scheme.reps
             ] })
-          ] }),
-          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm pn-live-log", disabled: !mine || !mine.load, onClick: async () => {
-            const w3 = mine.load, reps = lift.scheme.reps;
-            await logSharedSet(backend, session.id, { id: ctx.uid + "_" + lift.eid + "_" + backend.now(), uid: ctx.uid, handle: ctx.handle, eid: lift.eid, name: lift.name, weight: w3, reps });
-            p3.onLogSet?.({ eid: lift.eid, name: lift.name, weight: w3, reps });
-            await advanceTurn(backend, session.id, Object.keys(session.participants));
-          }, children: [
-            "Log ",
-            mine?.load,
-            " ",
-            ctx.unit,
-            " \xD7 ",
-            lift.scheme.reps
-          ] })
-        ] }, lift.eid);
-      }),
-      /* @__PURE__ */ u3("div", { class: "pn-feed", children: feed.slice(-8).map((e3) => /* @__PURE__ */ u3("div", { class: "pn-feed-row", children: [
-        /* @__PURE__ */ u3("b", { children: e3.handle }),
-        " ",
-        e3.name,
-        " \xB7 ",
-        e3.weight,
-        " \xD7 ",
-        e3.reps,
-        e3.isPR ? " \u{1F3C6}" : ""
-      ] }, e3.id)) }),
-      isHost ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-mint btn-block pn-live-split", onClick: () => transition(backend, session.id, "split"), children: "Done together \u2192 solo accessories" }) : /* @__PURE__ */ u3("p", { class: "pn-hint", children: "Your host moves the group to accessories when ready." })
-    ] });
+          ] }, lift.eid);
+        }),
+        /* @__PURE__ */ u3("div", { class: "pn-feed", children: feed.slice(-8).map((e3) => /* @__PURE__ */ u3("div", { class: "pn-feed-row", children: [
+          /* @__PURE__ */ u3("b", { children: e3.handle }),
+          " ",
+          e3.name,
+          " \xB7 ",
+          e3.weight,
+          " \xD7 ",
+          e3.reps,
+          e3.isPR ? " \u{1F3C6}" : ""
+        ] }, e3.id)) }),
+        isHost ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-mint btn-block pn-live-split", onClick: () => transition(backend, session.id, "split"), children: "Done together \u2192 solo accessories" }) : /* @__PURE__ */ u3("p", { class: "pn-hint", children: "Your host moves the group to accessories when ready." })
+      ] })
+    );
   }
   if (session.status === "split") {
     const splitEids = ctx.planEids.filter((e3) => !session.sharedLifts.some((l3) => l3.eid === e3));
@@ -2290,6 +2371,7 @@ function mountPartnerApp(container, props) {
 export {
   AchievementsWall,
   BodyMetrics,
+  CalibrationSheet,
   ExerciseCard,
   FocusShell,
   PartnerApp,
@@ -2309,6 +2391,7 @@ export {
   WorkoutTools,
   mountAchievements,
   mountBodyMetrics,
+  mountCalibrationSheet,
   mountExerciseCard,
   mountFocusShell,
   mountPartnerApp,

@@ -18,7 +18,7 @@ function spies(): SharedBlockProposalActions {
 }
 function mount(over: Partial<SharedBlockProposalProps> = {}, actions = spies()) {
   const el = document.createElement("div");
-  render(<SharedBlockProposal vibe="hypertrophy" vibes={vibes} lifts={[squat]} actions={actions} {...over} />, el);
+  render(<SharedBlockProposal vibe="hypertrophy" vibes={vibes} lifts={[squat]} meUid="h" actions={actions} {...over} />, el);
   return { el, actions };
 }
 const click = (el: Element | null) => el && el.dispatchEvent(new Event("click", { bubbles: true }));
@@ -40,12 +40,19 @@ describe("SharedBlockProposal", () => {
     expect(actions.setVibe).toHaveBeenCalledWith("strength");
   });
 
-  it("blocks Start and offers calibration when a lifter has no max", () => {
-    const needsCal: ProposalLift = { ...squat, loads: [squat.loads[0], { uid: "w", name: "Sarah", load: 0, unit: "lb", maxSource: "none", needsCalibration: true }] };
-    const { el, actions } = mount({ lifts: [needsCal] });
-    expect((el.querySelector(".sbp-confirm") as HTMLButtonElement).disabled).toBe(true);
-    click(el.querySelector(".sbp-cal-btn"));
-    expect(actions.calibrate).toHaveBeenCalledWith("squat", "w");
+  it("blocks Start + offers calibration for MY missing max; partners set theirs on their phone", () => {
+    // I (h) have no max → Start blocked + my own "Set a max" button
+    const myCal: ProposalLift = { ...squat, loads: [{ uid: "h", name: "Dave", load: 0, unit: "lb", maxSource: "none", needsCalibration: true }, squat.loads[1]] };
+    const mine = mount({ lifts: [myCal] });
+    expect((mine.el.querySelector(".sbp-confirm") as HTMLButtonElement).disabled).toBe(true);
+    click(mine.el.querySelector(".sbp-cal-btn"));
+    expect(mine.actions.calibrate).toHaveBeenCalledWith("squat", "h");
+    // a partner (w) has no max → I'm NOT blocked; it shows "sets on their phone", no button for me
+    const theirCal: ProposalLift = { ...squat, loads: [squat.loads[0], { uid: "w", name: "Sarah", load: 0, unit: "lb", maxSource: "none", needsCalibration: true }] };
+    const theirs = mount({ lifts: [theirCal] });
+    expect((theirs.el.querySelector(".sbp-confirm") as HTMLButtonElement).disabled).toBe(false);
+    expect(theirs.el.querySelector(".sbp-load-pending")).toBeTruthy();
+    expect(theirs.el.querySelector(".sbp-cal-btn")).toBeNull();
   });
 
   it("remove / confirm dispatch when ready", () => {
