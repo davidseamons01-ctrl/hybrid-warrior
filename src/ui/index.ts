@@ -12,3 +12,6 @@ export * from "./strength-progress";
 export * from "./training-heatmap";
 export * from "./achievements";
 export * from "./body-metrics";
+export * from "./partner-entry";
+export * from "./partner-lobby";
+export * from "./shared-block-proposal";

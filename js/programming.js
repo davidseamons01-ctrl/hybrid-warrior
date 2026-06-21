@@ -722,6 +722,144 @@ function makeInvite(from, sessionId, opts = {}) {
   const now = opts.now ?? Date.now();
   return { id: opts.id ?? from.uid + "_" + now, fromUid: from.uid, fromHandle: from.handle, sessionId, createdAt: now };
 }
+
+// src/core/partner-session.ts
+function fsMerge(base, patch) {
+  if (patch === null || typeof patch !== "object" || Array.isArray(patch)) return patch;
+  const out = base && typeof base === "object" && !Array.isArray(base) ? { ...base } : {};
+  for (const k of Object.keys(patch)) {
+    const pv = patch[k];
+    const bv = out[k];
+    out[k] = pv && typeof pv === "object" && !Array.isArray(pv) && bv && typeof bv === "object" && !Array.isArray(bv) ? fsMerge(bv, pv) : pv;
+  }
+  return out;
+}
+var clone = (x) => JSON.parse(JSON.stringify(x));
+function createInMemoryBackend(opts = {}) {
+  const sessions = /* @__PURE__ */ new Map();
+  const codes = /* @__PURE__ */ new Map();
+  const feeds = /* @__PURE__ */ new Map();
+  const sessionSubs = /* @__PURE__ */ new Map();
+  const feedSubs = /* @__PURE__ */ new Map();
+  let counter = 0;
+  const now = opts.now || (() => Date.now());
+  const newId = opts.idSeq || (() => "id" + ++counter);
+  const feedArr = (id) => [...(feeds.get(id) || /* @__PURE__ */ new Map()).values()].sort((a, b) => a.ts - b.ts);
+  const emitSession = (id) => (sessionSubs.get(id) || []).forEach((cb) => cb(sessions.has(id) ? clone(sessions.get(id)) : null));
+  const emitFeed = (id) => (feedSubs.get(id) || []).forEach((cb) => cb(feedArr(id)));
+  const be = {
+    now,
+    newId,
+    _sessions: sessions,
+    _codes: codes,
+    _feeds: feeds,
+    async createSession(s) {
+      sessions.set(s.id, clone(s));
+      emitSession(s.id);
+    },
+    async getSession(id) {
+      return sessions.has(id) ? clone(sessions.get(id)) : null;
+    },
+    async patchSession(id, patch) {
+      const cur = sessions.get(id);
+      if (!cur) return;
+      sessions.set(id, fsMerge(cur, patch));
+      emitSession(id);
+    },
+    watchSession(id, cb) {
+      if (!sessionSubs.has(id)) sessionSubs.set(id, /* @__PURE__ */ new Set());
+      sessionSubs.get(id).add(cb);
+      cb(sessions.has(id) ? clone(sessions.get(id)) : null);
+      return () => {
+        sessionSubs.get(id)?.delete(cb);
+      };
+    },
+    async putCode(rec) {
+      codes.set(normalizeJoinCode(rec.code), { ...rec });
+    },
+    async getCode(code) {
+      const r = codes.get(normalizeJoinCode(code));
+      return r ? { ...r } : null;
+    },
+    async deleteCode(code) {
+      codes.delete(normalizeJoinCode(code));
+    },
+    async appendFeed(id, ev) {
+      if (!feeds.has(id)) feeds.set(id, /* @__PURE__ */ new Map());
+      feeds.get(id).set(ev.id, { ...ev });
+      emitFeed(id);
+    },
+    watchFeed(id, cb) {
+      if (!feedSubs.has(id)) feedSubs.set(id, /* @__PURE__ */ new Set());
+      feedSubs.get(id).add(cb);
+      cb(feedArr(id));
+      return () => {
+        feedSubs.get(id)?.delete(cb);
+      };
+    }
+  };
+  return be;
+}
+async function hostCreateSession(be, host, opts = {}) {
+  const id = be.newId();
+  const code = normalizeJoinCode(opts.code ?? makeJoinCode(opts.codeLen ?? 6));
+  const session = newPartnerSession(host, { id, code, vibe: opts.vibe, shareMaxes: opts.shareMaxes, now: be.now() });
+  await be.createSession(session);
+  await be.putCode(codeRecord(code, id, host.uid, { ttlMs: opts.ttlMs, now: be.now() }));
+  return { session, code };
+}
+async function joinByCode(be, user, codeInput, opts = {}) {
+  const code = normalizeJoinCode(codeInput);
+  const rec = await be.getCode(code);
+  if (!rec) return { ok: false, error: "not-found" };
+  if (isCodeExpired(rec, be.now())) return { ok: false, error: "expired" };
+  const session = await be.getSession(rec.sessionId);
+  if (!session) return { ok: false, error: "gone" };
+  if (session.status === "abandoned" || session.status === "complete") return { ok: false, error: "closed" };
+  if (!session.participants[user.uid]) {
+    const p = participantFromUser(user, { role: "guest", shareMaxes: !!opts.shareMaxes, now: be.now() });
+    await be.patchSession(rec.sessionId, { participants: { [user.uid]: p }, updatedAt: be.now() });
+  }
+  return { ok: true, session: await be.getSession(rec.sessionId) };
+}
+async function setReadyRemote(be, id, uid, ready) {
+  await be.patchSession(id, { participants: { [uid]: { ready, lastSeen: be.now() } }, updatedAt: be.now() });
+}
+async function heartbeat(be, id, uid) {
+  await be.patchSession(id, { participants: { [uid]: { lastSeen: be.now() } } });
+}
+async function setSharedBlock(be, id, lifts, vibe) {
+  const patch = { sharedLifts: lifts, updatedAt: be.now() };
+  if (vibe) patch.vibe = vibe;
+  await be.patchSession(id, patch);
+}
+async function transition(be, id, to) {
+  const s = await be.getSession(id);
+  if (!s || !canTransition(s.status, to)) return false;
+  await be.patchSession(id, { status: to, updatedAt: be.now() });
+  return true;
+}
+async function logSharedSet(be, id, ev) {
+  await be.appendFeed(id, { ...ev, ts: ev.ts ?? be.now() });
+}
+async function advanceTurn(be, id, order) {
+  if (!order.length) return;
+  const s = await be.getSession(id);
+  if (!s) return;
+  const turn = s.liveState.turn;
+  let uid = order[0], setNo = 1;
+  if (turn) {
+    const i = order.indexOf(turn.uid);
+    if (i < 0 || i === order.length - 1) {
+      uid = order[0];
+      setNo = turn.setNo + 1;
+    } else {
+      uid = order[i + 1];
+      setNo = turn.setNo;
+    }
+  }
+  await be.patchSession(id, { liveState: { turn: { uid, setNo } }, updatedAt: be.now() });
+}
 export {
   ALL_EQUIPMENT,
   ALL_GOALS,
@@ -733,6 +871,7 @@ export {
   accessoryReps,
   accessoryRx,
   addGymBuddy,
+  advanceTurn,
   allReady,
   bestPlanId,
   buildSharedLiftPlan,
@@ -740,6 +879,7 @@ export {
   canPerform,
   canTransition,
   codeRecord,
+  createInMemoryBackend,
   detectPlateau,
   e1rmSeries,
   epley,
@@ -749,13 +889,18 @@ export {
   exerciseNeeds,
   fitScore,
   fromLegacyLogs,
+  fsMerge,
   goalFromFocus,
   hasGymBuddy,
+  heartbeat,
+  hostCreateSession,
   isCodeExpired,
   isDeloadWeek,
   isOnline,
   isValidJoinCode,
+  joinByCode,
   joinHash,
+  logSharedSet,
   makeInvite,
   makeJoinCode,
   mergeEvents,
@@ -782,10 +927,13 @@ export {
   setDeletedEvent,
   setLoggedFromLog,
   setReady,
+  setReadyRemote,
+  setSharedBlock,
   substituteEid,
   suggestSharedLifts,
   toEmbedUrl,
   touchPresence,
+  transition,
   warmupSets,
   warmupText,
   whyPlan,

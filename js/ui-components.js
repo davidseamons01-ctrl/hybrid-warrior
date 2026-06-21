@@ -1666,17 +1666,155 @@ function BodyMetrics(p3) {
 function mountBodyMetrics(container, props) {
   R(/* @__PURE__ */ u3(BodyMetrics, { ...props }), container);
 }
+
+// src/ui/partner-entry.tsx
+function PartnerEntry(p3) {
+  const a3 = p3.actions;
+  return /* @__PURE__ */ u3("div", { class: "pn-entry card", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Lift Together" }) }),
+    p3.mode === "idle" ? /* @__PURE__ */ u3("div", { class: "pn-idle", children: [
+      /* @__PURE__ */ u3("p", { class: "pn-sub", children: "Train with a friend in person \u2014 share a few big lifts at each of your own loads, then split to your own accessories." }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block pn-start", onClick: () => a3.startSession(), children: "Start a session" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-block pn-open-join", onClick: () => a3.openJoin(), children: "Join with a code" })
+    ] }) : null,
+    p3.mode === "hosting" ? /* @__PURE__ */ u3("div", { class: "pn-hosting", children: [
+      /* @__PURE__ */ u3("div", { class: "pn-code", "aria-label": `Join code ${p3.code || ""}`, children: [...p3.code || ""].map((c3, i4) => /* @__PURE__ */ u3("span", { class: "pn-code-char", children: c3 }, i4)) }),
+      /* @__PURE__ */ u3("p", { class: "pn-sub", children: [
+        "Have your partner tap ",
+        /* @__PURE__ */ u3("b", { children: "Join with a code" }),
+        " and enter this \u2014 or scan the QR."
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "pn-qr", "data-code": p3.code }),
+      /* @__PURE__ */ u3("p", { class: "pn-waiting", children: "Waiting for partners to join\u2026" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-block pn-cancel", onClick: () => a3.cancel(), children: "Cancel" })
+    ] }) : null,
+    p3.mode === "joining" ? /* @__PURE__ */ u3(
+      "form",
+      {
+        class: "pn-joining",
+        onSubmit: (e3) => {
+          e3.preventDefault();
+          const inp = e3.currentTarget.querySelector(".pn-code-input");
+          a3.submitJoin(inp ? inp.value : "");
+        },
+        children: [
+          /* @__PURE__ */ u3("label", { children: "Session code" }),
+          /* @__PURE__ */ u3("input", { class: "pn-code-input", type: "text", inputmode: "text", autocomplete: "off", spellcheck: false, placeholder: "ABC23X", maxlength: 8, "aria-label": "Session code" }),
+          p3.joinError ? /* @__PURE__ */ u3("div", { class: "pn-error", children: p3.joinError }) : null,
+          /* @__PURE__ */ u3("button", { type: "submit", class: "btn btn-cta btn-block pn-submit", disabled: !!p3.busy, children: "Join" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-block pn-cancel", onClick: () => a3.cancel(), children: "Back" })
+        ]
+      }
+    ) : null
+  ] });
+}
+function mountPartnerEntry(container, props) {
+  R(/* @__PURE__ */ u3(PartnerEntry, { ...props }), container);
+}
+
+// src/ui/partner-lobby.tsx
+function PartnerLobby(p3) {
+  const a3 = p3.actions;
+  const me = p3.participants.find((x2) => x2.uid === p3.meUid);
+  const everyoneReady = p3.participants.length > 0 && p3.participants.every((x2) => x2.ready);
+  const canStart = p3.isHost && p3.participants.length >= 2 && everyoneReady;
+  return /* @__PURE__ */ u3("div", { class: "pn-lobby card", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: [
+      /* @__PURE__ */ u3("h2", { children: "Lobby" }),
+      /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: [
+        p3.participants.length,
+        " in"
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "pn-roster", children: p3.participants.map((x2) => /* @__PURE__ */ u3("div", { class: "pn-member" + (x2.uid === p3.meUid ? " pn-me" : ""), children: [
+      /* @__PURE__ */ u3("span", { class: "pn-dot " + (x2.online ? "pn-on" : "pn-off"), title: x2.online ? "Online" : "Offline" }),
+      /* @__PURE__ */ u3("span", { class: "pn-name", children: x2.name }),
+      x2.role === "host" ? /* @__PURE__ */ u3("span", { class: "badge badge-ice pn-role", children: "Host" }) : null,
+      !x2.maxesShared ? /* @__PURE__ */ u3("span", { class: "pn-noshare", title: "Maxes not shared", children: "\u{1F512}" }) : null,
+      /* @__PURE__ */ u3("span", { class: "pn-ready " + (x2.ready ? "pn-is-ready" : "pn-not-ready"), children: x2.ready ? "\u2713 Ready" : "Not ready" })
+    ] }, x2.uid)) }),
+    /* @__PURE__ */ u3("div", { class: "pn-lobby-actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-block " + (me && me.ready ? "btn-secondary-solid" : "btn-cta") + " pn-toggle-ready", onClick: () => a3.toggleReady(!(me && me.ready)), children: me && me.ready ? "Not ready" : "I'm ready" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-sm pn-invite", onClick: () => a3.invite(), children: "Invite a gym-buddy" }),
+      p3.isHost ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-mint btn-block pn-start-session", disabled: !canStart, onClick: () => a3.start(), children: canStart ? "Continue \u2192 pick shared lifts" : p3.participants.length < 2 ? "Waiting for a partner\u2026" : "Waiting for everyone to ready up\u2026" }) : /* @__PURE__ */ u3("p", { class: "pn-hint", children: "Your host starts the session once everyone's ready." }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-sm pn-leave", onClick: () => a3.leave(), children: "Leave" })
+    ] })
+  ] });
+}
+function mountPartnerLobby(container, props) {
+  R(/* @__PURE__ */ u3(PartnerLobby, { ...props }), container);
+}
+
+// src/ui/shared-block-proposal.tsx
+var SRC_LABEL = {
+  logged: "",
+  estimated: "est.",
+  calibrated: "set",
+  none: ""
+};
+function SharedBlockProposal(p3) {
+  const a3 = p3.actions;
+  const anyCalib = p3.lifts.some((l3) => l3.loads.some((x2) => x2.needsCalibration));
+  return /* @__PURE__ */ u3("div", { class: "sbp card", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: [
+      /* @__PURE__ */ u3("h2", { children: "Shared lifts" }),
+      /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: "Together" })
+    ] }),
+    /* @__PURE__ */ u3("p", { class: "sbp-sub", children: "Done together at each lifter's own load, then you split to your own accessories." }),
+    /* @__PURE__ */ u3("div", { class: "sbp-vibes", role: "tablist", "aria-label": "Intensity", children: p3.vibes.map((v3) => /* @__PURE__ */ u3("button", { type: "button", class: "sbp-vibe" + (v3.id === p3.vibe ? " on" : ""), "aria-selected": v3.id === p3.vibe, onClick: () => a3.setVibe(v3.id), children: v3.label }, v3.id)) }),
+    p3.lifts.length ? p3.lifts.map((l3) => /* @__PURE__ */ u3("div", { class: "sbp-lift", children: [
+      /* @__PURE__ */ u3("div", { class: "sbp-lift-head", children: [
+        /* @__PURE__ */ u3("span", { class: "sbp-lift-name", children: l3.name }),
+        /* @__PURE__ */ u3("span", { class: "sbp-lift-scheme", children: [
+          l3.scheme.sets,
+          "\xD7",
+          l3.scheme.reps,
+          " \xB7 ",
+          l3.scheme.intensityPct,
+          "%"
+        ] }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "sbp-remove", "aria-label": `Remove ${l3.name}`, onClick: () => a3.removeLift(l3.eid), children: "\xD7" })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "sbp-lift-reason", children: l3.reason }),
+      /* @__PURE__ */ u3("div", { class: "sbp-loads", children: l3.loads.map((x2) => /* @__PURE__ */ u3("div", { class: "sbp-load" + (x2.needsCalibration ? " sbp-needs-cal" : ""), children: [
+        /* @__PURE__ */ u3("span", { class: "sbp-load-name", children: x2.name }),
+        x2.needsCalibration ? /* @__PURE__ */ u3("button", { type: "button", class: "sbp-cal-btn", onClick: () => a3.calibrate(l3.eid, x2.uid), children: "Set a max" }) : /* @__PURE__ */ u3("span", { class: "sbp-load-val", children: [
+          x2.load,
+          /* @__PURE__ */ u3("span", { class: "sbp-load-unit", children: [
+            " ",
+            x2.unit
+          ] }),
+          SRC_LABEL[x2.maxSource] ? /* @__PURE__ */ u3("span", { class: "sbp-load-src", children: [
+            " ",
+            SRC_LABEL[x2.maxSource]
+          ] }) : null
+        ] })
+      ] }, x2.uid)) })
+    ] }, l3.eid)) : /* @__PURE__ */ u3("p", { class: "sbp-empty", children: "No shared lift works for everyone's equipment/goals \u2014 add one manually." }),
+    /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-sm btn-block sbp-add", onClick: () => a3.addLift(), children: "+ Add a lift" }),
+    /* @__PURE__ */ u3("div", { class: "sbp-actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid sbp-back", onClick: () => a3.back(), children: "Back" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block sbp-confirm", disabled: anyCalib || !p3.lifts.length, onClick: () => a3.confirm(), children: anyCalib ? "Set everyone's maxes first" : "Start lifting \u2192" })
+    ] })
+  ] });
+}
+function mountSharedBlockProposal(container, props) {
+  R(/* @__PURE__ */ u3(SharedBlockProposal, { ...props }), container);
+}
 export {
   AchievementsWall,
   BodyMetrics,
   ExerciseCard,
   FocusShell,
+  PartnerEntry,
+  PartnerLobby,
   PersonalRecords,
   PlanView,
   ProfileSettings,
   ReadinessCard,
   SessionFeelCard,
   SessionSummary,
+  SharedBlockProposal,
   SocialView,
   StrengthProgress,
   TrainingHeatmap,
@@ -1686,12 +1824,15 @@ export {
   mountBodyMetrics,
   mountExerciseCard,
   mountFocusShell,
+  mountPartnerEntry,
+  mountPartnerLobby,
   mountPersonalRecords,
   mountPlan,
   mountProfileSettings,
   mountReadinessCard,
   mountSessionFeelCard,
   mountSessionSummary,
+  mountSharedBlockProposal,
   mountSocial,
   mountStrengthProgress,
   mountTrainingHeatmap,

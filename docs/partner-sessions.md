@@ -224,11 +224,15 @@ friendships/{pairId}  (or prefs.gymBuddies[])   // persistent buddies
 - `partner_invites/{uid}/...` writable by senders, readable/deletable by the owner.
 - Each user's own `hw/{uid}` stream remains private to them (unchanged).
 
-> **Implemented (M2):** version-controlled rules live in [`firestore.rules`](../firestore.rules)
-> — reconcile with the live console rules and test in the emulator before
-> `firebase deploy --only firestore:rules`. The pure session/pairing data model is in
-> `src/core/partner-pairing.ts` (unit-tested); the fbDb create/join/onSnapshot wrappers
-> land in M3 alongside the live runtime.
+> **Implemented (M1–M3):** the merge engine (`src/core/partner.ts`), pairing/session
+> model (`partner-pairing.ts`), and the **live runtime** (`partner-session.ts` — a
+> backend-agnostic coordination layer over an injected `SessionBackend`: host/join,
+> presence, status flow, CRDT set feed, turn-taking — with an in-memory fake fully
+> unit-tested). Security rules are version-controlled in [`firestore.rules`](../firestore.rules)
+> and exercised against the **Firestore emulator** via `npm run test:rules` (needs
+> Java 11+ and firebase-tools; first run downloads the emulator). Reconcile with the
+> live console rules before `firebase deploy --only firestore:rules`. The concrete
+> `FirestoreBackend` adapter (wrapping fbDb) is wired when the partner UI mounts (M4).
 
 ## 9. Architecture & fit with the existing app
 - **Engine (pure, tested like the rest):** new `src/core` modules —
