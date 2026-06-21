@@ -38,7 +38,7 @@ export interface PartnerUser {
   name: string;
   maxes: Record<string, number>; // eid -> 1RM (lb)
   focus: string[];               // their goal/focus tags
-  equipment: PartnerEquipment[];        // available equipment
+  equipment: string[];           // available equipment types
   blockedEids?: string[];        // safety-mode exclusions
   unit?: "lb" | "kg";
   bodyweightLb?: number;

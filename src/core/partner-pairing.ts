@@ -20,6 +20,8 @@ export interface Participant {
   role: "host" | "guest";
   maxes: ParticipantMaxes; // {} unless the user opted into sharing
   maxesShared: boolean;
+  focus: string[];         // goal/focus tags (not sensitive → always shared, for joint-fit)
+  equipment: string[];     // available equipment
   ready: boolean;
   lastSeen: number;        // epoch ms — presence heartbeat
   progress: { sharedDone: number; splitDone: number };
@@ -40,7 +42,7 @@ export interface PartnerSession {
   liveState: { currentLiftIndex: number; turn: { uid: string; setNo: number } | null; restEndsAt: number | null };
 }
 
-export interface UserRef { uid: string; handle: string; name?: string; maxes?: ParticipantMaxes }
+export interface UserRef { uid: string; handle: string; name?: string; maxes?: ParticipantMaxes; focus?: string[]; equipment?: string[] }
 
 /** Build a participant entry; maxes are included only with explicit consent. */
 export function participantFromUser(u: UserRef, opts: { role: "host" | "guest"; shareMaxes: boolean; now?: number }): Participant {
@@ -51,6 +53,8 @@ export function participantFromUser(u: UserRef, opts: { role: "host" | "guest"; 
     role: opts.role,
     maxes: opts.shareMaxes ? (u.maxes || {}) : {},
     maxesShared: !!opts.shareMaxes,
+    focus: u.focus || [],
+    equipment: u.equipment || [],
     ready: false,
     lastSeen: opts.now ?? Date.now(),
     progress: { sharedDone: 0, splitDone: 0 },

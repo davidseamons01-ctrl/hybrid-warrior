@@ -72,9 +72,9 @@ function H() {
   }
 }
 function L(n2, l3, u4, t3, i4, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y2, _2, g2, m3 = t3 && t3.__k || w, b2 = l3.length;
-  for (f4 = T(u4, l3, m3, f4, b2), s3 = 0; s3 < b2; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && m3[p3.__i] || d, p3.__i = s3, _2 = q(n2, p3, h3, i4, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y2 && null != v3 && (y2 = v3), (g2 = !!(4 & p3.__u)) || h3.__k === p3.__k ? (f4 = j(p3, f4, n2, g2), g2 && h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _2 ? f4 = _2 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
-  return u4.__e = y2, f4;
+  var s3, h3, p3, v3, y3, _2, g2, m3 = t3 && t3.__k || w, b2 = l3.length;
+  for (f4 = T(u4, l3, m3, f4, b2), s3 = 0; s3 < b2; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && m3[p3.__i] || d, p3.__i = s3, _2 = q(n2, p3, h3, i4, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), (g2 = !!(4 & p3.__u)) || h3.__k === p3.__k ? (f4 = j(p3, f4, n2, g2), g2 && h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _2 ? f4 = _2 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
+  return u4.__e = y3, f4;
 }
 function T(n2, l3, u4, t3, i4) {
   var r3, o3, e3, f4, c3, a3 = u4.length, s3 = a3, h3 = 0;
@@ -134,11 +134,11 @@ function V(n2) {
   };
 }
 function q(n2, u4, t3, i4, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y2, d3, _2, k3, x2, M, $2, I2, P2, A3, H2, T3 = u4.type;
+  var s3, h3, p3, v3, y3, d3, _2, k3, x2, M, $2, I2, P2, A3, H2, T3 = u4.type;
   if (void 0 !== u4.constructor) return null;
   128 & t3.__u && (c3 = !!(32 & t3.__u), o3 = [f4 = u4.__e = t3.__e]), (s3 = l.__b) && s3(u4);
   n: if ("function" == typeof T3) try {
-    if (k3 = u4.props, x2 = T3.prototype && T3.prototype.render, M = (s3 = T3.contextType) && i4[s3.__c], $2 = s3 ? M ? M.props.value : s3.__ : i4, t3.__c ? _2 = (h3 = u4.__c = t3.__c).__ = h3.__E : (x2 ? u4.__c = h3 = new T3(k3, $2) : (u4.__c = h3 = new C(k3, $2), h3.constructor = T3, h3.render = Q), M && M.sub(h3), h3.state || (h3.state = {}), h3.__n = i4, p3 = h3.__d = true, h3.__h = [], h3._sb = []), x2 && null == h3.__s && (h3.__s = h3.state), x2 && null != T3.getDerivedStateFromProps && (h3.__s == h3.state && (h3.__s = m({}, h3.__s)), m(h3.__s, T3.getDerivedStateFromProps(k3, h3.__s))), v3 = h3.props, y2 = h3.state, h3.__v = u4, p3) x2 && null == T3.getDerivedStateFromProps && null != h3.componentWillMount && h3.componentWillMount(), x2 && null != h3.componentDidMount && h3.__h.push(h3.componentDidMount);
+    if (k3 = u4.props, x2 = T3.prototype && T3.prototype.render, M = (s3 = T3.contextType) && i4[s3.__c], $2 = s3 ? M ? M.props.value : s3.__ : i4, t3.__c ? _2 = (h3 = u4.__c = t3.__c).__ = h3.__E : (x2 ? u4.__c = h3 = new T3(k3, $2) : (u4.__c = h3 = new C(k3, $2), h3.constructor = T3, h3.render = Q), M && M.sub(h3), h3.state || (h3.state = {}), h3.__n = i4, p3 = h3.__d = true, h3.__h = [], h3._sb = []), x2 && null == h3.__s && (h3.__s = h3.state), x2 && null != T3.getDerivedStateFromProps && (h3.__s == h3.state && (h3.__s = m({}, h3.__s)), m(h3.__s, T3.getDerivedStateFromProps(k3, h3.__s))), v3 = h3.props, y3 = h3.state, h3.__v = u4, p3) x2 && null == T3.getDerivedStateFromProps && null != h3.componentWillMount && h3.componentWillMount(), x2 && null != h3.componentDidMount && h3.__h.push(h3.componentDidMount);
     else {
       if (x2 && null == T3.getDerivedStateFromProps && k3 !== v3 && null != h3.componentWillReceiveProps && h3.componentWillReceiveProps(k3, $2), u4.__v == t3.__v || !h3.__e && null != h3.shouldComponentUpdate && false === h3.shouldComponentUpdate(k3, h3.__s, $2)) {
         u4.__v != t3.__v && (h3.props = k3, h3.state = h3.__s, h3.__d = false), u4.__e = t3.__e, u4.__k = t3.__k, u4.__k.some(function(n3) {
@@ -147,14 +147,14 @@ function q(n2, u4, t3, i4, r3, o3, e3, f4, c3, a3) {
         break n;
       }
       null != h3.componentWillUpdate && h3.componentWillUpdate(k3, h3.__s, $2), x2 && null != h3.componentDidUpdate && h3.__h.push(function() {
-        h3.componentDidUpdate(v3, y2, d3);
+        h3.componentDidUpdate(v3, y3, d3);
       });
     }
     if (h3.context = $2, h3.props = k3, h3.__P = n2, h3.__e = false, I2 = l.__r, P2 = 0, x2) h3.state = h3.__s, h3.__d = false, I2 && I2(u4), s3 = h3.render(h3.props, h3.state, h3.context), w.push.apply(h3.__h, h3._sb), h3._sb = [];
     else do {
       h3.__d = false, I2 && I2(u4), s3 = h3.render(h3.props, h3.state, h3.context), h3.state = h3.__s;
     } while (h3.__d && ++P2 < 25);
-    h3.state = h3.__s, null != h3.getChildContext && (i4 = m(m({}, i4), h3.getChildContext())), x2 && !p3 && null != h3.getSnapshotBeforeUpdate && (d3 = h3.getSnapshotBeforeUpdate(v3, y2)), A3 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(A3) ? A3 : [A3], u4, t3, i4, r3, o3, e3, f4, c3, a3), h3.base = u4.__e, u4.__u &= -161, h3.__h.length && e3.push(h3), _2 && (h3.__E = h3.__ = null);
+    h3.state = h3.__s, null != h3.getChildContext && (i4 = m(m({}, i4), h3.getChildContext())), x2 && !p3 && null != h3.getSnapshotBeforeUpdate && (d3 = h3.getSnapshotBeforeUpdate(v3, y3)), A3 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(A3) ? A3 : [A3], u4, t3, i4, r3, o3, e3, f4, c3, a3), h3.base = u4.__e, u4.__u &= -161, h3.__h.length && e3.push(h3), _2 && (h3.__E = h3.__ = null);
   } catch (n3) {
     if (u4.__v = null, c3 || null != o3) if (n3.then) {
       for (u4.__u |= c3 ? 160 : 128; f4 && 8 == f4.nodeType && f4.nextSibling; ) f4 = f4.nextSibling;
@@ -188,10 +188,10 @@ function E(n2) {
   return "object" != typeof n2 || null == n2 || n2.__b > 0 ? n2 : g(n2) ? n2.map(E) : void 0 !== n2.constructor ? null : m({}, n2);
 }
 function G(u4, t3, i4, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y2, w3, _2, m3 = i4.props || d, k3 = t3.props, x2 = t3.type;
+  var s3, h3, p3, v3, y3, w3, _2, m3 = i4.props || d, k3 = t3.props, x2 = t3.type;
   if ("svg" == x2 ? o3 = "http://www.w3.org/2000/svg" : "math" == x2 ? o3 = "http://www.w3.org/1998/Math/MathML" : o3 || (o3 = "http://www.w3.org/1999/xhtml"), null != e3) {
-    for (s3 = 0; s3 < e3.length; s3++) if ((y2 = e3[s3]) && "setAttribute" in y2 == !!x2 && (x2 ? y2.localName == x2 : 3 == y2.nodeType)) {
-      u4 = y2, e3[s3] = null;
+    for (s3 = 0; s3 < e3.length; s3++) if ((y3 = e3[s3]) && "setAttribute" in y3 == !!x2 && (x2 ? y3.localName == x2 : 3 == y3.nodeType)) {
+      u4 = y3, e3[s3] = null;
       break;
     }
   }
@@ -201,9 +201,9 @@ function G(u4, t3, i4, r3, o3, e3, f4, c3, a3) {
   }
   if (null == x2) m3 === k3 || c3 && u4.data == k3 || (u4.data = k3);
   else {
-    if (e3 = "textarea" == x2 && null != k3.defaultValue ? null : e3 && n.call(u4.childNodes), !c3 && null != e3) for (m3 = {}, s3 = 0; s3 < u4.attributes.length; s3++) m3[(y2 = u4.attributes[s3]).name] = y2.value;
-    for (s3 in m3) y2 = m3[s3], "dangerouslySetInnerHTML" == s3 ? p3 = y2 : "children" == s3 || s3 in k3 || "value" == s3 && "defaultValue" in k3 || "checked" == s3 && "defaultChecked" in k3 || N(u4, s3, null, y2, o3);
-    for (s3 in k3) y2 = k3[s3], "children" == s3 ? v3 = y2 : "dangerouslySetInnerHTML" == s3 ? h3 = y2 : "value" == s3 ? w3 = y2 : "checked" == s3 ? _2 = y2 : c3 && "function" != typeof y2 || m3[s3] === y2 || N(u4, s3, y2, m3[s3], o3);
+    if (e3 = "textarea" == x2 && null != k3.defaultValue ? null : e3 && n.call(u4.childNodes), !c3 && null != e3) for (m3 = {}, s3 = 0; s3 < u4.attributes.length; s3++) m3[(y3 = u4.attributes[s3]).name] = y3.value;
+    for (s3 in m3) y3 = m3[s3], "dangerouslySetInnerHTML" == s3 ? p3 = y3 : "children" == s3 || s3 in k3 || "value" == s3 && "defaultValue" in k3 || "checked" == s3 && "defaultChecked" in k3 || N(u4, s3, null, y3, o3);
+    for (s3 in k3) y3 = k3[s3], "children" == s3 ? v3 = y3 : "dangerouslySetInnerHTML" == s3 ? h3 = y3 : "value" == s3 ? w3 = y3 : "checked" == s3 ? _2 = y3 : c3 && "function" != typeof y3 || m3[s3] === y3 || N(u4, s3, y3, m3[s3], o3);
     if (h3) c3 || p3 && (h3.__html == p3.__html || h3.__html == u4.innerHTML) || (u4.innerHTML = h3.__html), t3.__k = [];
     else if (p3 && (u4.innerHTML = ""), L("template" == t3.type ? u4.content : u4, g(v3) ? v3 : [v3], t3, i4, r3, "foreignObject" == x2 ? "http://www.w3.org/1999/xhtml" : o3, e3, f4, e3 ? e3[0] : i4.__k && $(i4, 0), c3, a3), null != e3) for (s3 = e3.length; s3--; ) b(e3[s3]);
     c3 && "textarea" != x2 || (s3 = "value", "progress" == x2 && null == w3 ? u4.removeAttribute("value") : null != w3 && (w3 !== u4[s3] || "progress" == x2 && !w3 || "option" == x2 && w3 != m3[s3]) && N(u4, s3, w3, m3[s3], o3), s3 = "checked", null != _2 && _2 != u4[s3] && N(u4, s3, _2, m3[s3], o3));
@@ -313,6 +313,10 @@ function h2(n2, u4, i4) {
     }, r2.shouldComponentUpdate = f4;
   }
   return o3.__N || o3.__;
+}
+function y2(n2, u4) {
+  var i4 = p2(t2++, 3);
+  !c2.__s && C2(i4.__H, u4) && (i4.__ = n2, i4.u = u4, r2.__H.__h.push(i4));
 }
 function A2(n2) {
   return o2 = 5, T2(function() {
@@ -1801,11 +1805,494 @@ function SharedBlockProposal(p3) {
 function mountSharedBlockProposal(container, props) {
   R(/* @__PURE__ */ u3(SharedBlockProposal, { ...props }), container);
 }
+
+// src/core/partner.ts
+var VIBE_SCHEMES = {
+  strength: { sets: 5, reps: 3, intensityPct: 85 },
+  hypertrophy: { sets: 4, reps: 8, intensityPct: 70 },
+  pump: { sets: 3, reps: 12, intensityPct: 60 }
+};
+var PARTNER_COMPOUNDS = [
+  { eid: "squat", name: "Back Squat", tags: ["legs", "quads", "glutes", "posterior", "strength"], equipment: "barbell", increment: 5 },
+  { eid: "frontsquat", name: "Front Squat", tags: ["legs", "quads", "core", "strength"], equipment: "barbell", increment: 5 },
+  { eid: "bench", name: "Bench Press", tags: ["push", "chest", "upper", "strength"], equipment: "barbell", increment: 5 },
+  { eid: "incline", name: "Incline Bench", tags: ["push", "chest", "shoulders", "upper"], equipment: "barbell", increment: 5 },
+  { eid: "deadlift", name: "Deadlift", tags: ["hinge", "posterior", "glutes", "back", "strength"], equipment: "barbell", increment: 5 },
+  { eid: "rdl", name: "Romanian Deadlift", tags: ["hinge", "posterior", "glutes", "hamstrings"], equipment: "barbell", increment: 5 },
+  { eid: "hipthrust", name: "Hip Thrust", tags: ["glutes", "posterior", "legs"], equipment: "barbell", increment: 5 },
+  { eid: "ohp", name: "Overhead Press", tags: ["push", "shoulders", "upper", "strength"], equipment: "barbell", increment: 5 },
+  { eid: "row", name: "Barbell Row", tags: ["pull", "back", "upper", "posterior"], equipment: "barbell", increment: 5 },
+  { eid: "pullup", name: "Pull-up", tags: ["pull", "back", "upper"], equipment: "bodyweight", increment: 0 },
+  { eid: "lunge", name: "Walking Lunge", tags: ["legs", "quads", "glutes"], equipment: "dumbbell", increment: 5 },
+  { eid: "legpress", name: "Leg Press", tags: ["legs", "quads", "glutes"], equipment: "machine", increment: 10 }
+];
+function roundToIncrement(load, increment) {
+  if (!(increment > 0)) return Math.max(0, Math.round(load));
+  return Math.max(0, Math.round(load / increment) * increment);
+}
+function scaleLoad(max, intensityPct, increment = 5) {
+  if (!(max > 0) || !(intensityPct > 0)) return 0;
+  return roundToIncrement(max * intensityPct / 100, increment);
+}
+var BW_MULT = {
+  squat: 1.4,
+  frontsquat: 1.1,
+  bench: 1,
+  incline: 0.85,
+  deadlift: 1.75,
+  rdl: 1.4,
+  hipthrust: 1.6,
+  ohp: 0.6,
+  row: 0.9,
+  lunge: 0.5,
+  legpress: 2.2,
+  pullup: 0
+};
+var EXP_FACTOR = { beginner: 0.65, intermediate: 1, advanced: 1.3 };
+function estimateMaxFromBodyweight(eid, bodyweightLb, experience = "intermediate") {
+  const m3 = BW_MULT[eid];
+  if (m3 == null || !(bodyweightLb > 0)) return 0;
+  const f4 = EXP_FACTOR[experience] ?? 1;
+  return Math.round(bodyweightLb * m3 * f4 / 5) * 5;
+}
+function resolveMax(user, eid) {
+  const logged = Number(user.maxes?.[eid]) || 0;
+  if (logged > 0) return { value: logged, source: "logged" };
+  const est = user.bodyweightLb ? estimateMaxFromBodyweight(eid, user.bodyweightLb, user.experience) : 0;
+  if (est > 0) return { value: est, source: "estimated" };
+  return { value: 0, source: "none" };
+}
+function fitScore(user, c3) {
+  const focus = new Set(user.focus || []);
+  let s3 = 0;
+  for (const t3 of c3.tags) if (focus.has(t3)) s3++;
+  return s3;
+}
+function canPerform(user, c3) {
+  if ((user.blockedEids || []).includes(c3.eid)) return false;
+  if (c3.equipment !== "bodyweight" && !(user.equipment || []).includes(c3.equipment)) return false;
+  return true;
+}
+function suggestSharedLifts(users, catalog = PARTNER_COMPOUNDS, opts = {}) {
+  const max = opts.max ?? 3;
+  const out = [];
+  for (const c3 of catalog) {
+    if (!users.length || !users.every((u4) => canPerform(u4, c3))) continue;
+    const fits = users.map((u4) => fitScore(u4, c3));
+    const minFit = Math.min(...fits);
+    const sumFit = fits.reduce((a3, b2) => a3 + b2, 0);
+    const continuity = users.filter((u4) => (u4.todayEids || []).includes(c3.eid)).length;
+    const jointScore = minFit * 100 + sumFit * 10 + continuity;
+    if (jointScore <= 0) continue;
+    const reason = continuity ? "In a program today, fits everyone" : minFit > 0 ? "Fits everyone's goals" : "Shared compound";
+    out.push({ eid: c3.eid, name: c3.name, jointScore, reason });
+  }
+  out.sort((a3, b2) => b2.jointScore - a3.jointScore || a3.eid.localeCompare(b2.eid));
+  return out.slice(0, Math.max(0, max));
+}
+function buildSharedLiftPlan(sug, users, scheme, increment = 5) {
+  const loads = users.map((u4) => {
+    const rm = resolveMax(u4, sug.eid);
+    return {
+      uid: u4.uid,
+      name: u4.name,
+      load: scaleLoad(rm.value, scheme.intensityPct, increment),
+      maxSource: rm.source,
+      needsCalibration: rm.source === "none"
+    };
+  });
+  return { eid: sug.eid, name: sug.name, scheme, loads };
+}
+
+// src/core/partner-pairing.ts
+function participantFromUser(u4, opts) {
+  return {
+    uid: u4.uid,
+    handle: u4.handle,
+    name: u4.name || u4.handle,
+    role: opts.role,
+    maxes: opts.shareMaxes ? u4.maxes || {} : {},
+    maxesShared: !!opts.shareMaxes,
+    focus: u4.focus || [],
+    equipment: u4.equipment || [],
+    ready: false,
+    lastSeen: opts.now ?? Date.now(),
+    progress: { sharedDone: 0, splitDone: 0 }
+  };
+}
+function newPartnerSession(host, opts) {
+  const now = opts.now ?? Date.now();
+  const host0 = participantFromUser(host, { role: "host", shareMaxes: opts.shareMaxes ?? false, now });
+  return {
+    id: opts.id,
+    hostUid: host.uid,
+    status: "lobby",
+    createdAt: now,
+    updatedAt: now,
+    vibe: opts.vibe ?? "hypertrophy",
+    joinCode: opts.code ?? null,
+    participants: { [host.uid]: host0 },
+    sharedLifts: [],
+    liveState: { currentLiftIndex: 0, turn: null, restEndsAt: null }
+  };
+}
+function isOnline(p3, now = Date.now(), staleMs = 3e4) {
+  return !!p3 && now - p3.lastSeen <= staleMs;
+}
+var FLOW = {
+  lobby: ["proposing", "abandoned"],
+  proposing: ["active", "lobby", "abandoned"],
+  active: ["split", "abandoned"],
+  split: ["complete", "abandoned"],
+  complete: [],
+  abandoned: []
+};
+function canTransition(from, to) {
+  return to === "abandoned" ? from !== "complete" : (FLOW[from] || []).includes(to);
+}
+var JOIN_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+var DEFAULT_CODE_TTL_MS = 10 * 60 * 1e3;
+function makeJoinCode(len = 6, rand = Math.random) {
+  let s3 = "";
+  for (let i4 = 0; i4 < len; i4++) s3 += JOIN_CODE_ALPHABET[Math.floor(rand() * JOIN_CODE_ALPHABET.length)];
+  return s3;
+}
+function normalizeJoinCode(input) {
+  return String(input || "").toUpperCase().replace(/[\s-]+/g, "");
+}
+function codeRecord(code, sessionId, hostUid, opts = {}) {
+  const now = opts.now ?? Date.now();
+  return { code: normalizeJoinCode(code), sessionId, hostUid, expiresAt: now + (opts.ttlMs ?? DEFAULT_CODE_TTL_MS) };
+}
+function isCodeExpired(rec, now = Date.now()) {
+  return !rec || now >= rec.expiresAt;
+}
+
+// src/core/partner-session.ts
+async function hostCreateSession(be, host, opts = {}) {
+  const id = be.newId();
+  const code = normalizeJoinCode(opts.code ?? makeJoinCode(opts.codeLen ?? 6));
+  const session = newPartnerSession(host, { id, code, vibe: opts.vibe, shareMaxes: opts.shareMaxes, now: be.now() });
+  await be.createSession(session);
+  await be.putCode(codeRecord(code, id, host.uid, { ttlMs: opts.ttlMs, now: be.now() }));
+  return { session, code };
+}
+async function joinByCode(be, user, codeInput, opts = {}) {
+  const code = normalizeJoinCode(codeInput);
+  const rec = await be.getCode(code);
+  if (!rec) return { ok: false, error: "not-found" };
+  if (isCodeExpired(rec, be.now())) return { ok: false, error: "expired" };
+  const session = await be.getSession(rec.sessionId);
+  if (!session) return { ok: false, error: "gone" };
+  if (session.status === "abandoned" || session.status === "complete") return { ok: false, error: "closed" };
+  if (!session.participants[user.uid]) {
+    const p3 = participantFromUser(user, { role: "guest", shareMaxes: !!opts.shareMaxes, now: be.now() });
+    await be.patchSession(rec.sessionId, { participants: { [user.uid]: p3 }, updatedAt: be.now() });
+  }
+  return { ok: true, session: await be.getSession(rec.sessionId) };
+}
+async function setReadyRemote(be, id, uid, ready) {
+  await be.patchSession(id, { participants: { [uid]: { ready, lastSeen: be.now() } }, updatedAt: be.now() });
+}
+async function heartbeat(be, id, uid) {
+  await be.patchSession(id, { participants: { [uid]: { lastSeen: be.now() } } });
+}
+async function setSharedBlock(be, id, lifts, vibe) {
+  const patch = { sharedLifts: lifts, updatedAt: be.now() };
+  if (vibe) patch.vibe = vibe;
+  await be.patchSession(id, patch);
+}
+async function transition(be, id, to) {
+  const s3 = await be.getSession(id);
+  if (!s3 || !canTransition(s3.status, to)) return false;
+  await be.patchSession(id, { status: to, updatedAt: be.now() });
+  return true;
+}
+async function logSharedSet(be, id, ev) {
+  await be.appendFeed(id, { ...ev, ts: ev.ts ?? be.now() });
+}
+async function advanceTurn(be, id, order) {
+  if (!order.length) return;
+  const s3 = await be.getSession(id);
+  if (!s3) return;
+  const turn = s3.liveState.turn;
+  let uid = order[0], setNo = 1;
+  if (turn) {
+    const i4 = order.indexOf(turn.uid);
+    if (i4 < 0 || i4 === order.length - 1) {
+      uid = order[0];
+      setNo = turn.setNo + 1;
+    } else {
+      uid = order[i4 + 1];
+      setNo = turn.setNo;
+    }
+  }
+  await be.patchSession(id, { liveState: { turn: { uid, setNo } }, updatedAt: be.now() });
+}
+
+// src/ui/partner-app.tsx
+var VIBES = [{ id: "strength", label: "Strength" }, { id: "hypertrophy", label: "Hypertrophy" }, { id: "pump", label: "Pump" }];
+var ERR = { "not-found": "No session with that code.", expired: "That code has expired.", gone: "That session is no longer available.", closed: "That session has already ended." };
+function toUsers(session, ctx) {
+  return Object.values(session.participants).map((p3) => ({
+    uid: p3.uid,
+    name: p3.name,
+    maxes: p3.maxes,
+    focus: p3.focus || [],
+    equipment: p3.equipment || [],
+    bodyweightLb: p3.uid === ctx.uid ? ctx.bodyweightLb : void 0,
+    experience: p3.uid === ctx.uid ? ctx.experience : void 0
+  }));
+}
+function incrFor(eid, catalog = PARTNER_COMPOUNDS) {
+  return catalog.find((c3) => c3.eid === eid)?.increment ?? 5;
+}
+function PartnerApp(p3) {
+  const { backend, ctx } = p3;
+  const me = { uid: ctx.uid, handle: ctx.handle, name: ctx.name, maxes: ctx.maxes, focus: ctx.focus, equipment: ctx.equipment };
+  const [view, setView] = d2("entry");
+  const [sessionId, setSessionId] = d2(null);
+  const [session, setSession] = d2(null);
+  const [feed, setFeed] = d2([]);
+  const [code, setCode] = d2("");
+  const [joinError, setJoinError] = d2("");
+  const [busy, setBusy] = d2(false);
+  const [vibe, setVibe] = d2("hypertrophy");
+  const [removed, setRemoved] = d2(/* @__PURE__ */ new Set());
+  const triedInitial = A2(false);
+  y2(() => {
+    if (!sessionId) return;
+    const u1 = backend.watchSession(sessionId, (s3) => setSession(s3));
+    const u22 = backend.watchFeed(sessionId, (f4) => setFeed(f4));
+    const ms = p3.heartbeatMs ?? 1e4;
+    const hb = ms > 0 ? setInterval(() => {
+      heartbeat(backend, sessionId, ctx.uid).catch(() => {
+      });
+    }, ms) : null;
+    return () => {
+      u1();
+      u22();
+      if (hb) clearInterval(hb);
+    };
+  }, [sessionId]);
+  y2(() => {
+    if (p3.initialJoinCode && !triedInitial.current) {
+      triedInitial.current = true;
+      doJoin(p3.initialJoinCode);
+    }
+  }, []);
+  async function startSession() {
+    setBusy(true);
+    try {
+      const r3 = await hostCreateSession(backend, me, { vibe, shareMaxes: ctx.shareMaxes });
+      setCode(r3.code);
+      setSessionId(r3.session.id);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function doJoin(raw) {
+    setBusy(true);
+    setJoinError("");
+    try {
+      const r3 = await joinByCode(backend, me, raw, { shareMaxes: ctx.shareMaxes });
+      if (r3.ok) {
+        setSessionId(r3.session.id);
+        setCode(r3.session.joinCode || "");
+      } else setJoinError(ERR[r3.error] || "Could not join.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  const meReady = !!(session && session.participants[ctx.uid]?.ready);
+  const isHost = !!(session && session.hostUid === ctx.uid);
+  const now = backend.now();
+  const suggestions = T2(() => {
+    if (!session) return [];
+    return suggestSharedLifts(toUsers(session, ctx), ctx.catalog ?? PARTNER_COMPOUNDS).filter((s3) => !removed.has(s3.eid));
+  }, [session && JSON.stringify(session.participants), vibe, removed]);
+  const proposalLifts = T2(() => {
+    if (!session) return [];
+    const users = toUsers(session, ctx);
+    const scheme = VIBE_SCHEMES[vibe];
+    return suggestions.map((s3) => {
+      const plan = buildSharedLiftPlan(s3, users, scheme, incrFor(s3.eid, ctx.catalog ?? PARTNER_COMPOUNDS));
+      return {
+        eid: s3.eid,
+        name: s3.name,
+        reason: s3.reason,
+        scheme,
+        loads: plan.loads.map((l3) => ({ uid: l3.uid, name: l3.name, load: l3.load, unit: ctx.unit, maxSource: l3.maxSource, needsCalibration: l3.needsCalibration }))
+      };
+    });
+  }, [suggestions, vibe, session && JSON.stringify(session.participants)]);
+  if (!session) {
+    return /* @__PURE__ */ u3(
+      PartnerEntry,
+      {
+        mode: view === "joining" ? "joining" : "idle",
+        code,
+        joinError,
+        busy,
+        actions: { startSession, openJoin: () => setView("joining"), submitJoin: (c3) => doJoin(c3), cancel: () => {
+          setView("entry");
+          setJoinError("");
+        } }
+      }
+    );
+  }
+  if (session.status === "lobby") {
+    const roster = Object.values(session.participants).map((x2) => ({
+      uid: x2.uid,
+      name: x2.name,
+      handle: x2.handle,
+      role: x2.role,
+      ready: x2.ready,
+      online: isOnline(x2, now),
+      maxesShared: x2.maxesShared
+    }));
+    return /* @__PURE__ */ u3("div", { class: "pn-flow", children: [
+      isHost && code ? /* @__PURE__ */ u3("div", { class: "pn-lobby-code", children: [
+        "Join code: ",
+        /* @__PURE__ */ u3("b", { children: code })
+      ] }) : null,
+      /* @__PURE__ */ u3(
+        PartnerLobby,
+        {
+          participants: roster,
+          meUid: ctx.uid,
+          isHost,
+          actions: {
+            toggleReady: (r3) => setReadyRemote(backend, session.id, ctx.uid, r3),
+            start: () => transition(backend, session.id, "proposing"),
+            invite: () => {
+            },
+            leave: () => p3.onExit()
+          }
+        }
+      )
+    ] });
+  }
+  if (session.status === "proposing") {
+    if (!isHost) return /* @__PURE__ */ u3("div", { class: "pn-flow card", children: /* @__PURE__ */ u3("p", { class: "pn-waiting", children: "Your host is choosing the shared lifts\u2026" }) });
+    return /* @__PURE__ */ u3(
+      SharedBlockProposal,
+      {
+        vibe,
+        vibes: VIBES,
+        lifts: proposalLifts,
+        actions: {
+          setVibe: (v3) => setVibe(v3),
+          removeLift: (eid) => setRemoved((s3) => /* @__PURE__ */ new Set([...s3, eid])),
+          addLift: () => {
+          },
+          calibrate: (eid, uid) => {
+          },
+          confirm: async () => {
+            const lifts = proposalLifts.map((l3, i4) => ({ eid: l3.eid, name: l3.name, order: i4, scheme: l3.scheme }));
+            await setSharedBlock(backend, session.id, lifts, vibe);
+            await transition(backend, session.id, "active");
+          },
+          back: () => transition(backend, session.id, "lobby")
+        }
+      }
+    );
+  }
+  if (session.status === "active") {
+    const users = toUsers(session, ctx);
+    return /* @__PURE__ */ u3("div", { class: "pn-live card", children: [
+      /* @__PURE__ */ u3("div", { class: "card-h", children: [
+        /* @__PURE__ */ u3("h2", { children: "Shared lifts" }),
+        session.liveState.turn ? /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: [
+          "Up: ",
+          session.participants[session.liveState.turn.uid]?.name,
+          " \xB7 set ",
+          session.liveState.turn.setNo
+        ] }) : null
+      ] }),
+      session.sharedLifts.map((lift) => {
+        const plan = buildSharedLiftPlan({ eid: lift.eid, name: lift.name, jointScore: 0, reason: "" }, users, lift.scheme, incrFor(lift.eid, ctx.catalog ?? PARTNER_COMPOUNDS));
+        const mine = plan.loads.find((l3) => l3.uid === ctx.uid);
+        return /* @__PURE__ */ u3("div", { class: "pn-live-lift", children: [
+          /* @__PURE__ */ u3("div", { class: "pn-live-head", children: [
+            /* @__PURE__ */ u3("b", { children: lift.name }),
+            /* @__PURE__ */ u3("span", { children: [
+              lift.scheme.sets,
+              "\xD7",
+              lift.scheme.reps,
+              " \xB7 ",
+              lift.scheme.intensityPct,
+              "%"
+            ] })
+          ] }),
+          /* @__PURE__ */ u3("div", { class: "pn-live-mine", children: [
+            "Your load: ",
+            /* @__PURE__ */ u3("b", { children: [
+              mine?.load || "\u2014",
+              " ",
+              ctx.unit
+            ] })
+          ] }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm pn-live-log", disabled: !mine || !mine.load, onClick: async () => {
+            const w3 = mine.load, reps = lift.scheme.reps;
+            await logSharedSet(backend, session.id, { id: ctx.uid + "_" + lift.eid + "_" + backend.now(), uid: ctx.uid, handle: ctx.handle, eid: lift.eid, name: lift.name, weight: w3, reps });
+            p3.onLogSet?.({ eid: lift.eid, name: lift.name, weight: w3, reps });
+            await advanceTurn(backend, session.id, Object.keys(session.participants));
+          }, children: [
+            "Log ",
+            mine?.load,
+            " ",
+            ctx.unit,
+            " \xD7 ",
+            lift.scheme.reps
+          ] })
+        ] }, lift.eid);
+      }),
+      /* @__PURE__ */ u3("div", { class: "pn-feed", children: feed.slice(-8).map((e3) => /* @__PURE__ */ u3("div", { class: "pn-feed-row", children: [
+        /* @__PURE__ */ u3("b", { children: e3.handle }),
+        " ",
+        e3.name,
+        " \xB7 ",
+        e3.weight,
+        " \xD7 ",
+        e3.reps,
+        e3.isPR ? " \u{1F3C6}" : ""
+      ] }, e3.id)) }),
+      isHost ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-mint btn-block pn-live-split", onClick: () => transition(backend, session.id, "split"), children: "Done together \u2192 solo accessories" }) : /* @__PURE__ */ u3("p", { class: "pn-hint", children: "Your host moves the group to accessories when ready." })
+    ] });
+  }
+  if (session.status === "split") {
+    const splitEids = ctx.planEids.filter((e3) => !session.sharedLifts.some((l3) => l3.eid === e3));
+    return /* @__PURE__ */ u3("div", { class: "pn-split card", children: [
+      /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Your accessories" }) }),
+      /* @__PURE__ */ u3("p", { class: "pn-sub", children: [
+        "Shared lifts done. Finish your own ",
+        splitEids.length,
+        " accessory move",
+        splitEids.length !== 1 ? "s" : "",
+        " on your normal Train tab \u2014 your partner does theirs."
+      ] }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block", onClick: () => p3.onGoToSplit?.(), children: "Go to my workout" }),
+      isHost ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-block", onClick: async () => {
+        await transition(backend, session.id, "complete");
+        p3.onExit();
+      }, children: "End partner session" }) : /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-block", onClick: () => p3.onExit(), children: "Leave" })
+    ] });
+  }
+  return /* @__PURE__ */ u3("div", { class: "pn-done card", children: [
+    /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: session.status === "abandoned" ? "Session ended" : "Nice work together" }) }),
+    /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block", onClick: () => p3.onExit(), children: "Done" })
+  ] });
+}
+function mountPartnerApp(container, props) {
+  R(/* @__PURE__ */ u3(PartnerApp, { ...props }), container);
+}
 export {
   AchievementsWall,
   BodyMetrics,
   ExerciseCard,
   FocusShell,
+  PartnerApp,
   PartnerEntry,
   PartnerLobby,
   PersonalRecords,
@@ -1824,6 +2311,7 @@ export {
   mountBodyMetrics,
   mountExerciseCard,
   mountFocusShell,
+  mountPartnerApp,
   mountPartnerEntry,
   mountPartnerLobby,
   mountPersonalRecords,

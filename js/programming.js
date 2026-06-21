@@ -624,6 +624,8 @@ function participantFromUser(u, opts) {
     role: opts.role,
     maxes: opts.shareMaxes ? u.maxes || {} : {},
     maxesShared: !!opts.shareMaxes,
+    focus: u.focus || [],
+    equipment: u.equipment || [],
     ready: false,
     lastSeen: opts.now ?? Date.now(),
     progress: { sharedDone: 0, splitDone: 0 }

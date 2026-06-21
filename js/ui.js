@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h0d1a2db9be51";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=ha861beca858e";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=h0d1a2db9be51";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics } from "./ui-components.js?v=h0d1a2db9be51";
+} from "./programming.js?v=ha861beca858e";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=ha861beca858e";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4378,6 +4378,7 @@ function renderToday(){
   ${isTaperWeek(w)&&!isDeloadWeek(w)?`<div class="card section taper-banner"><div class="taper-banner-icon">📉</div><div class="taper-banner-body"><div class="taper-banner-title">Taper Week ${w}</div><div class="taper-banner-text">Volume reduced by 40% while intensity stays high. This primes your nervous system for ${w===12?"next week's Test":"the Peak phase"}.</div></div></div>`:""}
   ${nextTrainingDotsHtml(6)}
   <div id="weather-slot"></div>
+  ${plan.exs.length?`<button type="button" class="btn btn-secondary-solid btn-block" id="train-bring-friend" style="margin:2px 0 8px">👥 Bring a friend — lift together</button>`:""}
   ${fuelingAdviceHtml(plan)}
   ${plan.exs.length?`<div class="power-focus-bar"><span class="power-focus-label">${powerFocusOn?"Focus Mode":"Session"}</span><button type="button" class="power-focus-toggle ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit Focus":"Focus Mode"}</button><button type="button" class="ghost-mode-toggle ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost On":"Ghost"}</button></div>`:""}
   ${plan.exs.length&&trainFocusIdx===null?`${plan.deloadHint?`<div class="card section" style="border-color:var(--gold);background:rgba(212,175,55,.06)"><div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:2px">⚠️ Progress check</div><p style="font-size:12px;color:var(--text2);line-height:1.45;margin:0">${escPlanChip(plan.deloadHint)}</p></div>`:""}<div id="readiness-mount"></div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
@@ -4847,10 +4848,95 @@ function mountBodyMetricsTab(){
   mountBodyMetrics(c,props);
   const card=c.firstElementChild;if(card)c.replaceWith(card);else c.remove();
 }
+// ── Partner Sessions (Lift Together) — M4 wiring ──
+function makeFirestoreSessionBackend(){
+  const col=fbDb.collection("partner_sessions");
+  const codes=fbDb.collection("session_codes");
+  return {
+    now:()=>Date.now(),
+    newId:()=>col.doc().id,
+    async createSession(s){await col.doc(s.id).set(s);},
+    async getSession(id){const d=await col.doc(id).get();return d.exists?d.data():null;},
+    async patchSession(id,patch){await col.doc(id).set(patch,{merge:true});},
+    watchSession(id,cb){return col.doc(id).onSnapshot(d=>cb(d.exists?d.data():null),()=>cb(null));},
+    async putCode(rec){await codes.doc(rec.code).set(rec);},
+    async getCode(code){const d=await codes.doc(code).get();return d.exists?d.data():null;},
+    async deleteCode(code){try{await codes.doc(code).delete();}catch(e){}},
+    async appendFeed(id,ev){await col.doc(id).collection("feed").doc(ev.id).set(ev);},
+    watchFeed(id,cb){return col.doc(id).collection("feed").onSnapshot(snap=>{const a=[];snap.forEach(d=>a.push(d.data()));a.sort((x,y)=>(x.ts||0)-(y.ts||0));cb(a);},()=>cb([]));}
+  };
+}
+function partnerFocusTags(){
+  const p=S.profile,prefs=p.prefs||{};
+  if(p.sex==="female"){const m=prefs.womenMode||"auto";if(m==="glute_shelf"||m==="hourglass")return["glutes","posterior","legs"];return["glutes","legs","posterior","core"];}
+  const tags=new Set(["strength","push","legs"]);
+  for(const a of ((S.goals&&S.goals.focusAreas)||[])){const s=String(a).toLowerCase();if(s.includes("muscle")||s.includes("hyper")){tags.add("push");tags.add("pull");tags.add("legs");}if(s.includes("strength")||s.includes("power")){tags.add("strength");}}
+  return [...tags];
+}
+function partnerMaxes(){
+  const p=S.profile,m={};
+  if(Number(p.bench1RM)>0)m.bench=Number(p.bench1RM);
+  if(Number(p.squat1RM)>0)m.squat=Number(p.squat1RM);
+  if(Number(p.dead1RM)>0)m.deadlift=Number(p.dead1RM);
+  try{const ht=bestEpleyForExercise(["Hip Thrust","Barbell Hip Thrust"]);if(ht>0)m.hipthrust=ht;}catch(e){}
+  try{const oh=bestEpleyForExercise(["Overhead Press","Standing Overhead Press","OHP"]);if(oh>0)m.ohp=oh;}catch(e){}
+  try{const rw=bestEpleyForExercise(["Barbell Row","Bent-Over Row","Bent Over Row"]);if(rw>0)m.row=rw;}catch(e){}
+  return m;
+}
+function partnerCtx(){
+  const p=S.profile,prefs=p.prefs||{};
+  const home=(prefs.equipment||"gym")==="home";
+  let planEids=[];try{planEids=(todayPlanFiltered().exs||[]).map(e=>e.eid);}catch(e){}
+  return {
+    uid:currentUser?currentUser.uid:("local_"+(communityHandle()||"me")),
+    handle:communityHandle()||p.name||"You",
+    name:p.name||communityHandle()||"You",
+    maxes:partnerMaxes(),
+    focus:partnerFocusTags(),
+    equipment:home?["dumbbell","bodyweight"]:["barbell","dumbbell","machine","bodyweight"],
+    unit:massUnitLabel(),
+    bodyweightLb:Number(p.weight)||0,
+    experience:"intermediate",
+    planEids,
+    // v1: default to sharing so loads auto-scale (the explicit opt-out toggle +
+    // calibration sheet are M4b; until then unshared maxes would dead-end the proposal).
+    shareMaxes:prefs.shareMaxesWithPartners!==false
+  };
+}
+function partnerLogSet(ev){
+  try{
+    const day=activeTrainIso();
+    const id=((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("plog_"+Date.now()+"_"+Math.random().toString(36).slice(2,8)));
+    const log={id,date:day,exercise:ev.name,aS:1,aR:ev.reps,aW:ev.weight,tW:ev.weight,tR:ev.reps,tS:1,outcome:"ok",score:1,partnerSession:true};
+    try{log.score=calcLogScore(log);}catch(e){}
+    recordLoggedSet(log);
+    if(S.lastLiftByEid&&ev.eid)S.lastLiftByEid[ev.eid]=ev.weight;
+    persist();
+  }catch(e){console.warn("partnerLogSet",e&&e.message);}
+}
+function openPartnerSession(initialCode){
+  if(!fbDb||!currentUser){toast("Sign in to lift with a friend.");return;}
+  const host=document.createElement("div");host.className="pn-overlay";
+  const closeBtn=document.createElement("button");closeBtn.type="button";closeBtn.className="pn-overlay-close";closeBtn.setAttribute("aria-label","Close");closeBtn.textContent="×";
+  const exitAll=()=>{try{host.remove();}catch(e){}try{closeBtn.remove();}catch(e){}};
+  closeBtn.onclick=exitAll;
+  document.body.appendChild(host);document.body.appendChild(closeBtn);
+  try{
+    mountPartnerApp(host,{
+      backend:makeFirestoreSessionBackend(),
+      ctx:partnerCtx(),
+      initialJoinCode:initialCode||undefined,
+      onLogSet:partnerLogSet,
+      onGoToSplit:()=>{exitAll();tab=TAB_TRAIN;trainSub="workout";render();},
+      onExit:exitAll
+    });
+  }catch(e){console.warn("openPartnerSession",e&&e.message);exitAll();toast("Could not open partner session.");}
+}
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
   mountFocusShellTab();
   mountTrainCards();
+  {const bf=document.getElementById("train-bring-friend");if(bf)bf.onclick=()=>openPartnerSession();}
   mountReadiness();mountSessionFeel();mountWarmup();mountWorkoutTools();
   ensureWorkoutWakeLock();
   enhanceNumericInputs(document.getElementById("p-today")||document);
