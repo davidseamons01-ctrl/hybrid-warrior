@@ -36,6 +36,7 @@ export interface PartnerAppProps {
   heartbeatMs?: number; // presence cadence; 0 disables (tests)
   onLogSet?: (ev: { eid: string; name: string; weight: number; reps: number }) => void;
   onGoToSplit?: () => void;
+  onToast?: (msg: string) => void;
   onExit: () => void;
 }
 
@@ -155,7 +156,15 @@ function PartnerApp(p: PartnerAppProps) {
           actions={{
             toggleReady: (r) => setReadyRemote(backend, session.id, ctx.uid, r),
             start: () => transition(backend, session.id, "proposing"),
-            invite: () => {}, leave: () => p.onExit(),
+            invite: () => {
+              try {
+                const url = location.origin + location.pathname + "#join=" + code;
+                const done = () => p.onToast?.("Invite link copied — text it to your partner.");
+                if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(done, done);
+                else done();
+              } catch { /* clipboard unavailable */ }
+            },
+            leave: () => p.onExit(),
           }}
         />
       </div>

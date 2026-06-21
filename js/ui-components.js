@@ -2241,6 +2241,13 @@ function PartnerApp(p3) {
             toggleReady: (r3) => setReadyRemote(backend, session.id, ctx.uid, r3),
             start: () => transition(backend, session.id, "proposing"),
             invite: () => {
+              try {
+                const url = location.origin + location.pathname + "#join=" + code;
+                const done = () => p3.onToast?.("Invite link copied \u2014 text it to your partner.");
+                if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(done, done);
+                else done();
+              } catch {
+              }
             },
             leave: () => p3.onExit()
           }

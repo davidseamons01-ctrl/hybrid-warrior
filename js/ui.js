@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hb6279102fe5a";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hc59e4187cda1";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=hb6279102fe5a";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=hb6279102fe5a";
+} from "./programming.js?v=hc59e4187cda1";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=hc59e4187cda1";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -489,6 +489,7 @@ async function enterApp(user){
     document.getElementById("app").style.display="";
     startSync();
     render();
+    maybeOpenPendingPartnerJoin();
   }catch(err){
     const e=document.getElementById("authErr");
     if(e){e.textContent=`enterApp failed: ${err&&err.message?err.message:"unknown"}`;e.classList.add("show")}
@@ -580,6 +581,8 @@ function womenBaselineTier(){
 let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let logHistoryFilter="";let logBulkSelectOn=false;let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;let powerFocusOn=false;let ghostModeOn=false;
 const DASH_RANGES=[["1w","1W"],["1m","1M"],["3m","3M"],["6m","6M"],["all","All-Time"]];
 let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;let obChosenPlan=null;
+let pendingPartnerJoin=null;// deep-link join code captured at boot, fired once signed in
+function maybeOpenPendingPartnerJoin(){if(pendingPartnerJoin&&fbDb&&currentUser){const c=pendingPartnerJoin;pendingPartnerJoin=null;setTimeout(()=>{try{openPartnerSession(c)}catch(e){}},350);}}
 function tabFromHash(){
   const h=(location.hash||"").replace(/^#/,"").toLowerCase();
   if(h===TAB_TRAIN||h===TAB_PLAN||h===TAB_YOU||h===TAB_SOCIAL)return h;
@@ -4928,6 +4931,7 @@ function openPartnerSession(initialCode){
       initialJoinCode:initialCode||undefined,
       onLogSet:partnerLogSet,
       onGoToSplit:()=>{exitAll();tab=TAB_TRAIN;trainSub="workout";render();},
+      onToast:(m)=>toast(m),
       onExit:exitAll
     });
   }catch(e){console.warn("openPartnerSession",e&&e.message);exitAll();toast("Could not open partner session.");}
@@ -5634,6 +5638,9 @@ export async function bootstrapApp(){
   }catch(err){
     throw err;
   }
+  // Partner deep-link (QR / shared link): capture #join=CODE, then route to Train.
+  const _jm=(location.hash||"").match(/[#&]join=([A-Za-z0-9-]+)/i);
+  if(_jm){pendingPartnerJoin=_jm[1];try{history.replaceState(null,"","#"+TAB_TRAIN)}catch(e){location.hash=TAB_TRAIN}}
   if(!location.hash)location.hash=TAB_YOU;
   const routeTab=tabFromHash();
   if(routeTab)tab=routeTab;
