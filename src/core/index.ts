@@ -16,4 +16,6 @@ export * from "./partner";
 export * from "./partner-pairing";
 export * from "./partner-session";
 export * from "./partner-match";
+export * from "./running";
+export * from "./abs";
 export * from "./qr";

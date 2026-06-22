@@ -219,7 +219,7 @@ function warmupSets(topSetLb, opts) {
   const unit = o.unit || "lb";
   const top = Number(topSetLb) || 0;
   if (top <= bar * 1.2) return [];
-  const round = (n) => Math.round(n / 5) * 5;
+  const round2 = (n) => Math.round(n / 5) * 5;
   const steps = [
     { pct: 0, reps: 10, w: bar },
     { pct: 0.5, reps: 8 },
@@ -229,7 +229,7 @@ function warmupSets(topSetLb, opts) {
   const out = [];
   let lastW = -1;
   for (const s of steps) {
-    let w = s.w != null ? s.w : round(top * s.pct);
+    let w = s.w != null ? s.w : round2(top * s.pct);
     if (w >= top * 0.9) break;
     if (w < bar) w = bar;
     if (w === lastW) continue;
@@ -915,6 +915,352 @@ function needsCalibration(lifter, joints) {
   return buildJointPlan(lifter, joints).filter((r) => r.source === "needs-calibration");
 }
 
+// src/core/running.ts
+var MILE_PER_5K = 3.106855;
+function cooperVo2max(distanceMiles) {
+  const meters = Math.max(0, distanceMiles) * 1609.344;
+  return Math.max(0, Math.round((meters - 504.9) / 44.73 * 10) / 10);
+}
+function thresholdPaceFromBenchmark(b) {
+  if (b.kind === "cooper") {
+    const d = Math.max(0.1, b.value);
+    const cooperPace = 12 * 60 / d;
+    return Math.round(cooperPace * 1.08);
+  }
+  if (b.kind === "mile") {
+    return Math.round(b.value * 1.15);
+  }
+  const fivekPace = b.value / MILE_PER_5K;
+  return Math.round(fivekPace * 1.03);
+}
+var ZONE_MULT = {
+  interval: 0.94,
+  tempo: 1,
+  steady: 1.1,
+  easy: 1.18,
+  long: 1.22,
+  recovery: 1.3
+};
+function paceZonesFromBenchmark(b) {
+  const t = thresholdPaceFromBenchmark(b);
+  return {
+    threshold: t,
+    interval: Math.round(t * ZONE_MULT.interval),
+    tempo: Math.round(t * ZONE_MULT.tempo),
+    steady: Math.round(t * ZONE_MULT.steady),
+    easy: Math.round(t * ZONE_MULT.easy),
+    long: Math.round(t * ZONE_MULT.long),
+    recovery: Math.round(t * ZONE_MULT.recovery)
+  };
+}
+function fmtPace(sec) {
+  if (!(sec > 0)) return "\u2014";
+  const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+var TRACK_FULL = ["distance", "time", "pace", "hr"];
+function benchmarkWorkout(kind) {
+  if (kind === "cooper") {
+    return {
+      type: "benchmark",
+      title: "Cooper 12-min Test",
+      zone: null,
+      targetPaceSecPerMi: null,
+      totalMin: 12,
+      totalMiles: null,
+      segments: [
+        { label: "Warm-up", kind: "warmup", durationSec: 600 },
+        { label: "Run as far as you can in 12:00", kind: "work", durationSec: 720 },
+        { label: "Cool-down", kind: "cooldown", durationSec: 300 }
+      ],
+      cue: "Even, hard effort \u2014 log the distance you covered. This sets your pace zones.",
+      tracks: TRACK_FULL
+    };
+  }
+  if (kind === "mile") {
+    return {
+      type: "benchmark",
+      title: "1-Mile Time Trial",
+      zone: null,
+      targetPaceSecPerMi: null,
+      totalMin: null,
+      totalMiles: 1,
+      segments: [
+        { label: "Warm-up", kind: "warmup", durationSec: 600 },
+        { label: "1 mile all-out", kind: "work", distanceMi: 1 },
+        { label: "Cool-down", kind: "cooldown", durationSec: 300 }
+      ],
+      cue: "One hard mile. Log your time \u2014 this sets your pace zones.",
+      tracks: TRACK_FULL
+    };
+  }
+  return {
+    type: "benchmark",
+    title: "5K Time Trial",
+    zone: null,
+    targetPaceSecPerMi: null,
+    totalMin: null,
+    totalMiles: MILE_PER_5K,
+    segments: [
+      { label: "Warm-up", kind: "warmup", durationSec: 600 },
+      { label: "5K all-out", kind: "work", distanceMi: MILE_PER_5K },
+      { label: "Cool-down", kind: "cooldown", durationSec: 300 }
+    ],
+    cue: "Race effort over 5K. Log your time \u2014 this sets your pace zones.",
+    tracks: TRACK_FULL
+  };
+}
+function steadyRun(z, miles) {
+  return {
+    type: "steady",
+    title: `Steady Run \xB7 ${miles} mi`,
+    zone: "steady",
+    targetPaceSecPerMi: z.steady,
+    totalMin: null,
+    totalMiles: miles,
+    segments: [{ label: `${miles} mi @ ${fmtPace(z.steady)}/mi`, kind: "steady", distanceMi: miles, paceSecPerMi: z.steady }],
+    cue: "Relaxed, conversational-plus. Focus on form and breathing.",
+    tracks: TRACK_FULL
+  };
+}
+function longRun(z, miles) {
+  return {
+    type: "long",
+    title: `Long Run \xB7 ${miles} mi`,
+    zone: "long",
+    targetPaceSecPerMi: z.long,
+    totalMin: null,
+    totalMiles: miles,
+    segments: [{ label: `${miles} mi @ ${fmtPace(z.long)}/mi`, kind: "steady", distanceMi: miles, paceSecPerMi: z.long }],
+    cue: "Keep it easy and steady \u2014 time on feet builds the engine. Push the distance.",
+    tracks: TRACK_FULL
+  };
+}
+function intervalSession(z, opts = {}) {
+  const reps = opts.reps ?? 8;
+  const repDist = opts.repDistanceMi ?? 0.25;
+  const rec = opts.recoverySec ?? 90;
+  const work = { label: `${reps} \xD7 ${Math.round(repDist * 1609)}m @ ${fmtPace(z.interval)}/mi`, kind: "work", reps, distanceMi: repDist, paceSecPerMi: z.interval };
+  const recovery = { label: `${rec}s easy jog between`, kind: "recovery", durationSec: rec, paceSecPerMi: z.recovery };
+  return {
+    type: "intervals",
+    title: `Intervals \xB7 ${reps}\xD7${Math.round(repDist * 1609)}m`,
+    zone: "interval",
+    targetPaceSecPerMi: z.interval,
+    totalMin: null,
+    totalMiles: Math.round(reps * repDist * 100) / 100,
+    segments: [{ label: "Warm-up 10 min easy", kind: "warmup", durationSec: 600, paceSecPerMi: z.easy }, work, recovery, { label: "Cool-down 5 min", kind: "cooldown", durationSec: 300, paceSecPerMi: z.recovery }],
+    cue: "Hard but repeatable \u2014 hit each rep at target pace, jog the recovery.",
+    tracks: TRACK_FULL
+  };
+}
+function hiitSession(z, opts = {}) {
+  const rounds = opts.rounds ?? 8, work = opts.workSec ?? 30, rec = opts.recoverySec ?? 90;
+  return {
+    type: "intervals",
+    title: `HIIT \xB7 ${rounds}\xD7${work}s`,
+    zone: "interval",
+    targetPaceSecPerMi: z.interval,
+    totalMin: Math.round(rounds * (work + rec) / 60) + 15,
+    totalMiles: null,
+    segments: [
+      { label: "Warm-up 10 min easy", kind: "warmup", durationSec: 600, paceSecPerMi: z.easy },
+      { label: `${work}s @ 80\u201390% effort`, kind: "work", reps: rounds, durationSec: work, paceSecPerMi: z.interval },
+      { label: `${rec}s recovery`, kind: "recovery", durationSec: rec, paceSecPerMi: z.recovery },
+      { label: "Cool-down 5 min", kind: "cooldown", durationSec: 300, paceSecPerMi: z.recovery }
+    ],
+    cue: "All-out on the work bouts, full recovery between. 8\u201310 rounds.",
+    tracks: TRACK_FULL
+  };
+}
+function fartlek(z, opts = {}) {
+  const total = opts.totalMin ?? 30, surge = opts.surgeSec ?? 30, every = opts.everyMin ?? 4.5;
+  return {
+    type: "fartlek",
+    title: `Fartlek \xB7 ${total} min`,
+    zone: "steady",
+    targetPaceSecPerMi: z.steady,
+    totalMin: total,
+    totalMiles: null,
+    segments: [
+      { label: `${total} min steady @ ~${fmtPace(z.steady)}/mi`, kind: "steady", durationSec: total * 60, paceSecPerMi: z.steady },
+      { label: `${surge}s surge @ ${fmtPace(z.interval)}/mi every ${every} min`, kind: "work", durationSec: surge, paceSecPerMi: z.interval }
+    ],
+    cue: "Cruise the base pace, then surge hard for the bursts. Play with it.",
+    tracks: TRACK_FULL
+  };
+}
+function progressionRun(z, opts = {}) {
+  const miles = opts.miles ?? 2;
+  const steps = Math.max(2, Math.round(miles / 0.5));
+  const segs = [];
+  for (let i = 0; i < steps; i++) {
+    const f = i / (steps - 1);
+    const pace = Math.round(z.steady + (z.tempo - z.steady) * f);
+    segs.push({ label: `\xBD mi @ ${fmtPace(pace)}/mi`, kind: "steady", distanceMi: 0.5, paceSecPerMi: pace });
+  }
+  return {
+    type: "progression",
+    title: `Pace Progression \xB7 ${miles} mi`,
+    zone: "tempo",
+    targetPaceSecPerMi: z.tempo,
+    totalMin: null,
+    totalMiles: miles,
+    segments: segs,
+    cue: "Start steady, drop the pace every half-mile, finish at tempo.",
+    tracks: TRACK_FULL
+  };
+}
+function recoveryRun(z, minutes = 20) {
+  return {
+    type: "recovery",
+    title: `Recovery Jog \xB7 ${minutes} min`,
+    zone: "recovery",
+    targetPaceSecPerMi: z.recovery,
+    totalMin: minutes,
+    totalMiles: null,
+    segments: [{ label: `${minutes} min very easy @ ${fmtPace(z.recovery)}/mi`, kind: "steady", durationSec: minutes * 60, paceSecPerMi: z.recovery }],
+    cue: "Easy on purpose. Let the body absorb the work.",
+    tracks: ["distance", "time", "pace"]
+  };
+}
+function mindfulRun(minutes = 25) {
+  return {
+    type: "mindful",
+    title: `Mindful Run \xB7 ${minutes} min`,
+    zone: null,
+    targetPaceSecPerMi: null,
+    totalMin: minutes,
+    totalMiles: null,
+    segments: [{ label: `${minutes} min by feel \u2014 no watch`, kind: "steady", durationSec: minutes * 60 }],
+    cue: "Leave the metrics behind. Let the run carry you; just note how you feel after.",
+    tracks: ["time"]
+  };
+}
+function progressiveDistance(baseMiles, weeksIn, opts = {}) {
+  const pct = opts.weeklyPct ?? 0.1;
+  const raw = baseMiles * Math.pow(1 + pct, Math.max(0, weeksIn));
+  const capped = opts.capMiles ? Math.min(raw, opts.capMiles) : raw;
+  return Math.round(capped * 4) / 4;
+}
+function latestBenchmark(list) {
+  if (!list || !list.length) return null;
+  return [...list].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).find(() => true) || list[list.length - 1];
+}
+
+// src/core/abs.ts
+var AB_TEMPLATES = [
+  {
+    id: "weighted-core",
+    name: "Weighted Core",
+    focus: "Loaded strength",
+    minutes: 5,
+    exercises: [
+      { eid: "cable_crunch", name: "Cable Crunch", region: "upper", mode: "weighted", base: 12, sets: 3, restSec: 45, seed: { from: "bench", pct: 0.35 }, increment: 10 },
+      { eid: "db_leg_raise", name: "DB Leg Raise", region: "lower", mode: "weighted", base: 12, sets: 3, restSec: 45, seed: { from: "bodyweight", pct: 0.08 }, increment: 5 },
+      { eid: "suitcase", name: "Suitcase Carry", region: "rotation", mode: "time", base: 30, sets: 2, restSec: 30, perSide: true }
+    ]
+  },
+  {
+    id: "lower-ab",
+    name: "Lower-Ab Ladder",
+    focus: "Lower abs & hip flexors",
+    minutes: 5,
+    exercises: [
+      { eid: "hanging_leg_raise", name: "Hanging Leg Raise", region: "lower", mode: "reps", base: 10, sets: 3, restSec: 45 },
+      { eid: "toe_tap", name: "Dead Bug", region: "stability", mode: "reps", base: 10, sets: 3, restSec: 30, perSide: true },
+      { eid: "db_leg_raise", name: "DB Leg Raise", region: "lower", mode: "weighted", base: 12, sets: 2, restSec: 30, seed: { from: "bodyweight", pct: 0.06 }, increment: 5 }
+    ]
+  },
+  {
+    id: "oblique",
+    name: "Oblique & Anti-Rotation",
+    focus: "Sides & rotary control",
+    minutes: 5,
+    exercises: [
+      { eid: "side_plank", name: "Side Plank", region: "oblique", mode: "time", base: 30, sets: 2, restSec: 20, perSide: true },
+      { eid: "russian_twist", name: "Russian Twist", region: "oblique", mode: "weighted", base: 16, sets: 3, restSec: 40, perSide: false, seed: { from: "bodyweight", pct: 0.05 }, increment: 5 },
+      { eid: "suitcase", name: "Suitcase Carry", region: "rotation", mode: "time", base: 30, sets: 2, restSec: 30, perSide: true }
+    ]
+  },
+  {
+    id: "stability-brace",
+    name: "Stability Brace",
+    focus: "Bracing & endurance",
+    minutes: 5,
+    exercises: [
+      { eid: "plank", name: "Plank Hold", region: "stability", mode: "time", base: 45, sets: 3, restSec: 30 },
+      { eid: "toe_tap", name: "Dead Bug", region: "stability", mode: "reps", base: 12, sets: 3, restSec: 30, perSide: true },
+      { eid: "side_plank", name: "Side Plank", region: "oblique", mode: "time", base: 30, sets: 2, restSec: 20, perSide: true }
+    ]
+  },
+  {
+    id: "core-pyramid",
+    name: "Core Pyramid",
+    focus: "Balanced mix",
+    minutes: 5,
+    exercises: [
+      { eid: "cable_crunch", name: "Cable Crunch", region: "upper", mode: "weighted", base: 12, sets: 3, restSec: 40, seed: { from: "bench", pct: 0.3 }, increment: 10 },
+      { eid: "hanging_leg_raise", name: "Hanging Leg Raise", region: "lower", mode: "reps", base: 10, sets: 3, restSec: 40 },
+      { eid: "russian_twist", name: "Russian Twist", region: "oblique", mode: "reps", base: 20, sets: 2, restSec: 30 }
+    ]
+  },
+  {
+    id: "metabolic",
+    name: "Metabolic Core",
+    focus: "Conditioning + core",
+    minutes: 5,
+    exercises: [
+      { eid: "mountain_climber", name: "Mountain Climbers", region: "stability", mode: "time", base: 40, sets: 3, restSec: 25 },
+      { eid: "russian_twist", name: "Russian Twist", region: "oblique", mode: "reps", base: 20, sets: 3, restSec: 25 },
+      { eid: "plank", name: "Plank Hold", region: "stability", mode: "time", base: 40, sets: 2, restSec: 25 }
+    ]
+  }
+];
+var round = (n, step) => Math.max(0, Math.round(n / step) * step);
+function seedLoad(spec, ctx) {
+  if (!spec.seed) return 0;
+  const base = spec.seed.from === "bodyweight" ? ctx.bodyweightLb : ctx.maxes[spec.seed.from] || 0;
+  return round(base * spec.seed.pct, spec.increment || 5);
+}
+function resolveAbRx(spec, ctx) {
+  const base = { eid: spec.eid, name: spec.name, region: spec.region, mode: spec.mode, sets: spec.sets, unit: ctx.unit, perSide: spec.perSide, load: 0 };
+  const h = ctx.historyByEid[spec.eid];
+  if (spec.mode === "time") {
+    const seconds = h && h.reps > 0 ? Math.min(spec.base * 2, Math.max(spec.base, h.reps + 5)) : spec.base;
+    return { ...base, seconds, source: h ? "progressed" : "base", note: h ? "+5s on last hold" : "starting hold" };
+  }
+  if (spec.mode === "weighted") {
+    const inc = spec.increment || 5;
+    if (h && h.weight > 0) {
+      if (h.reps >= spec.base) return { ...base, load: round(h.weight + inc, inc), reps: spec.base, source: "progressed", note: `+${inc} ${ctx.unit} on last` };
+      return { ...base, load: round(h.weight, inc), reps: Math.max(spec.base, h.reps), source: "progressed", note: "match last load, add a rep" };
+    }
+    const seeded = seedLoad(spec, ctx);
+    return { ...base, load: seeded, reps: spec.base, source: seeded > 0 ? "seeded" : "base", note: seeded > 0 ? "seeded from your strength" : "bodyweight to start" };
+  }
+  const reps = h && h.reps > 0 ? Math.min(spec.base * 2, Math.max(spec.base, h.reps + 1)) : spec.base;
+  return { ...base, reps, source: h ? "progressed" : "base", note: h ? "+1 rep on last" : "starting reps" };
+}
+function buildAbFinisher(template, ctx) {
+  return template.exercises.map((s) => resolveAbRx(s, ctx));
+}
+function abTemplateById(id, templates = AB_TEMPLATES) {
+  return templates.find((t) => t.id === id);
+}
+function selectAbTemplate(ctx, templates = AB_TEMPLATES) {
+  const staleness = (t) => t.exercises.reduce((s, e) => s + (ctx.historyByEid[e.eid] ? ctx.historyByEid[e.eid].daysAgo : 999), 0) / t.exercises.length;
+  let best = templates[0], bestScore = -1;
+  for (const t of templates) {
+    const score = staleness(t);
+    if (score > bestScore) {
+      bestScore = score;
+      best = t;
+    }
+  }
+  return best;
+}
+
 // src/core/qr.ts
 var ECC_L = [
   { ec: 7, data: 19, align: [] },
@@ -1169,6 +1515,7 @@ function qrSvg(text, opts = {}) {
   return `<svg viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect width="${dim}" height="${dim}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
 }
 export {
+  AB_TEMPLATES,
   ALL_EQUIPMENT,
   ALL_GOALS,
   BASE_GOALS,
@@ -1176,19 +1523,23 @@ export {
   JOIN_CODE_ALPHABET,
   PARTNER_COMPOUNDS,
   VIBE_SCHEMES,
+  abTemplateById,
   accessoriesFor,
   accessoryReps,
   accessoryRx,
   addGymBuddy,
   advanceTurn,
   allReady,
+  benchmarkWorkout,
   bestPlanId,
+  buildAbFinisher,
   buildJointPlan,
   buildSharedLiftPlan,
   calibrationToMax,
   canPerform,
   canTransition,
   codeRecord,
+  cooperVo2max,
   createInMemoryBackend,
   detectPlateau,
   e1rmSeries,
@@ -1197,13 +1548,17 @@ export {
   estimateMaxFromBodyweight,
   eventToLog,
   exerciseNeeds,
+  fartlek,
   fitScore,
+  fmtPace,
   fromLegacyLogs,
   fsMerge,
   goalFromFocus,
   hasGymBuddy,
   heartbeat,
+  hiitSession,
   hostCreateSession,
+  intervalSession,
   isCodeExpired,
   isDeloadWeek,
   isOnline,
@@ -1211,16 +1566,20 @@ export {
   joinByCode,
   joinHash,
   jointLiftsFromMap,
+  latestBenchmark,
   liftKeyForName,
   logSharedSet,
+  longRun,
   makeInvite,
   makeJoinCode,
   mergeEvents,
   mergeLogSets,
   mergeSession,
+  mindfulRun,
   needsCalibration,
   newPartnerSession,
   normalizeJoinCode,
+  paceZonesFromBenchmark,
   parseJoinHash,
   participantCount,
   participantFromUser,
@@ -1228,6 +1587,8 @@ export {
   phaseLabel,
   phaseRepsFor,
   phaseSetsFor,
+  progressionRun,
+  progressiveDistance,
   projectLogs,
   projectWeeksToGoal,
   publishJointRx,
@@ -1235,20 +1596,25 @@ export {
   qrSvg,
   rankPlans,
   recentBestE1RM,
+  recoveryRun,
   reedSolomon,
   removeGymBuddy,
+  resolveAbRx,
   resolveJointRx,
   resolveMax,
   roundToIncrement,
   scaleLoad,
   scorePlan,
+  selectAbTemplate,
   setDeletedEvent,
   setLoggedFromLog,
   setReady,
   setReadyRemote,
   setSharedBlock,
+  steadyRun,
   substituteEid,
   suggestSharedLifts,
+  thresholdPaceFromBenchmark,
   toEmbedUrl,
   toggleJointLift,
   touchPresence,
