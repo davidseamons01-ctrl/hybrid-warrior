@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h26dc6b089053";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h8435e001644e";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -12,14 +12,14 @@ import {
   AB_TEMPLATES, abTemplateById, selectAbTemplate, buildAbFinisher,
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout
-} from "./programming.js?v=h26dc6b089053";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=h26dc6b089053";
+} from "./programming.js?v=h8435e001644e";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=h8435e001644e";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
 const PLANS=(function(){
-  const G=["strength","hybrid","fat_loss","muscle","beginner","powerlifting","endurance"];
-  const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy","Beginner Foundations","Powerlifting","Endurance"];
+  const G=["strength","hybrid","fat_loss","muscle","beginner","powerlifting","endurance","hybrid_runner"];
+  const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy","Beginner Foundations","Powerlifting","Endurance","Hybrid Runner"];
   const fN=["3-4 Day","5-6 Day"];
   const dN=["Express","Full"];
   const sN=["Men's","Women's"];
@@ -34,7 +34,10 @@ const PLANS=(function(){
     // Powerlifting: squat/bench/deadlift focus, low reps, peak to a test.
     powerlifting:{"00":["HP","HL","HPL"],"01":["HP","HL","HPL","FB"],"10":["HP","HL","HPL","HL","HP"],"11":["HP","HL","HPL","HL","HP"]},
     // Endurance: run-dominant base→build→taper with minimal supporting strength.
-    endurance:{"00":["TR","SR","TR"],"01":["TR","SR","TR","FB"],"10":["TR","SR","TR","SR","FB"],"11":["TR","SR","TR","SR","HL"]}
+    endurance:{"00":["TR","SR","TR"],"01":["TR","SR","TR","FB"],"10":["TR","SR","TR","SR","FB"],"11":["TR","SR","TR","SR","HL"]},
+    // Hybrid Runner: the Holistic Hybrid Running framework's weekly template —
+    // Day1 endurance · Day2 functional strength · Day3 speed · Day4 recovery/mind-body · Day5 long run.
+    hybrid_runner:{"00":["TR","SR","LR"],"01":["TR","FB","SR","LR"],"10":["TR","FB","SR","MB","LR"],"11":["TR","FB","SR","MB","LR"]}
   };
   function feminizeSlots(goal,slots,isExpress){
     let out=slots.map(sl=>{
@@ -960,7 +963,6 @@ function bindAppSwipeNav(){
 function enhanceNumericInputs(scope){(scope||document).querySelectorAll('input[type="number"]').forEach(el=>{el.setAttribute("inputmode","decimal");if(!el.getAttribute("step"))el.setAttribute("step","any")})}
 function fmtPace(secPerMile){return mmss(secPerMile)+"/mi"}
 function est5k(r4){return r4>0?r4*Math.pow(5000/(4*1609.34),1.06):0}
-function paceMi(fk){return fk>0?fk/3.10686:0}
 function applyAppearanceMeta(m){
   m=m||document.getElementById("meta-theme");
   if(!m)return;
@@ -3187,7 +3189,9 @@ function slotMeta(slot){
     HL:{muscles:"Quads, glutes, hamstrings",why:"Heavy lower loading drives strength.",expect:"Lower-body force increases."},
     GL:{muscles:"Glutes, hamstrings, core",why:"Shape and hip stability focus.",expect:"Glute development and stability improve."},
     SR:{muscles:"Cardio system + core",why:"Speed intervals for race pace.",expect:"Faster splits and aerobic power."},
-    TR:{muscles:"Cardio system + posterior chain",why:"Threshold endurance training.",expect:"Better sustained pace."},
+    TR:{muscles:"Cardio system + posterior chain",why:"Aerobic endurance at steady pace.",expect:"Better sustained pace."},
+    LR:{muscles:"Cardio system + legs",why:"Long-run time on feet builds the aerobic engine.",expect:"Endurance and fatigue resistance improve."},
+    MB:{muscles:"Recovery + mind",why:"Easy mind-body run and mobility for active recovery.",expect:"Fresher legs and lower stress."},
     FB:{muscles:"Full-body",why:"Efficient broad stimulus.",expect:"Steady all-around progress."},
     CT:{muscles:"Full-body conditioning",why:"Higher density and calorie burn.",expect:"Work capacity improves."}
   };
@@ -6012,6 +6016,19 @@ function runDayPlan(slot,w,opts){
   const core=(sec,reason)=>({eid:"plank",sets:3,reps:sec,target:0,unit:"sec",reason});
   const cont=(eid,rw)=>{const min=rw.totalMin!=null?rw.totalMin:Math.max(8,Math.round((rw.totalMiles||0)*(rw.targetPaceSecPerMi||0)/60));
     return{eid,sets:1,reps:min,target:rw.targetPaceSecPerMi||0,unit:rw.targetPaceSecPerMi?fmtPace(rw.targetPaceSecPerMi):"min",reason:rw.title+" — "+rw.cue,runType:rw.type};};
+  // Long run (framework Day 5): push the distance, easy pace.
+  if(slot==="LR"){
+    const rw=longRun(z,progressiveDistance(isDeload?3:5,Math.floor(wi/2),{capMiles:13}));
+    return{focus:rw.title+dn,warmup:"5 min easy jog → dynamic stretches",
+      exs:[cont("long_run",rw),core(45,"Core for the back half")],finisher:""};
+  }
+  // Active recovery / mind-body (framework Day 4): mindful run + mobility, or a deload recovery jog.
+  if(slot==="MB"){
+    const rw=isDeload?recoveryRun(z,20):mindfulRun(25);
+    return{focus:(isDeload?"Active Recovery":"Mind-Body Run")+dn,warmup:"Light mobility flow",
+      exs:[cont(isDeload?"recovery_run":"mindful_run",rw),{eid:"plank",sets:2,reps:40,target:0,unit:"sec",reason:"Gentle core + breathing"}],
+      finisher:"Optional: 10-min yoga / stretch + journal how the run felt."};
+  }
   if(slot==="TR"){
     if(benchWeek){const rw=benchmarkWorkout("cooper");
       return{focus:"Benchmark · Cooper 12-min Test"+dn,warmup:"10 min easy jog → dynamic stretches → strides",
@@ -6038,11 +6055,8 @@ function mkDay(slot,w){
   ensureAdaptExtras();
   const wf=wkFactor(w),p=S.profile,reps=phaseReps(w),sets=phaseSets(w);
   const sb=S.adapt.setsBonus||{bench:0,squat:0,dead:0};
-  const fk=est5k(p.run4mi)/Math.max(S.adapt.run,.5),pmi=paceMi(fk);
   const b=r5(wmax1RM("bench")*wf*S.adapt.bench),sq=r5(wmax1RM("squat")*wf*S.adapt.squat),dl=r5(wmax1RM("dead")*wf*S.adapt.dead);
   const bSets=sets+(sb.bench||0),sqSets=sets+(sb.squat||0),dlSets=sets+(sb.dead||0);
-  const intRestBase=90;
-  const intRest=Math.max(30,intRestBase+(S.adapt.runRestAdj||0));
   const isDeload=w===4||w===8,dn=isDeload?" (DELOAD)":"";
   // Week-rotating, equipment-aware accessory pools → real variety across the
   // 13 weeks (and different day types pull from different pools).
@@ -6107,14 +6121,8 @@ function mkDay(slot,w){
         {eid:"lunge",sets:3,reps:12,target:r5(sq*.15),unit:"lb/hand",reason:"Walking lunges"},
         {eid:"plank",sets:3,reps:45,target:0,unit:"sec",reason:"Core stability"}],
       finisher:"50 Air Squats + 50 Lunges for time"+xf},
-    SR:{focus:"Speed Intervals"+dn,warmup:"10 min jog → leg swings → 2×100m strides",
-      exs:[{eid:"int800",sets:isDeload?3:w<=4?4:w<=8?5:6,reps:1,target:Math.round(pmi/2),unit:"sec ("+fmtPace(Math.round(pmi))+" pace)",rest:intRest+"s",reason:`800m at ${fmtPace(Math.round(pmi))} target · ${intRest}s rest`},
-        {eid:"plank",sets:3,reps:60,target:0,unit:"sec",reason:"Core for running economy"}],
-      finisher:"2-min plank + 2×30s mountain climbers"+xf},
-    TR:{focus:"Tempo Run"+dn,warmup:"10 min jog → dynamic stretches → strides",
-      exs:[{eid:"tempo",sets:1,reps:isDeload?16:w<=4?20:w<=8?24:w<=12?28:16,target:Math.round(pmi),unit:fmtPace(Math.round(pmi)),reason:`Threshold from est 5K ${mmss(Math.round(fk))}`},
-        {eid:"burpee",sets:3,reps:12,target:0,unit:"BW",reason:"Full-body power after tempo (no sport-specific skills)"}],
-      finisher:"4-min AMRAP burpees — stop before form breaks"+xf},
+    // SR (speed) and TR (endurance) are built by runDayPlan() below — see the
+    // post-literal reassignment. Kept out of this literal to avoid duplication.
     FB:{focus:"Full Body"+dn,warmup:"5 min cardio → dynamic stretches → bar×10",
       exs:[{eid:"squat",sets:3,reps:w<=4?8:6,target:r5(sq*.85),unit:"lb",reason:"Squat foundation"},
         {eid:"bench",sets:3,reps:w<=4?8:6,target:r5(b*.85),unit:"lb",reason:"Bench foundation"},
@@ -6171,7 +6179,7 @@ function mkDay(slot,w){
   };
   // Running overhaul: replace the run slots with the framework's pillar run types
   // (paced off benchmark zones). Strength/powerlifting slots are untouched.
-  {const _ro={zones:runZones(),isDeload,dn,xf};S_.SR=runDayPlan("SR",w,_ro);S_.TR=runDayPlan("TR",w,_ro);}
+  {const _ro={zones:runZones(),isDeload,dn,xf};S_.SR=runDayPlan("SR",w,_ro);S_.TR=runDayPlan("TR",w,_ro);S_.LR=runDayPlan("LR",w,_ro);S_.MB=runDayPlan("MB",w,_ro);}
   const out=S_[slot]||{focus:"Recovery",exs:[],finisher:"Rest."};
   applyWomenBlueprint(out,slot,w);
   // Equipment-aware auto-substitution (covers full inventory, not just "home").
