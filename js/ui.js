@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=ha9b58dead9b8";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hadd047ccf6c5";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,9 +8,10 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs,
-  VIBE_SCHEMES
-} from "./programming.js?v=ha9b58dead9b8";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=ha9b58dead9b8";
+  VIBE_SCHEMES,
+  AB_TEMPLATES, abTemplateById, selectAbTemplate, buildAbFinisher
+} from "./programming.js?v=hadd047ccf6c5";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=hadd047ccf6c5";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -1515,6 +1516,8 @@ function todayPlanFiltered(){
     exs=jointItems.concat(exs.filter(e=>!jEids.has(e.eid)));
     jointCount=jointItems.length;
   }
+  const abFin=(S.abFinisherByDate||{})[todayIso];
+  if(abFin&&abFin.items&&abFin.items.length)exs=exs.concat(abFin.items);
   const deloadHint=detectMainLiftPlateau(exs);
   return{...base,exs,quickNote,readiness,isTaper:taperMul<1,deloadHint,jointCount};
 }
@@ -4430,6 +4433,7 @@ function renderToday(){
   ${skipped.length?`<div class="card section" style="font-size:12px;color:var(--text2)">Skipped today: <b style="color:var(--text)">${skippedLbl||"—"}</b> · <button type="button" class="details-toggle" id="skip-restore">Restore skipped lifts</button></div>`:""}
   ${plan.exs.length?`<div id="session-feel-mount"></div>`:""}
   ${plan.exs.length?`<div class="card section" id="train-ease-panel"><div style="font-size:13px;font-weight:600;margin-bottom:4px">Program feels too heavy?</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Nudge all lift/run adaptation down ~5% and add 5 minutes to your session budget (max 75 min) — right from here, no Settings detour.</p><button type="button" class="btn btn-secondary-solid btn-sm" id="train-ease-toggle">Show ease options</button><div class="ease-wizard" id="train-ease-wiz"><p style="font-size:12px;color:var(--text2);margin-bottom:8px">Targets ease until your logs show you're ahead of prescription again.</p><button type="button" class="btn btn-cta btn-sm" id="train-ease-go">Ease my program</button></div></div>`:""}
+  ${plan.exs.length?abFinisherControlHtml():""}
   ${plan.finisher?`<div class="finisher finisher-block"><h3>Finisher${plan.quickNote?" (optional)":""}</h3><p>${plan.finisher}</p></div>`:""}
   ${plan.exs.length?`<div class="train-session-footer"><button type="button" class="btn btn-mint btn-block session-finalize-sync">${finalized?"Session complete":"Complete session"}</button></div>${setLoadOverlayHtml()}`:""}
   </div>`;
@@ -4908,7 +4912,7 @@ function partnerScheme(){
 }
 // Today's programmed working sets as DayPlanItem[] (eid drives cross-plan matching + the card).
 function partnerDayPlan(){
-  let exs=[];try{exs=(todayPlanFiltered().exs||[]).filter(e=>!e._joint);}catch(e){}
+  let exs=[];try{exs=(todayPlanFiltered().exs||[]).filter(e=>!e._joint&&!e._abFinisher);}catch(e){}
   return exs.map(e=>{const def=exById(e.eid);return{eid:e.eid,name:def?def.name:e.eid,sets:Number(e.sets)||0,reps:Number(e.reps)||0,load:Number(e.target)||0};});
 }
 function partnerCtx(){
@@ -4944,6 +4948,53 @@ function applyPartnerJointPlan(rx){
   }catch(e){console.warn("applyPartnerJointPlan",e&&e.message);}
 }
 function clearPartnerJointPlan(){try{const iso=activeTrainIso();if(S.partnerJointByDate)delete S.partnerJointByDate[iso];persist();}catch(e){}}
+// ── Optional adaptive 5-min core finisher ──
+const AB_FINISHER_EIDS=["cable_crunch","db_leg_raise","hanging_leg_raise","russian_twist","plank","side_plank","suitcase","toe_tap","mountain_climber"];
+function abHistoryByEid(){
+  const map={},today=parseIsoNoon(iso());
+  for(const eid of AB_FINISHER_EIDS){
+    const def=exById(eid),name=def?def.name:eid;
+    const rows=(S.logs||[]).filter(l=>l.exercise===name);
+    if(!rows.length)continue;
+    const last=rows[rows.length-1];
+    const daysAgo=Math.max(0,Math.round((today-parseIsoNoon(last.date))/86400000));
+    map[eid]={weight:Number(last.aW)||0,reps:Number(last.aR)||0,daysAgo};
+  }
+  return map;
+}
+function abCtx(){
+  const p=S.profile;
+  return {historyByEid:abHistoryByEid(),maxes:{bench:Number(p.bench1RM)||0,squat:Number(p.squat1RM)||0,deadlift:Number(p.dead1RM)||0,ohp:0},bodyweightLb:Number(p.weight)||170,unit:massUnitLabel()};
+}
+function abRxToItem(rx){
+  const reason="🧱 Core finisher"+(rx.perSide?" · per side":"");
+  if(rx.mode==="time")return{eid:rx.eid,sets:rx.sets,reps:rx.seconds,target:0,unit:"sec",reason,_abFinisher:true};
+  if(rx.mode==="weighted")return{eid:rx.eid,sets:rx.sets,reps:rx.reps,target:Number(rx.load)||0,unit:rx.unit||massUnitLabel(),reason,_abFinisher:true};
+  return{eid:rx.eid,sets:rx.sets,reps:rx.reps,target:0,unit:"BW",reason,_abFinisher:true};
+}
+function applyAbFinisher(templateId){
+  try{
+    const ctx=abCtx();
+    const tpl=templateId?abTemplateById(templateId):selectAbTemplate(ctx);
+    if(!tpl)return;
+    const items=buildAbFinisher(tpl,ctx).map(abRxToItem);
+    const isoT=activeTrainIso();
+    if(!S.abFinisherByDate)S.abFinisherByDate={};
+    S.abFinisherByDate[isoT]={templateId:tpl.id,name:tpl.name,items};
+    persist();
+  }catch(e){console.warn("applyAbFinisher",e&&e.message);}
+}
+function clearAbFinisher(){try{const isoT=activeTrainIso();if(S.abFinisherByDate)delete S.abFinisherByDate[isoT];persist();}catch(e){}}
+function cycleAbFinisher(){
+  const fin=(S.abFinisherByDate||{})[activeTrainIso()];if(!fin)return;
+  const idx=AB_TEMPLATES.findIndex(t=>t.id===fin.templateId);
+  applyAbFinisher(AB_TEMPLATES[(idx+1)%AB_TEMPLATES.length].id);
+}
+function abFinisherControlHtml(){
+  const fin=(S.abFinisherByDate||{})[activeTrainIso()];
+  if(fin)return`<div class="ab-finisher-bar"><span class="ab-fin-label">🧱 Core finisher · ${fin.name}</span><div class="ab-fin-actions"><button type="button" class="btn btn-ghost btn-sm" id="ab-fin-swap">Swap</button><button type="button" class="btn btn-ghost btn-sm" id="ab-fin-remove">Remove</button></div></div>`;
+  return`<button type="button" class="btn btn-secondary-solid btn-block ab-finisher-add" id="ab-fin-add">🧱 Add 5-min core finisher · optional</button>`;
+}
 function partnerLogSet(ev){
   try{
     const day=activeTrainIso();
@@ -4980,6 +5031,9 @@ function bindToday(){
   mountFocusShellTab();
   mountTrainCards();
   {const bf=document.getElementById("train-bring-friend");if(bf)bf.onclick=()=>openPartnerSession();}
+  {const a=document.getElementById("ab-fin-add");if(a)a.onclick=()=>{applyAbFinisher();render();toast("Core finisher added — scroll to the bottom of your session.");};}
+  {const s=document.getElementById("ab-fin-swap");if(s)s.onclick=()=>{cycleAbFinisher();render();};}
+  {const r=document.getElementById("ab-fin-remove");if(r)r.onclick=()=>{clearAbFinisher();render();toast("Core finisher removed.");};}
   mountReadiness();mountSessionFeel();mountWarmup();mountWorkoutTools();
   ensureWorkoutWakeLock();
   enhanceNumericInputs(document.getElementById("p-today")||document);

@@ -1872,6 +1872,11 @@ body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transpa
 .mb-load-cal{background:#e6a23c;color:#1a1a1a;border:none;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer}
 .mb-actions{display:flex;gap:10px}
 .mb-actions .mb-start{flex:1}
+/* Optional core finisher control */
+.ab-finisher-add{margin:10px 0}
+.ab-finisher-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
+.ab-fin-label{font-weight:600;font-size:13px}
+.ab-fin-actions{display:flex;gap:6px}
 .pn-roster{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .pn-member{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
 .pn-me{border-color:color-mix(in srgb,var(--fire) 35%,var(--border-lit))}
