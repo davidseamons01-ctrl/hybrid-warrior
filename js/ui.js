@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hadd047ccf6c5";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hdf38f32bb880";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -9,9 +9,11 @@ import {
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs,
   VIBE_SCHEMES,
-  AB_TEMPLATES, abTemplateById, selectAbTemplate, buildAbFinisher
-} from "./programming.js?v=hadd047ccf6c5";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=hadd047ccf6c5";
+  AB_TEMPLATES, abTemplateById, selectAbTemplate, buildAbFinisher,
+  paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
+  steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout
+} from "./programming.js?v=hdf38f32bb880";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=hdf38f32bb880";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -677,7 +679,7 @@ function isOutdoorCardioToday(){
   if(!plan||!plan.exercises)return false;
   return plan.exercises.some(ex=>{
     const n=(ex.name||"").toLowerCase();
-    return n.includes("run")||n.includes("tempo")||n.includes("sprint")||n.includes("jog")||n.includes("800")||n.includes("5k")||n.includes("outdoor");
+    return n.includes("run")||n.includes("tempo")||n.includes("sprint")||n.includes("jog")||n.includes("800")||n.includes("5k")||n.includes("outdoor")||n.includes("cooper")||n.includes("trial")||n.includes("mile")||n.includes("fartlek")||n.includes("interval");
   });
 }
 function weatherSummaryHtml(w){
@@ -1839,7 +1841,7 @@ function runPlateCalc(totalInput,barInput){
 }
 function normalizeTabs(){if(tab==="dash"){tab=TAB_YOU;youSub="home"}else if(tab==="today"){tab=TAB_TRAIN;trainSub="workout"}else if(tab==="log"){tab=TAB_TRAIN;trainSub="log"}else if(tab==="program")tab=TAB_PLAN;else if(tab==="settings"){tab=TAB_YOU;youSub="settings"}else if(tab==="ref"){tab=TAB_YOU;youSub="home"}else if(tab==="social")tab=TAB_SOCIAL}
 function isExLoggedToday(eid){const e=exById(eid),name=e?e.name:eid;const d=activeTrainIso();return S.logs.some(l=>l.date===d&&l.exercise===name)}
-function inferType(n){n=(n||"").toLowerCase();if(n.includes("bench")||n.includes("incline")||n.includes("close")||n.includes("dip"))return"bench";if((n.includes("squat")&&!n.includes("air"))||n.includes("bulgarian"))return"squat";if(n.includes("deadlift")||n.includes("rdl"))return"dead";if(n.includes("run")||n.includes("800")||n.includes("tempo"))return"run";return"acc"}
+function inferType(n){n=(n||"").toLowerCase();if(n.includes("bench")||n.includes("incline")||n.includes("close")||n.includes("dip"))return"bench";if((n.includes("squat")&&!n.includes("air"))||n.includes("bulgarian"))return"squat";if(n.includes("deadlift")||n.includes("rdl"))return"dead";if(n.includes("run")||n.includes("800")||n.includes("tempo")||n.includes("jog")||n.includes("cooper")||n.includes("trial")||n.includes("5k")||n.includes("mile")||n.includes("fartlek")||n.includes("interval"))return"run";return"acc"}
 /** True for programmed run/cardio moves that use pace (sec/mi) in tW/aW, not bar load. */
 function isRunExerciseName(name){return inferType(name)==="run"}
 /** Tempo-style prescription: reps hold duration in minutes. Otherwise (e.g. 800s) reps are intervals. */
@@ -4393,6 +4395,7 @@ function renderToday(){
   ${isTaperWeek(w)&&!isDeloadWeek(w)?`<div class="card section taper-banner"><div class="taper-banner-icon">📉</div><div class="taper-banner-body"><div class="taper-banner-title">Taper Week ${w}</div><div class="taper-banner-text">Volume reduced by 40% while intensity stays high. This primes your nervous system for ${w===12?"next week's Test":"the Peak phase"}.</div></div></div>`:""}
   ${nextTrainingDotsHtml(6)}
   <div id="weather-slot"></div>
+  ${planHasRun(plan)?runZonesPanelHtml():""}
   <button type="button" class="btn btn-secondary-solid btn-block" id="train-bring-friend" style="margin:2px 0 8px">👥 Bring a friend — lift together</button>
   ${fuelingAdviceHtml(plan)}
   ${plan.exs.length?`<div class="power-focus-bar"><span class="power-focus-label">${powerFocusOn?"Focus Mode":"Session"}</span><button type="button" class="power-focus-toggle ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit Focus":"Focus Mode"}</button><button type="button" class="ghost-mode-toggle ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost On":"Ghost"}</button></div>`:""}
@@ -4995,6 +4998,48 @@ function abFinisherControlHtml(){
   if(fin)return`<div class="ab-finisher-bar"><span class="ab-fin-label">🧱 Core finisher · ${fin.name}</span><div class="ab-fin-actions"><button type="button" class="btn btn-ghost btn-sm" id="ab-fin-swap">Swap</button><button type="button" class="btn btn-ghost btn-sm" id="ab-fin-remove">Remove</button></div></div>`;
   return`<button type="button" class="btn btn-secondary-solid btn-block ab-finisher-add" id="ab-fin-add">🧱 Add 5-min core finisher · optional</button>`;
 }
+// ── Running benchmark tests → adaptive pace zones ──
+function logBenchmark(kind,value){
+  if(!(value>0))return;
+  if(!S.running||typeof S.running!=="object")S.running={benchmarks:[]};
+  if(!Array.isArray(S.running.benchmarks))S.running.benchmarks=[];
+  S.running.benchmarks.push({kind,value,date:iso()});
+  S.running.benchmarks=S.running.benchmarks.slice(-20);
+  persist();
+}
+function planHasRun(plan){return (plan.exs||[]).some(e=>{const def=exById(e.eid);return isRunExerciseName(def?def.name:e.eid);});}
+function runZonesPanelHtml(){
+  const z=runZones(),r=S.running||{},bms=r.benchmarks||[],latest=latestBenchmark(bms);
+  const src=latest?(latest.kind==="cooper"?`Cooper test (${latest.value} mi)`:latest.kind==="mile"?`1-mile test (${mmss(latest.value)})`:`5K test (${mmss(latest.value)})`):"estimated from your profile — log a test to dial it in";
+  const cell=(lbl,s)=>`<div class="rz-cell"><span>${lbl}</span><b>${mmss(s)}</b></div>`;
+  return`<div class="card section run-zones"><div class="run-zones-h"><b>Your pace zones <span class="rz-unit">/mi</span></b><button type="button" class="btn btn-secondary-solid btn-sm" id="run-test-btn">📈 Log fitness test</button></div>
+  <div class="run-zones-grid">${cell("Easy",z.easy)}${cell("Steady",z.steady)}${cell("Tempo",z.tempo)}${cell("Interval",z.interval)}${cell("Long",z.long)}</div>
+  <div class="run-zones-src">From: ${src}</div></div>`;
+}
+function openRunTestModal(){
+  const host=document.createElement("div");host.className="pn-overlay";
+  const close=()=>{try{host.remove()}catch(e){}};
+  host.innerHTML=`<div class="cal-sheet run-test-sheet"><div class="cal-title">Log a fitness test</div>
+    <p class="cal-sub">Record a benchmark you just completed — it recalculates your adaptive pace zones.</p>
+    <label>Test type</label>
+    <select id="rt-kind" class="input-sm" style="width:100%">${'<option value="cooper">Cooper 12-min (distance)</option><option value="mile">1-Mile time trial</option><option value="fivek">5K time trial</option>'}</select>
+    <div id="rt-input-wrap" style="margin-top:10px"></div>
+    <div class="cal-actions"><button type="button" class="btn btn-ghost cal-cancel" id="rt-cancel">Cancel</button><button type="button" class="btn btn-cta cal-submit" id="rt-save">Save &amp; set zones</button></div></div>`;
+  document.body.appendChild(host);
+  host.onclick=e=>{if(e.target===host)close();};
+  const wrap=host.querySelector("#rt-input-wrap"),kindSel=host.querySelector("#rt-kind");
+  const renderInput=()=>{const k=kindSel.value;wrap.innerHTML=k==="cooper"
+    ?`<label>Distance covered in 12:00 (miles)</label><input type="number" id="rt-val" class="input-sm" step="0.01" min="0" placeholder="1.5" inputmode="decimal" style="width:120px">`
+    :`<label>${k==="mile"?"Mile":"5K"} time (mm:ss)</label><input type="text" id="rt-val" class="input-sm input-mmss" placeholder="${k==="mile"?"7:00":"25:00"}" inputmode="numeric" autocomplete="off" style="width:120px">`;};
+  renderInput();kindSel.onchange=renderInput;
+  host.querySelector("#rt-cancel").onclick=close;
+  host.querySelector("#rt-save").onclick=()=>{
+    const k=kindSel.value,raw=host.querySelector("#rt-val").value;
+    const val=k==="cooper"?(Number(raw)||0):paceSecPerMiFromInput(raw);
+    if(!(val>0)){toast("Enter a valid result.");return;}
+    logBenchmark(k,val);close();render();toast("Pace zones updated from your test.");
+  };
+}
 function partnerLogSet(ev){
   try{
     const day=activeTrainIso();
@@ -5031,6 +5076,7 @@ function bindToday(){
   mountFocusShellTab();
   mountTrainCards();
   {const bf=document.getElementById("train-bring-friend");if(bf)bf.onclick=()=>openPartnerSession();}
+  {const rt=document.getElementById("run-test-btn");if(rt)rt.onclick=openRunTestModal;}
   {const a=document.getElementById("ab-fin-add");if(a)a.onclick=()=>{applyAbFinisher();render();toast("Core finisher added — scroll to the bottom of your session.");};}
   {const s=document.getElementById("ab-fin-swap");if(s)s.onclick=()=>{cycleAbFinisher();render();};}
   {const r=document.getElementById("ab-fin-remove");if(r)r.onclick=()=>{clearAbFinisher();render();toast("Core finisher removed.");};}
@@ -5944,6 +5990,46 @@ function applyDayAdaptation(dateStr){
   return touched;
 }
 
+// Benchmark-driven pace zones (Holistic Hybrid Running framework). Falls back to
+// the legacy est-5K estimate so existing runners get sensible zones immediately;
+// a logged Cooper/mile/5K test refines them via S.running.benchmarks.
+function runZones(){
+  const r=S.running||{};
+  const latest=latestBenchmark(r.benchmarks||[]);
+  if(latest)return paceZonesFromBenchmark(latest);
+  const p=S.profile;const fk=est5k(p.run4mi)/Math.max(S.adapt.run||1,.5);
+  return paceZonesFromBenchmark({kind:"fivek",value:fk>0?fk:1500});
+}
+// Build a run day (SR=speed / TR=endurance) from the framework's pillar run types,
+// paced off the athlete's zones. Benchmark tests land on weeks 1, 7, 13.
+function runDayPlan(slot,w,opts){
+  const z=opts.zones,isDeload=!!opts.isDeload,dn=opts.dn||"",xf=opts.xf||"";
+  const wi=Math.max(0,(w-1)%13),benchWeek=(w===1||w===7||w===13);
+  const core=(sec,reason)=>({eid:"plank",sets:3,reps:sec,target:0,unit:"sec",reason});
+  const cont=(eid,rw)=>{const min=rw.totalMin!=null?rw.totalMin:Math.max(8,Math.round((rw.totalMiles||0)*(rw.targetPaceSecPerMi||0)/60));
+    return{eid,sets:1,reps:min,target:rw.targetPaceSecPerMi||0,unit:rw.targetPaceSecPerMi?fmtPace(rw.targetPaceSecPerMi):"min",reason:rw.title+" — "+rw.cue,runType:rw.type};};
+  if(slot==="TR"){
+    if(benchWeek){const rw=benchmarkWorkout("cooper");
+      return{focus:"Benchmark · Cooper 12-min Test"+dn,warmup:"10 min easy jog → dynamic stretches → strides",
+        exs:[{eid:"cooper_test",sets:1,reps:12,target:0,unit:"min",reason:rw.cue,runType:"benchmark",isBenchmark:true},core(45,"Core for running economy")],finisher:""};}
+    let rw,eid;
+    if(isDeload){rw=recoveryRun(z,20);eid="recovery_run";}
+    else if(w%6===0){rw=mindfulRun(25);eid="mindful_run";}
+    else if(w%3===0){rw=longRun(z,progressiveDistance(4,Math.floor(wi/3),{capMiles:10}));eid="long_run";}
+    else{rw=steadyRun(z,progressiveDistance(3,Math.floor(wi/2),{capMiles:6}));eid="steady_run";}
+    return{focus:rw.title+dn,warmup:"10 min jog → dynamic stretches → strides",
+      exs:[cont(eid,rw),core(45,"Core for running economy")],finisher:rw.type==="mindful"?"":("Optional 4-min AMRAP burpees"+xf)};
+  }
+  // SR — speed work
+  if(isDeload){return{focus:"Recovery Jog"+dn,warmup:"easy",exs:[cont("recovery_run",recoveryRun(z,20))],finisher:""};}
+  const mod=w%3;let exs,title;
+  if(mod===0){const rw=fartlek(z,{totalMin:30});exs=[cont("fartlek",rw)];title=rw.title;}
+  else if(mod===1){const reps=w<=4?6:w<=8?8:10,perRep=Math.round(z.interval*0.25),rec=Math.max(60,90+(S.adapt.runRestAdj||0));
+    exs=[{eid:"intervals",sets:reps,reps:1,target:perRep,unit:"sec ("+fmtPace(z.interval)+")",reason:`${reps}×400m @ ${fmtPace(z.interval)} · ${rec}s jog recovery`,runType:"intervals"}];title=`Intervals · ${reps}×400m`;}
+  else{const rw=progressionRun(z,{miles:2});exs=[cont("pace_prog",rw)];title=rw.title;}
+  exs.push(core(60,"Core for running economy"));
+  return{focus:title+dn,warmup:"10 min jog → leg swings → 2×100m strides",exs,finisher:"2-min plank + 2×30s mountain climbers"+xf};
+}
 function mkDay(slot,w){
   ensureAdaptExtras();
   const wf=wkFactor(w),p=S.profile,reps=phaseReps(w),sets=phaseSets(w);
@@ -6079,6 +6165,9 @@ function mkDay(slot,w){
         {eid:"air_squat",sets:1,reps:100,target:0,unit:"BW",reason:"100-rep Beatdown"}],
       finisher:"5-min AMRAP Burpees"+xf}
   };
+  // Running overhaul: replace the run slots with the framework's pillar run types
+  // (paced off benchmark zones). Strength/powerlifting slots are untouched.
+  {const _ro={zones:runZones(),isDeload,dn,xf};S_.SR=runDayPlan("SR",w,_ro);S_.TR=runDayPlan("TR",w,_ro);}
   const out=S_[slot]||{focus:"Recovery",exs:[],finisher:"Rest."};
   applyWomenBlueprint(out,slot,w);
   // Equipment-aware auto-substitution (covers full inventory, not just "home").
