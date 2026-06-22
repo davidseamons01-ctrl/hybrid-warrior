@@ -1836,6 +1836,8 @@ body.blackout .badge{border:1px solid color-mix(in srgb,currentColor 28%,transpa
 .pn-waiting{font-size:12px;color:var(--text3);text-align:center;margin-bottom:6px}
 .pn-code-input{text-transform:uppercase;letter-spacing:.2em;font-family:'Space Grotesk',sans-serif;font-size:20px;text-align:center}
 .pn-error{font-size:12px;color:var(--red);margin-top:8px;text-align:center}
+.pn-setup-steps{margin:6px 0 14px;padding-left:20px;color:var(--text2);font-size:12.5px;line-height:1.8}
+.pn-setup-steps code{background:var(--surface2,rgba(255,255,255,.06));padding:1px 5px;border-radius:5px;font-size:11.5px}
 .pn-roster{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .pn-member{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
 .pn-me{border-color:color-mix(in srgb,var(--fire) 35%,var(--border-lit))}

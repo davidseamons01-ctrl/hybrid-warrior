@@ -70,4 +70,21 @@ describe("PartnerApp end-to-end over the in-memory backend", () => {
     await flush();
     expect(el.querySelector(".pn-entry")).toBeTruthy(); // didn't enter a session
   });
+
+  it("shows the one-time setup notice when the backend denies the write", async () => {
+    const be = createInMemoryBackend();
+    be.createSession = () => Promise.reject(Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" }));
+    const toasts: string[] = [];
+    const el = document.createElement("div");
+    render(<PartnerApp backend={be} ctx={dave} heartbeatMs={0} onToast={(m) => toasts.push(m)} onExit={() => {}} />, el);
+    click(el.querySelector(".pn-start"));
+    await flush();
+    expect(el.querySelector(".pn-setup")).toBeTruthy();
+    expect(el.querySelector(".pn-setup-steps")).toBeTruthy();
+    expect(toasts.join(" ")).toMatch(/setup/i);
+    // "Try again" returns to the entry screen
+    click(el.querySelector(".pn-setup-retry"));
+    await flush();
+    expect(el.querySelector(".pn-start")).toBeTruthy();
+  });
 });

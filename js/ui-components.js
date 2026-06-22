@@ -2380,6 +2380,7 @@ function PartnerApp(p3) {
   const [vibe, setVibe] = d2("hypertrophy");
   const [removed, setRemoved] = d2(/* @__PURE__ */ new Set());
   const [calib, setCalib] = d2(null);
+  const [setupNeeded, setSetupNeeded] = d2(false);
   const triedInitial = A2(false);
   const onCalibSubmit = (max) => {
     if (calib && session) backend.patchSession(session.id, { participants: { [ctx.uid]: { maxes: { [calib.eid]: max } } } }).catch(() => {
@@ -2412,8 +2413,10 @@ function PartnerApp(p3) {
     }
   }, []);
   function describeErr(e3) {
-    if (e3?.code === "permission-denied" || /insufficient permissions/i.test(e3?.message || ""))
-      return "Partner sessions need a server update (Firestore rules). Tap \u24D8 for the fix.";
+    if (e3?.code === "permission-denied" || /insufficient permissions|PERMISSION_DENIED/i.test(e3?.message || "")) {
+      setSetupNeeded(true);
+      return "Partner Sessions need a one-time server setup.";
+    }
     return "Couldn't start: " + (e3?.message || "network error \u2014 check your connection.");
   }
   async function startSession() {
@@ -2478,6 +2481,42 @@ function PartnerApp(p3) {
     return qrSvg(base + "#join=" + code);
   }, [code]);
   if (!session) {
+    if (setupNeeded) {
+      return /* @__PURE__ */ u3("div", { class: "pn-entry card pn-setup", children: [
+        /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Almost there" }) }),
+        /* @__PURE__ */ u3("p", { class: "pn-sub", children: "Lift Together needs a quick one-time server permission update before the first session can be created. This is an owner-level setup step \u2014 once it's done, partner sessions work for everyone." }),
+        /* @__PURE__ */ u3("ol", { class: "pn-setup-steps", children: [
+          /* @__PURE__ */ u3("li", { children: [
+            "Open the ",
+            /* @__PURE__ */ u3("b", { children: "Firebase console" }),
+            " \u2192 Firestore Database \u2192 ",
+            /* @__PURE__ */ u3("b", { children: "Rules" }),
+            "."
+          ] }),
+          /* @__PURE__ */ u3("li", { children: [
+            "Add the ",
+            /* @__PURE__ */ u3("code", { children: "partner_sessions" }),
+            ", ",
+            /* @__PURE__ */ u3("code", { children: "session_codes" }),
+            " & ",
+            /* @__PURE__ */ u3("code", { children: "partner_invites" }),
+            " rules, then ",
+            /* @__PURE__ */ u3("b", { children: "Publish" }),
+            "."
+          ] }),
+          /* @__PURE__ */ u3("li", { children: [
+            "Come back and tap ",
+            /* @__PURE__ */ u3("b", { children: "Try again" }),
+            "."
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block pn-setup-retry", onClick: () => {
+          setSetupNeeded(false);
+          setJoinError("");
+        }, children: "Try again" }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-block", onClick: () => p3.onExit(), children: "Close" })
+      ] });
+    }
     return /* @__PURE__ */ u3(
       PartnerEntry,
       {

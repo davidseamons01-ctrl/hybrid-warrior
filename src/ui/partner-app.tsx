@@ -69,6 +69,7 @@ function PartnerApp(p: PartnerAppProps) {
   const [vibe, setVibe] = useState<Vibe>("hypertrophy");
   const [removed, setRemoved] = useState<Set<string>>(new Set());
   const [calib, setCalib] = useState<{ eid: string; liftName: string } | null>(null);
+  const [setupNeeded, setSetupNeeded] = useState(false);
   const triedInitial = useRef(false);
 
   // I calibrate my own missing max → write it into my participant entry; everyone's view recomputes.
@@ -96,8 +97,10 @@ function PartnerApp(p: PartnerAppProps) {
   }, []);
 
   function describeErr(e: any): string {
-    if (e?.code === "permission-denied" || /insufficient permissions/i.test(e?.message || ""))
-      return "Partner sessions need a server update (Firestore rules). Tap ⓘ for the fix.";
+    if (e?.code === "permission-denied" || /insufficient permissions|PERMISSION_DENIED/i.test(e?.message || "")) {
+      setSetupNeeded(true);
+      return "Partner Sessions need a one-time server setup.";
+    }
     return "Couldn't start: " + (e?.message || "network error — check your connection.");
   }
   async function startSession() {
@@ -155,6 +158,21 @@ function PartnerApp(p: PartnerAppProps) {
 
   // ── render by phase ──
   if (!session) {
+    if (setupNeeded) {
+      return (
+        <div class="pn-entry card pn-setup">
+          <div class="card-h"><h2>Almost there</h2></div>
+          <p class="pn-sub">Lift Together needs a quick one-time server permission update before the first session can be created. This is an owner-level setup step — once it's done, partner sessions work for everyone.</p>
+          <ol class="pn-setup-steps">
+            <li>Open the <b>Firebase console</b> → Firestore Database → <b>Rules</b>.</li>
+            <li>Add the <code>partner_sessions</code>, <code>session_codes</code> &amp; <code>partner_invites</code> rules, then <b>Publish</b>.</li>
+            <li>Come back and tap <b>Try again</b>.</li>
+          </ol>
+          <button type="button" class="btn btn-cta btn-block pn-setup-retry" onClick={() => { setSetupNeeded(false); setJoinError(""); }}>Try again</button>
+          <button type="button" class="btn btn-ghost btn-block" onClick={() => p.onExit()}>Close</button>
+        </div>
+      );
+    }
     return (
       <PartnerEntry
         mode={view === "joining" ? "joining" : "idle"}
