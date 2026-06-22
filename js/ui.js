@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hf81747650ef7";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=ha9b58dead9b8";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -7,9 +7,10 @@ import {
   rankPlans, bestPlanId, whyPlan, toEmbedUrl,
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
-  setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=hf81747650ef7";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=hf81747650ef7";
+  setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs,
+  VIBE_SCHEMES
+} from "./programming.js?v=ha9b58dead9b8";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=ha9b58dead9b8";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -1506,8 +1507,16 @@ function todayPlanFiltered(){
   const effectiveQuick=Math.max(qm,autoQuick);
   const quickNote=effectiveQuick>0&&base.exs.length>2;
   if(effectiveQuick>0&&exs.length>2)exs=exs.slice(0,2);
+  const joint=(S.partnerJointByDate||{})[todayIso];
+  let jointCount=0;
+  if(joint&&joint.length){
+    const jEids=new Set(joint.map(j=>j.eid));
+    const jointItems=joint.map(j=>{const acc=exs.find(e=>e.eid===j.eid);return{...(acc||{}),...j};});
+    exs=jointItems.concat(exs.filter(e=>!jEids.has(e.eid)));
+    jointCount=jointItems.length;
+  }
   const deloadHint=detectMainLiftPlateau(exs);
-  return{...base,exs,quickNote,readiness,isTaper:taperMul<1,deloadHint};
+  return{...base,exs,quickNote,readiness,isTaper:taperMul<1,deloadHint,jointCount};
 }
 function sessionIndexForEid(eid){
   const plan=todayPlanFiltered();
@@ -4886,26 +4895,55 @@ function partnerMaxes(){
   try{const rw=bestEpleyForExercise(["Barbell Row","Bent-Over Row","Bent Over Row"]);if(rw>0)m.row=rw;}catch(e){}
   return m;
 }
+// Representative scheme for the lifter's current program phase — drives the load
+// for a JOINT lift borrowed from a partner (their own programmed lifts keep their rx).
+function partnerScheme(){
+  const w=(S.program&&S.program.week)||1;
+  const p=S.profile,prefs=p.prefs||{};
+  const womenTone=p.sex==="female"&&/(tone|glute|hourglass|shelf)/i.test(String(prefs.womenMode||"")+" "+JSON.stringify((S.goals&&S.goals.focusAreas)||[]));
+  if(womenTone)return VIBE_SCHEMES.pump;
+  const ph=String(phaseName(w)||"").toLowerCase();
+  if(ph.includes("strength")||ph.includes("peak")||ph.includes("test"))return VIBE_SCHEMES.strength;
+  return VIBE_SCHEMES.hypertrophy;
+}
+// Today's programmed working sets as DayPlanItem[] (eid drives cross-plan matching + the card).
+function partnerDayPlan(){
+  let exs=[];try{exs=(todayPlanFiltered().exs||[]).filter(e=>!e._joint);}catch(e){}
+  return exs.map(e=>{const def=exById(e.eid);return{eid:e.eid,name:def?def.name:e.eid,sets:Number(e.sets)||0,reps:Number(e.reps)||0,load:Number(e.target)||0};});
+}
 function partnerCtx(){
   const p=S.profile,prefs=p.prefs||{};
   const home=(prefs.equipment||"gym")==="home";
-  let planEids=[];try{planEids=(todayPlanFiltered().exs||[]).map(e=>e.eid);}catch(e){}
+  const dayPlan=partnerDayPlan();
   return {
     uid:currentUser?currentUser.uid:("local_"+(communityHandle()||"me")),
     handle:communityHandle()||p.name||"You",
     name:p.name||communityHandle()||"You",
     maxes:partnerMaxes(),
+    strengthByKey:partnerMaxes(),
+    scheme:partnerScheme(),
+    dayPlan,
+    bodyweightKeys:["pullup"],
     focus:partnerFocusTags(),
     equipment:home?["dumbbell","bodyweight"]:["barbell","dumbbell","machine","bodyweight"],
     unit:massUnitLabel(),
     bodyweightLb:Number(p.weight)||0,
     experience:"intermediate",
-    planEids,
-    // v1: default to sharing so loads auto-scale (the explicit opt-out toggle +
-    // calibration sheet are M4b; until then unshared maxes would dead-end the proposal).
+    planEids:dayPlan.map(e=>e.eid),
     shareMaxes:prefs.shareMaxesWithPartners!==false
   };
 }
+// ── Partner joint handoff: reprogram today's Train session as [joint lifts → accessories]. ──
+function applyPartnerJointPlan(rx){
+  try{
+    const iso=activeTrainIso();
+    const items=(rx||[]).filter(r=>r&&r.eid).map(r=>({eid:r.eid,sets:Number(r.sets)||1,reps:Number(r.reps)||1,target:Number(r.load)||0,reason:"🤝 Shared lift",_joint:true}));
+    if(!S.partnerJointByDate)S.partnerJointByDate={};
+    if(items.length)S.partnerJointByDate[iso]=items; else delete S.partnerJointByDate[iso];
+    persist();
+  }catch(e){console.warn("applyPartnerJointPlan",e&&e.message);}
+}
+function clearPartnerJointPlan(){try{const iso=activeTrainIso();if(S.partnerJointByDate)delete S.partnerJointByDate[iso];persist();}catch(e){}}
 function partnerLogSet(ev){
   try{
     const day=activeTrainIso();
@@ -4931,6 +4969,7 @@ function openPartnerSession(initialCode){
       initialJoinCode:initialCode||undefined,
       onLogSet:partnerLogSet,
       onGoToSplit:()=>{exitAll();tab=TAB_TRAIN;trainSub="workout";render();},
+      onStartJoint:(rx)=>{applyPartnerJointPlan(rx);exitAll();clearTrainDate();tab=TAB_TRAIN;trainSub="workout";trainFocusIdx=null;sessionStorage.setItem("hw-scroll","#p-today");render();toast("Shared lifts loaded — train together, then finish your accessories.");},
       onToast:(m)=>toast(m),
       onExit:exitAll
     });

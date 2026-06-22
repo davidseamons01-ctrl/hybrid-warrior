@@ -7,17 +7,23 @@ import { useState, useEffect, useMemo, useRef } from "preact/hooks";
 import { PartnerEntry } from "./partner-entry";
 import { PartnerLobby, type LobbyParticipant } from "./partner-lobby";
 import { SharedBlockProposal, type ProposalLift } from "./shared-block-proposal";
+import { MatchBoard, type MatchParticipant } from "./match-board";
 import { CalibrationSheet } from "./calibration-sheet";
 import { qrSvg } from "../core/qr";
 import {
   suggestSharedLifts, buildSharedLiftPlan, VIBE_SCHEMES, PARTNER_COMPOUNDS,
-  type PartnerUser, type Vibe, type Suggestion,
+  type PartnerUser, type Vibe, type Suggestion, type Scheme,
 } from "../core/partner";
+import {
+  buildJointPlan, jointLiftsFromMap, liftKeyForName,
+  type DayPlanItem, type JointLift, type JointRx, type LifterProfile,
+} from "../core/partner-match";
 import type { PartnerSession, Participant } from "../core/partner-pairing";
 import { isOnline } from "../core/partner-pairing";
 import {
   type SessionBackend, type FeedEvent,
   hostCreateSession, joinByCode, setReadyRemote, heartbeat, setSharedBlock, transition, logSharedSet, advanceTurn,
+  toggleJointLift, publishJointRx,
 } from "../core/partner-session";
 
 export interface PartnerCtx {
@@ -29,6 +35,11 @@ export interface PartnerCtx {
   planEids: string[];
   shareMaxes: boolean;
   catalog?: typeof PARTNER_COMPOUNDS;
+  // program-based matchmaking (redesign):
+  dayPlan?: DayPlanItem[];                 // my programmed working sets today
+  scheme?: Scheme;                         // resolved from my current program phase
+  strengthByKey?: Record<string, number>;  // liftKey -> 1RM, for borrowed-lift estimation
+  bodyweightKeys?: string[];               // lift keys that need no load (pull-up…)
 }
 export interface PartnerAppProps {
   backend: SessionBackend;
@@ -37,6 +48,7 @@ export interface PartnerAppProps {
   heartbeatMs?: number; // presence cadence; 0 disables (tests)
   onLogSet?: (ev: { eid: string; name: string; weight: number; reps: number }) => void;
   onGoToSplit?: () => void;
+  onStartJoint?: (rx: JointRx[]) => void; // reprogram today's Train session as [joint → accessories]
   onToast?: (msg: string) => void;
   onExit: () => void;
 }
@@ -57,7 +69,7 @@ function incrFor(eid: string, catalog = PARTNER_COMPOUNDS): number {
 
 function PartnerApp(p: PartnerAppProps) {
   const { backend, ctx } = p;
-  const me = { uid: ctx.uid, handle: ctx.handle, name: ctx.name, maxes: ctx.maxes, focus: ctx.focus, equipment: ctx.equipment };
+  const me = { uid: ctx.uid, handle: ctx.handle, name: ctx.name, maxes: ctx.maxes, focus: ctx.focus, equipment: ctx.equipment, dayPlan: ctx.dayPlan || [] };
 
   const [view, setView] = useState<"entry" | "joining">("entry");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -68,13 +80,14 @@ function PartnerApp(p: PartnerAppProps) {
   const [busy, setBusy] = useState(false);
   const [vibe, setVibe] = useState<Vibe>("hypertrophy");
   const [removed, setRemoved] = useState<Set<string>>(new Set());
-  const [calib, setCalib] = useState<{ eid: string; liftName: string } | null>(null);
+  const [calib, setCalib] = useState<{ eid: string; key: string; liftName: string } | null>(null);
+  const [calibratedMaxes, setCalibratedMaxes] = useState<Record<string, number>>({});
   const [setupNeeded, setSetupNeeded] = useState(false);
   const triedInitial = useRef(false);
 
-  // I calibrate my own missing max → write it into my participant entry; everyone's view recomputes.
+  // I calibrate my own missing strength for a borrowed lift → recomputes my joint load locally.
   const onCalibSubmit = (max: number) => {
-    if (calib && session) backend.patchSession(session.id, { participants: { [ctx.uid]: { maxes: { [calib.eid]: max } } } }).catch(() => {});
+    if (calib) setCalibratedMaxes((m) => ({ ...m, [calib.key]: max }));
     setCalib(null);
   };
   const withCalib = (content: any) => (
@@ -156,6 +169,24 @@ function PartnerApp(p: PartnerAppProps) {
     return qrSvg(base + "#join=" + code);
   }, [code]);
 
+  // ── program-based matchmaking ──
+  const myLifter: LifterProfile = useMemo(() => ({
+    dayPlan: ctx.dayPlan || [],
+    scheme: ctx.scheme || VIBE_SCHEMES.hypertrophy,
+    strengthByKey: { ...(ctx.strengthByKey || {}), ...calibratedMaxes },
+    bodyweightKeys: ctx.bodyweightKeys || [],
+    unit: ctx.unit,
+  }), [ctx, calibratedMaxes]);
+  const joints = useMemo<JointLift[]>(() => jointLiftsFromMap(session?.jointLifts), [session && JSON.stringify(session.jointLifts)]);
+  const myRx = useMemo<JointRx[]>(() => buildJointPlan(myLifter, joints), [myLifter, joints]);
+
+  // Publish my resolved prescriptions so my partner sees my loads. Only when they change.
+  useEffect(() => {
+    if (!sessionId || !session || session.status !== "proposing") return;
+    const mine = session.participants[ctx.uid]?.jointRx || [];
+    if (JSON.stringify(mine) !== JSON.stringify(myRx)) publishJointRx(backend, sessionId, ctx.uid, myRx).catch(() => {});
+  }, [sessionId, session?.status, JSON.stringify(myRx)]);
+
   // ── render by phase ──
   if (!session) {
     if (setupNeeded) {
@@ -212,19 +243,25 @@ function PartnerApp(p: PartnerAppProps) {
   }
 
   if (session.status === "proposing") {
-    if (!isHost) return <div class="pn-flow card"><p class="pn-waiting">Your host is choosing the shared lifts…</p></div>;
+    // Each lifter sees their own resolved loads (mine computed locally for instant feedback).
+    const participants: MatchParticipant[] = Object.values(session.participants).map((x) => ({
+      uid: x.uid, name: x.name, dayPlan: x.dayPlan || [],
+      rx: x.uid === ctx.uid ? myRx : (x.jointRx || []),
+    }));
     return withCalib(
-      <SharedBlockProposal
-        vibe={vibe} vibes={VIBES} lifts={proposalLifts} meUid={ctx.uid}
+      <MatchBoard
+        meUid={ctx.uid} participants={participants} joints={joints} unit={ctx.unit} busy={busy}
         actions={{
-          setVibe: (v) => setVibe(v as Vibe),
-          removeLift: (eid) => setRemoved((s) => new Set([...s, eid])),
-          addLift: () => {},
-          calibrate: (eid, uid) => { if (uid === ctx.uid) setCalib({ eid, liftName: proposalLifts.find((l) => l.eid === eid)?.name || eid }); },
-          confirm: async () => {
-            const lifts = proposalLifts.map((l, i) => ({ eid: l.eid, name: l.name, order: i, scheme: l.scheme }));
-            await setSharedBlock(backend, session.id, lifts, vibe);
-            await transition(backend, session.id, "active");
+          toggle: (item: DayPlanItem) => {
+            const isIn = joints.some((j) => j.eid === item.eid);
+            const jl: JointLift | null = isIn ? null : { eid: item.eid, key: liftKeyForName(item.name), name: item.name, addedBy: ctx.uid, addedAt: backend.now() };
+            toggleJointLift(backend, session.id, jl, item.eid).catch(() => {});
+          },
+          remove: (eid: string) => { toggleJointLift(backend, session.id, null, eid).catch(() => {}); },
+          calibrate: (rx: JointRx) => setCalib({ eid: rx.eid, key: rx.key, liftName: rx.name }),
+          start: async () => {
+            await publishJointRx(backend, session.id, ctx.uid, myRx).catch(() => {});
+            p.onStartJoint?.(myRx);
           },
           back: () => transition(backend, session.id, "lobby"),
         }}
@@ -232,48 +269,14 @@ function PartnerApp(p: PartnerAppProps) {
     );
   }
 
-  if (session.status === "active") {
-    const users = toUsers(session, ctx);
-    return withCalib(
-      <div class="pn-live card">
-        <div class="card-h"><h2>Shared lifts</h2>{session.liveState.turn ? <span class="badge badge-fire">Up: {session.participants[session.liveState.turn.uid]?.name} · set {session.liveState.turn.setNo}</span> : null}</div>
-        {session.sharedLifts.map((lift) => {
-          const plan = buildSharedLiftPlan({ eid: lift.eid, name: lift.name, jointScore: 0, reason: "" }, users, lift.scheme, incrFor(lift.eid, ctx.catalog ?? PARTNER_COMPOUNDS));
-          const mine = plan.loads.find((l) => l.uid === ctx.uid);
-          return (
-            <div class="pn-live-lift" key={lift.eid}>
-              <div class="pn-live-head"><b>{lift.name}</b><span>{lift.scheme.sets}×{lift.scheme.reps} · {lift.scheme.intensityPct}%</span></div>
-              <div class="pn-live-mine">Your load: <b>{mine && !mine.needsCalibration ? mine.load : "—"} {ctx.unit}</b></div>
-              {mine && mine.needsCalibration ? (
-                <button type="button" class="btn btn-secondary-solid btn-sm pn-live-cal" onClick={() => setCalib({ eid: lift.eid, liftName: lift.name })}>Set your max</button>
-              ) : (
-                <button type="button" class="btn btn-cta btn-sm pn-live-log" disabled={!mine || !mine.load} onClick={async () => {
-                  const w = mine!.load, reps = lift.scheme.reps;
-                  await logSharedSet(backend, session.id, { id: ctx.uid + "_" + lift.eid + "_" + backend.now(), uid: ctx.uid, handle: ctx.handle, eid: lift.eid, name: lift.name, weight: w, reps });
-                  p.onLogSet?.({ eid: lift.eid, name: lift.name, weight: w, reps });
-                  await advanceTurn(backend, session.id, Object.keys(session.participants));
-                }}>Log {mine?.load} {ctx.unit} × {lift.scheme.reps}</button>
-              )}
-            </div>
-          );
-        })}
-        <div class="pn-feed">
-          {feed.slice(-8).map((e) => <div class="pn-feed-row" key={e.id}><b>{e.handle}</b> {e.name} · {e.weight} × {e.reps}{e.isPR ? " 🏆" : ""}</div>)}
-        </div>
-        {isHost ? <button type="button" class="btn btn-mint btn-block pn-live-split" onClick={() => transition(backend, session.id, "split")}>Done together → solo accessories</button> : <p class="pn-hint">Your host moves the group to accessories when ready.</p>}
-      </div>
-    );
-  }
-
-  if (session.status === "split") {
-    const splitEids = ctx.planEids.filter((e) => !session.sharedLifts.some((l) => l.eid === e));
+  if (session.status === "active" || session.status === "split") {
+    // The shared lifts run in the real Train session (full card UI); this is just a fallback view.
     return (
       <div class="pn-split card">
-        <div class="card-h"><h2>Your accessories</h2></div>
-        <p class="pn-sub">Shared lifts done. Finish your own {splitEids.length} accessory move{splitEids.length !== 1 ? "s" : ""} on your normal Train tab — your partner does theirs.</p>
+        <div class="card-h"><h2>Training together</h2></div>
+        <p class="pn-sub">Your shared lifts are loaded on your Train tab — do them together at each of your own loads, then finish your own accessories. Your partner does theirs.</p>
         <button type="button" class="btn btn-cta btn-block" onClick={() => p.onGoToSplit?.()}>Go to my workout</button>
-        {isHost ? <button type="button" class="btn btn-secondary-solid btn-block" onClick={async () => { await transition(backend, session.id, "complete"); p.onExit(); }}>End partner session</button>
-          : <button type="button" class="btn btn-ghost btn-block" onClick={() => p.onExit()}>Leave</button>}
+        <button type="button" class="btn btn-ghost btn-block" onClick={() => p.onExit()}>Leave session</button>
       </div>
     );
   }

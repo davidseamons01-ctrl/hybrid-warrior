@@ -7,6 +7,7 @@
 //  See docs/partner-sessions.md §6.3.
 // ─────────────────────────────────────────────────────────────────────────
 import type { Vibe } from "./partner";
+import type { JointLift, JointRx } from "./partner-match";
 import type { PartnerSession, JoinCodeRecord, UserRef, SharedLiftRef, SessionStatus } from "./partner-pairing";
 import {
   newPartnerSession, participantFromUser, codeRecord, makeJoinCode,
@@ -133,6 +134,16 @@ export async function setReadyRemote(be: SessionBackend, id: string, uid: string
 /** Presence heartbeat — call on a timer (~10s) while in a session. */
 export async function heartbeat(be: SessionBackend, id: string, uid: string): Promise<void> {
   await be.patchSession(id, { participants: { [uid]: { lastSeen: be.now() } } });
+}
+
+/** Add or remove a joint lift (program-based redesign). null patch = removed. */
+export async function toggleJointLift(be: SessionBackend, id: string, joint: JointLift | null, eid: string): Promise<void> {
+  await be.patchSession(id, { jointLifts: { [eid]: joint }, updatedAt: be.now() });
+}
+
+/** Each device publishes its own resolved joint prescriptions into its participant. */
+export async function publishJointRx(be: SessionBackend, id: string, uid: string, rx: JointRx[]): Promise<void> {
+  await be.patchSession(id, { participants: { [uid]: { jointRx: rx } }, updatedAt: be.now() });
 }
 
 export async function setSharedBlock(be: SessionBackend, id: string, lifts: SharedLiftRef[], vibe?: Vibe): Promise<void> {

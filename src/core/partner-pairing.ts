@@ -6,6 +6,7 @@
 //  the fbDb create/join/onSnapshot calls are thin wrappers added in M3.
 // ─────────────────────────────────────────────────────────────────────────
 import type { Vibe, Scheme } from "./partner";
+import type { DayPlanItem, JointLift, JointRx } from "./partner-match";
 
 /* ---------- session document ---------- */
 
@@ -22,6 +23,8 @@ export interface Participant {
   maxesShared: boolean;
   focus: string[];         // goal/focus tags (not sensitive → always shared, for joint-fit)
   equipment: string[];     // available equipment
+  dayPlan: DayPlanItem[];  // their programmed exercises for today (drives matchmaking)
+  jointRx?: JointRx[];     // their resolved per-lift prescriptions (each device computes its own)
   ready: boolean;
   lastSeen: number;        // epoch ms — presence heartbeat
   progress: { sharedDone: number; splitDone: number };
@@ -39,10 +42,11 @@ export interface PartnerSession {
   joinCode: string | null;
   participants: Record<string, Participant>;
   sharedLifts: SharedLiftRef[];
+  jointLifts: Record<string, JointLift | null>; // eid-keyed; null = removed (program-based redesign)
   liveState: { currentLiftIndex: number; turn: { uid: string; setNo: number } | null; restEndsAt: number | null };
 }
 
-export interface UserRef { uid: string; handle: string; name?: string; maxes?: ParticipantMaxes; focus?: string[]; equipment?: string[] }
+export interface UserRef { uid: string; handle: string; name?: string; maxes?: ParticipantMaxes; focus?: string[]; equipment?: string[]; dayPlan?: DayPlanItem[] }
 
 /** Build a participant entry; maxes are included only with explicit consent. */
 export function participantFromUser(u: UserRef, opts: { role: "host" | "guest"; shareMaxes: boolean; now?: number }): Participant {
@@ -55,6 +59,7 @@ export function participantFromUser(u: UserRef, opts: { role: "host" | "guest"; 
     maxesShared: !!opts.shareMaxes,
     focus: u.focus || [],
     equipment: u.equipment || [],
+    dayPlan: u.dayPlan || [],
     ready: false,
     lastSeen: opts.now ?? Date.now(),
     progress: { sharedDone: 0, splitDone: 0 },
@@ -74,6 +79,7 @@ export function newPartnerSession(host: UserRef, opts: { id: string; code?: stri
     joinCode: opts.code ?? null,
     participants: { [host.uid]: host0 },
     sharedLifts: [],
+    jointLifts: {},
     liveState: { currentLiftIndex: 0, turn: null, restEndsAt: null },
   };
 }

@@ -626,6 +626,7 @@ function participantFromUser(u, opts) {
     maxesShared: !!opts.shareMaxes,
     focus: u.focus || [],
     equipment: u.equipment || [],
+    dayPlan: u.dayPlan || [],
     ready: false,
     lastSeen: opts.now ?? Date.now(),
     progress: { sharedDone: 0, splitDone: 0 }
@@ -644,6 +645,7 @@ function newPartnerSession(host, opts) {
     joinCode: opts.code ?? null,
     participants: { [host.uid]: host0 },
     sharedLifts: [],
+    jointLifts: {},
     liveState: { currentLiftIndex: 0, turn: null, restEndsAt: null }
   };
 }
@@ -830,6 +832,12 @@ async function setReadyRemote(be, id, uid, ready) {
 async function heartbeat(be, id, uid) {
   await be.patchSession(id, { participants: { [uid]: { lastSeen: be.now() } } });
 }
+async function toggleJointLift(be, id, joint, eid) {
+  await be.patchSession(id, { jointLifts: { [eid]: joint }, updatedAt: be.now() });
+}
+async function publishJointRx(be, id, uid, rx) {
+  await be.patchSession(id, { participants: { [uid]: { jointRx: rx } }, updatedAt: be.now() });
+}
 async function setSharedBlock(be, id, lifts, vibe) {
   const patch = { sharedLifts: lifts, updatedAt: be.now() };
   if (vibe) patch.vibe = vibe;
@@ -861,6 +869,50 @@ async function advanceTurn(be, id, order) {
     }
   }
   await be.patchSession(id, { liveState: { turn: { uid, setNo } }, updatedAt: be.now() });
+}
+
+// src/core/partner-match.ts
+function liftKeyForName(name) {
+  const s = String(name || "").toLowerCase();
+  if (s.includes("bench")) return "bench";
+  if (s.includes("deadlift") || s.includes("rdl") || s.includes("romanian")) return "deadlift";
+  if (s.includes("hip thrust") || s.includes("hipthrust")) return "hipthrust";
+  if (s.includes("overhead") || s.includes("ohp") || s.includes("military") || s.includes("shoulder press")) return "ohp";
+  if (s.includes("pull-up") || s.includes("pullup") || s.includes("pull up") || s.includes("chin-up") || s.includes("chinup")) return "pullup";
+  if (s.includes("row")) return "row";
+  if (s.includes("squat")) return "squat";
+  return s.trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "lift";
+}
+function resolveJointRx(lifter, joint) {
+  const mine = lifter.dayPlan.find((it) => it.eid === joint.eid);
+  const base = { key: joint.key, eid: joint.eid, name: joint.name, unit: lifter.unit };
+  if (mine) {
+    return { ...base, sets: mine.sets, reps: mine.reps, load: mine.load, source: "programmed" };
+  }
+  const sch = lifter.scheme;
+  const skey = joint.key || liftKeyForName(joint.name);
+  const max = lifter.strengthByKey[skey] || 0;
+  if (max > 0) {
+    const inc = lifter.incrementByKey && lifter.incrementByKey[skey] || 5;
+    return { ...base, sets: sch.sets, reps: sch.reps, load: scaleLoad(max, sch.intensityPct, inc), source: "estimated" };
+  }
+  if ((lifter.bodyweightKeys || []).includes(skey) || (lifter.bodyweightKeys || []).includes(joint.eid)) {
+    return { ...base, sets: sch.sets, reps: sch.reps, load: 0, source: "estimated" };
+  }
+  return { ...base, sets: sch.sets, reps: sch.reps, load: 0, source: "needs-calibration" };
+}
+function buildJointPlan(lifter, joints) {
+  return joints.map((j) => resolveJointRx(lifter, j));
+}
+function accessoriesFor(lifter, joints) {
+  const taken = new Set(joints.map((j) => j.eid));
+  return lifter.dayPlan.filter((it) => !taken.has(it.eid));
+}
+function jointLiftsFromMap(map) {
+  return Object.values(map || {}).filter((j) => !!j).sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0) || a.eid.localeCompare(b.eid));
+}
+function needsCalibration(lifter, joints) {
+  return buildJointPlan(lifter, joints).filter((r) => r.source === "needs-calibration");
 }
 
 // src/core/qr.ts
@@ -1124,12 +1176,14 @@ export {
   JOIN_CODE_ALPHABET,
   PARTNER_COMPOUNDS,
   VIBE_SCHEMES,
+  accessoriesFor,
   accessoryReps,
   accessoryRx,
   addGymBuddy,
   advanceTurn,
   allReady,
   bestPlanId,
+  buildJointPlan,
   buildSharedLiftPlan,
   calibrationToMax,
   canPerform,
@@ -1156,12 +1210,15 @@ export {
   isValidJoinCode,
   joinByCode,
   joinHash,
+  jointLiftsFromMap,
+  liftKeyForName,
   logSharedSet,
   makeInvite,
   makeJoinCode,
   mergeEvents,
   mergeLogSets,
   mergeSession,
+  needsCalibration,
   newPartnerSession,
   normalizeJoinCode,
   parseJoinHash,
@@ -1173,12 +1230,14 @@ export {
   phaseSetsFor,
   projectLogs,
   projectWeeksToGoal,
+  publishJointRx,
   qrMatrix,
   qrSvg,
   rankPlans,
   recentBestE1RM,
   reedSolomon,
   removeGymBuddy,
+  resolveJointRx,
   resolveMax,
   roundToIncrement,
   scaleLoad,
@@ -1191,6 +1250,7 @@ export {
   substituteEid,
   suggestSharedLifts,
   toEmbedUrl,
+  toggleJointLift,
   touchPresence,
   transition,
   warmupSets,

@@ -15,5 +15,6 @@ export * from "./body-metrics";
 export * from "./partner-entry";
 export * from "./partner-lobby";
 export * from "./shared-block-proposal";
+export * from "./match-board";
 export * from "./partner-app";
 export * from "./calibration-sheet";

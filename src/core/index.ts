@@ -15,4 +15,5 @@ export * from "./eventlog";
 export * from "./partner";
 export * from "./partner-pairing";
 export * from "./partner-session";
+export * from "./partner-match";
 export * from "./qr";

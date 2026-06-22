@@ -1817,6 +1817,95 @@ function mountSharedBlockProposal(container, props) {
   R(/* @__PURE__ */ u3(SharedBlockProposal, { ...props }), container);
 }
 
+// src/ui/match-board.tsx
+var rxFor = (p3, eid) => p3.rx.find((r3) => r3.eid === eid);
+function loadLabel(rx, unit) {
+  if (!rx) return { text: "\u2026", cls: "mb-load-wait" };
+  if (rx.source === "needs-calibration") return { text: "Set a max", cls: "mb-load-cal" };
+  if (rx.load <= 0) return { text: `BW \xB7 ${rx.sets}\xD7${rx.reps}`, cls: "mb-load-bw" };
+  return { text: `${rx.load} ${unit} \xB7 ${rx.sets}\xD7${rx.reps}${rx.source === "estimated" ? " est." : ""}`, cls: rx.source === "estimated" ? "mb-load-est" : "mb-load-prog" };
+}
+function Tile(p3) {
+  const { item } = p3;
+  const load = item.load > 0 ? `${item.load} ${p3.unit}` : "BW";
+  return /* @__PURE__ */ u3("button", { type: "button", class: `mb-tile${p3.inJoint ? " in" : ""}`, onClick: p3.onTap, "aria-pressed": p3.inJoint, children: [
+    /* @__PURE__ */ u3("span", { class: "mb-tile-name", children: item.name }),
+    /* @__PURE__ */ u3("span", { class: "mb-tile-rx", children: [
+      item.sets,
+      "\xD7",
+      item.reps,
+      " \xB7 ",
+      load
+    ] }),
+    /* @__PURE__ */ u3("span", { class: "mb-tile-mark", children: p3.inJoint ? "\u2713 shared" : "+ share" })
+  ] });
+}
+function MatchBoard(p3) {
+  const a3 = p3.actions;
+  const me = p3.participants.find((x2) => x2.uid === p3.meUid);
+  const others = p3.participants.filter((x2) => x2.uid !== p3.meUid);
+  const jointEids = new Set(p3.joints.map((j3) => j3.eid));
+  const myNeedsCal = (me?.rx || []).filter((r3) => jointEids.has(r3.eid) && r3.source === "needs-calibration");
+  const canStart = p3.joints.length > 0 && myNeedsCal.length === 0;
+  return /* @__PURE__ */ u3("div", { class: "mb-flow", children: [
+    /* @__PURE__ */ u3("div", { class: "mb-head", children: [
+      /* @__PURE__ */ u3("h2", { children: "Build today together" }),
+      /* @__PURE__ */ u3("span", { class: "mb-sub", children: "Tap your lifts into the middle to do them together \u2014 each at your own load. The rest you'll do solo." })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "mb-board", children: [
+      /* @__PURE__ */ u3("div", { class: "mb-col mb-col-me", children: [
+        /* @__PURE__ */ u3("div", { class: "mb-col-h", children: "Your plan" }),
+        me && me.dayPlan.length ? me.dayPlan.map((it) => /* @__PURE__ */ u3(Tile, { item: it, unit: p3.unit, inJoint: jointEids.has(it.eid), onTap: () => a3.toggle(it) }, it.eid)) : /* @__PURE__ */ u3("div", { class: "mb-empty", children: "No lifts programmed today \u2014 your partner can still pull you into theirs." })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "mb-col mb-col-joint", children: [
+        /* @__PURE__ */ u3("div", { class: "mb-col-h", children: [
+          "Together ",
+          /* @__PURE__ */ u3("span", { class: "mb-count", children: p3.joints.length })
+        ] }),
+        p3.joints.length === 0 ? /* @__PURE__ */ u3("div", { class: "mb-empty", children: "Nothing shared yet. Tap a lift from either side." }) : null,
+        p3.joints.map((j3) => /* @__PURE__ */ u3("div", { class: "mb-joint-lift", children: [
+          /* @__PURE__ */ u3("div", { class: "mb-joint-top", children: [
+            /* @__PURE__ */ u3("span", { class: "mb-joint-name", children: j3.name }),
+            /* @__PURE__ */ u3("button", { type: "button", class: "mb-remove", "aria-label": `Remove ${j3.name}`, onClick: () => a3.remove(j3.eid), children: "\xD7" })
+          ] }),
+          p3.participants.map((pt) => {
+            const rx = rxFor(pt, j3.eid);
+            const lbl = loadLabel(rx, p3.unit);
+            const mine = pt.uid === p3.meUid;
+            return /* @__PURE__ */ u3("div", { class: "mb-load-row", children: [
+              /* @__PURE__ */ u3("span", { class: "mb-load-who", children: pt.name }),
+              lbl.cls === "mb-load-cal" ? mine ? /* @__PURE__ */ u3("button", { type: "button", class: "mb-load-cal", onClick: () => rx && a3.calibrate(rx), children: "Set a max" }) : /* @__PURE__ */ u3("span", { class: "mb-load-wait", children: "sets on their phone" }) : /* @__PURE__ */ u3("span", { class: `mb-load ${lbl.cls}`, children: lbl.text })
+            ] }, pt.uid);
+          })
+        ] }, j3.eid))
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "mb-col mb-col-partner", children: others.map((o3) => /* @__PURE__ */ u3("div", { class: "mb-partner", children: [
+        /* @__PURE__ */ u3("div", { class: "mb-col-h", children: [
+          o3.name,
+          "'s plan"
+        ] }),
+        o3.dayPlan.length ? o3.dayPlan.map((it) => /* @__PURE__ */ u3("div", { class: `mb-ptile${jointEids.has(it.eid) ? " in" : ""}`, children: [
+          /* @__PURE__ */ u3("span", { class: "mb-tile-name", children: it.name }),
+          /* @__PURE__ */ u3("span", { class: "mb-tile-rx", children: [
+            it.sets,
+            "\xD7",
+            it.reps,
+            it.load > 0 ? ` \xB7 ${it.load} ${p3.unit}` : ""
+          ] }),
+          jointEids.has(it.eid) ? /* @__PURE__ */ u3("span", { class: "mb-tile-mark", children: "\u2713" }) : null
+        ] }, it.eid)) : /* @__PURE__ */ u3("div", { class: "mb-empty", children: "No lifts today." })
+      ] }, o3.uid)) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "mb-actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost mb-back", onClick: () => a3.back(), children: "Back" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta mb-start", disabled: !canStart || !!p3.busy, onClick: () => a3.start(), children: p3.joints.length === 0 ? "Pick a shared lift" : myNeedsCal.length ? "Set your max first" : "Start lifting \u2192" })
+    ] })
+  ] });
+}
+function mountMatchBoard(container, props) {
+  R(/* @__PURE__ */ u3(MatchBoard, { ...props }), container);
+}
+
 // src/core/strength.ts
 function epley(w3, r3) {
   return r3 <= 0 || w3 <= 0 ? 0 : w3 * (1 + r3 / 30);
@@ -2224,6 +2313,43 @@ function qrSvg(text, opts = {}) {
   return `<svg viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect width="${dim}" height="${dim}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
 }
 
+// src/core/partner-match.ts
+function liftKeyForName(name) {
+  const s3 = String(name || "").toLowerCase();
+  if (s3.includes("bench")) return "bench";
+  if (s3.includes("deadlift") || s3.includes("rdl") || s3.includes("romanian")) return "deadlift";
+  if (s3.includes("hip thrust") || s3.includes("hipthrust")) return "hipthrust";
+  if (s3.includes("overhead") || s3.includes("ohp") || s3.includes("military") || s3.includes("shoulder press")) return "ohp";
+  if (s3.includes("pull-up") || s3.includes("pullup") || s3.includes("pull up") || s3.includes("chin-up") || s3.includes("chinup")) return "pullup";
+  if (s3.includes("row")) return "row";
+  if (s3.includes("squat")) return "squat";
+  return s3.trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "lift";
+}
+function resolveJointRx(lifter, joint) {
+  const mine = lifter.dayPlan.find((it) => it.eid === joint.eid);
+  const base = { key: joint.key, eid: joint.eid, name: joint.name, unit: lifter.unit };
+  if (mine) {
+    return { ...base, sets: mine.sets, reps: mine.reps, load: mine.load, source: "programmed" };
+  }
+  const sch = lifter.scheme;
+  const skey = joint.key || liftKeyForName(joint.name);
+  const max = lifter.strengthByKey[skey] || 0;
+  if (max > 0) {
+    const inc = lifter.incrementByKey && lifter.incrementByKey[skey] || 5;
+    return { ...base, sets: sch.sets, reps: sch.reps, load: scaleLoad(max, sch.intensityPct, inc), source: "estimated" };
+  }
+  if ((lifter.bodyweightKeys || []).includes(skey) || (lifter.bodyweightKeys || []).includes(joint.eid)) {
+    return { ...base, sets: sch.sets, reps: sch.reps, load: 0, source: "estimated" };
+  }
+  return { ...base, sets: sch.sets, reps: sch.reps, load: 0, source: "needs-calibration" };
+}
+function buildJointPlan(lifter, joints) {
+  return joints.map((j3) => resolveJointRx(lifter, j3));
+}
+function jointLiftsFromMap(map) {
+  return Object.values(map || {}).filter((j3) => !!j3).sort((a3, b2) => (a3.addedAt || 0) - (b2.addedAt || 0) || a3.eid.localeCompare(b2.eid));
+}
+
 // src/core/partner-pairing.ts
 function participantFromUser(u4, opts) {
   return {
@@ -2235,6 +2361,7 @@ function participantFromUser(u4, opts) {
     maxesShared: !!opts.shareMaxes,
     focus: u4.focus || [],
     equipment: u4.equipment || [],
+    dayPlan: u4.dayPlan || [],
     ready: false,
     lastSeen: opts.now ?? Date.now(),
     progress: { sharedDone: 0, splitDone: 0 }
@@ -2253,6 +2380,7 @@ function newPartnerSession(host, opts) {
     joinCode: opts.code ?? null,
     participants: { [host.uid]: host0 },
     sharedLifts: [],
+    jointLifts: {},
     liveState: { currentLiftIndex: 0, turn: null, restEndsAt: null }
   };
 }
@@ -2317,10 +2445,11 @@ async function setReadyRemote(be, id, uid, ready) {
 async function heartbeat(be, id, uid) {
   await be.patchSession(id, { participants: { [uid]: { lastSeen: be.now() } } });
 }
-async function setSharedBlock(be, id, lifts, vibe) {
-  const patch = { sharedLifts: lifts, updatedAt: be.now() };
-  if (vibe) patch.vibe = vibe;
-  await be.patchSession(id, patch);
+async function toggleJointLift(be, id, joint, eid) {
+  await be.patchSession(id, { jointLifts: { [eid]: joint }, updatedAt: be.now() });
+}
+async function publishJointRx(be, id, uid, rx) {
+  await be.patchSession(id, { participants: { [uid]: { jointRx: rx } }, updatedAt: be.now() });
 }
 async function transition(be, id, to) {
   const s3 = await be.getSession(id);
@@ -2328,30 +2457,8 @@ async function transition(be, id, to) {
   await be.patchSession(id, { status: to, updatedAt: be.now() });
   return true;
 }
-async function logSharedSet(be, id, ev) {
-  await be.appendFeed(id, { ...ev, ts: ev.ts ?? be.now() });
-}
-async function advanceTurn(be, id, order) {
-  if (!order.length) return;
-  const s3 = await be.getSession(id);
-  if (!s3) return;
-  const turn = s3.liveState.turn;
-  let uid = order[0], setNo = 1;
-  if (turn) {
-    const i4 = order.indexOf(turn.uid);
-    if (i4 < 0 || i4 === order.length - 1) {
-      uid = order[0];
-      setNo = turn.setNo + 1;
-    } else {
-      uid = order[i4 + 1];
-      setNo = turn.setNo;
-    }
-  }
-  await be.patchSession(id, { liveState: { turn: { uid, setNo } }, updatedAt: be.now() });
-}
 
 // src/ui/partner-app.tsx
-var VIBES = [{ id: "strength", label: "Strength" }, { id: "hypertrophy", label: "Hypertrophy" }, { id: "pump", label: "Pump" }];
 var ERR = { "not-found": "No session with that code.", expired: "That code has expired.", gone: "That session is no longer available.", closed: "That session has already ended." };
 function toUsers(session, ctx) {
   return Object.values(session.participants).map((p3) => ({
@@ -2369,7 +2476,7 @@ function incrFor(eid, catalog = PARTNER_COMPOUNDS) {
 }
 function PartnerApp(p3) {
   const { backend, ctx } = p3;
-  const me = { uid: ctx.uid, handle: ctx.handle, name: ctx.name, maxes: ctx.maxes, focus: ctx.focus, equipment: ctx.equipment };
+  const me = { uid: ctx.uid, handle: ctx.handle, name: ctx.name, maxes: ctx.maxes, focus: ctx.focus, equipment: ctx.equipment, dayPlan: ctx.dayPlan || [] };
   const [view, setView] = d2("entry");
   const [sessionId, setSessionId] = d2(null);
   const [session, setSession] = d2(null);
@@ -2380,11 +2487,11 @@ function PartnerApp(p3) {
   const [vibe, setVibe] = d2("hypertrophy");
   const [removed, setRemoved] = d2(/* @__PURE__ */ new Set());
   const [calib, setCalib] = d2(null);
+  const [calibratedMaxes, setCalibratedMaxes] = d2({});
   const [setupNeeded, setSetupNeeded] = d2(false);
   const triedInitial = A2(false);
   const onCalibSubmit = (max) => {
-    if (calib && session) backend.patchSession(session.id, { participants: { [ctx.uid]: { maxes: { [calib.eid]: max } } } }).catch(() => {
-    });
+    if (calib) setCalibratedMaxes((m3) => ({ ...m3, [calib.key]: max }));
     setCalib(null);
   };
   const withCalib = (content) => /* @__PURE__ */ u3(S, { children: [
@@ -2480,6 +2587,21 @@ function PartnerApp(p3) {
     const base = typeof location !== "undefined" ? location.origin + location.pathname : "";
     return qrSvg(base + "#join=" + code);
   }, [code]);
+  const myLifter = T2(() => ({
+    dayPlan: ctx.dayPlan || [],
+    scheme: ctx.scheme || VIBE_SCHEMES.hypertrophy,
+    strengthByKey: { ...ctx.strengthByKey || {}, ...calibratedMaxes },
+    bodyweightKeys: ctx.bodyweightKeys || [],
+    unit: ctx.unit
+  }), [ctx, calibratedMaxes]);
+  const joints = T2(() => jointLiftsFromMap(session?.jointLifts), [session && JSON.stringify(session.jointLifts)]);
+  const myRx = T2(() => buildJointPlan(myLifter, joints), [myLifter, joints]);
+  y2(() => {
+    if (!sessionId || !session || session.status !== "proposing") return;
+    const mine = session.participants[ctx.uid]?.jointRx || [];
+    if (JSON.stringify(mine) !== JSON.stringify(myRx)) publishJointRx(backend, sessionId, ctx.uid, myRx).catch(() => {
+    });
+  }, [sessionId, session?.status, JSON.stringify(myRx)]);
   if (!session) {
     if (setupNeeded) {
       return /* @__PURE__ */ u3("div", { class: "pn-entry card pn-setup", children: [
@@ -2572,27 +2694,37 @@ function PartnerApp(p3) {
     ] });
   }
   if (session.status === "proposing") {
-    if (!isHost) return /* @__PURE__ */ u3("div", { class: "pn-flow card", children: /* @__PURE__ */ u3("p", { class: "pn-waiting", children: "Your host is choosing the shared lifts\u2026" }) });
+    const participants = Object.values(session.participants).map((x2) => ({
+      uid: x2.uid,
+      name: x2.name,
+      dayPlan: x2.dayPlan || [],
+      rx: x2.uid === ctx.uid ? myRx : x2.jointRx || []
+    }));
     return withCalib(
       /* @__PURE__ */ u3(
-        SharedBlockProposal,
+        MatchBoard,
         {
-          vibe,
-          vibes: VIBES,
-          lifts: proposalLifts,
           meUid: ctx.uid,
+          participants,
+          joints,
+          unit: ctx.unit,
+          busy,
           actions: {
-            setVibe: (v3) => setVibe(v3),
-            removeLift: (eid) => setRemoved((s3) => /* @__PURE__ */ new Set([...s3, eid])),
-            addLift: () => {
+            toggle: (item) => {
+              const isIn = joints.some((j3) => j3.eid === item.eid);
+              const jl = isIn ? null : { eid: item.eid, key: liftKeyForName(item.name), name: item.name, addedBy: ctx.uid, addedAt: backend.now() };
+              toggleJointLift(backend, session.id, jl, item.eid).catch(() => {
+              });
             },
-            calibrate: (eid, uid) => {
-              if (uid === ctx.uid) setCalib({ eid, liftName: proposalLifts.find((l3) => l3.eid === eid)?.name || eid });
+            remove: (eid) => {
+              toggleJointLift(backend, session.id, null, eid).catch(() => {
+              });
             },
-            confirm: async () => {
-              const lifts = proposalLifts.map((l3, i4) => ({ eid: l3.eid, name: l3.name, order: i4, scheme: l3.scheme }));
-              await setSharedBlock(backend, session.id, lifts, vibe);
-              await transition(backend, session.id, "active");
+            calibrate: (rx) => setCalib({ eid: rx.eid, key: rx.key, liftName: rx.name }),
+            start: async () => {
+              await publishJointRx(backend, session.id, ctx.uid, myRx).catch(() => {
+              });
+              p3.onStartJoint?.(myRx);
             },
             back: () => transition(backend, session.id, "lobby")
           }
@@ -2600,87 +2732,12 @@ function PartnerApp(p3) {
       )
     );
   }
-  if (session.status === "active") {
-    const users = toUsers(session, ctx);
-    return withCalib(
-      /* @__PURE__ */ u3("div", { class: "pn-live card", children: [
-        /* @__PURE__ */ u3("div", { class: "card-h", children: [
-          /* @__PURE__ */ u3("h2", { children: "Shared lifts" }),
-          session.liveState.turn ? /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: [
-            "Up: ",
-            session.participants[session.liveState.turn.uid]?.name,
-            " \xB7 set ",
-            session.liveState.turn.setNo
-          ] }) : null
-        ] }),
-        session.sharedLifts.map((lift) => {
-          const plan = buildSharedLiftPlan({ eid: lift.eid, name: lift.name, jointScore: 0, reason: "" }, users, lift.scheme, incrFor(lift.eid, ctx.catalog ?? PARTNER_COMPOUNDS));
-          const mine = plan.loads.find((l3) => l3.uid === ctx.uid);
-          return /* @__PURE__ */ u3("div", { class: "pn-live-lift", children: [
-            /* @__PURE__ */ u3("div", { class: "pn-live-head", children: [
-              /* @__PURE__ */ u3("b", { children: lift.name }),
-              /* @__PURE__ */ u3("span", { children: [
-                lift.scheme.sets,
-                "\xD7",
-                lift.scheme.reps,
-                " \xB7 ",
-                lift.scheme.intensityPct,
-                "%"
-              ] })
-            ] }),
-            /* @__PURE__ */ u3("div", { class: "pn-live-mine", children: [
-              "Your load: ",
-              /* @__PURE__ */ u3("b", { children: [
-                mine && !mine.needsCalibration ? mine.load : "\u2014",
-                " ",
-                ctx.unit
-              ] })
-            ] }),
-            mine && mine.needsCalibration ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-sm pn-live-cal", onClick: () => setCalib({ eid: lift.eid, liftName: lift.name }), children: "Set your max" }) : /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm pn-live-log", disabled: !mine || !mine.load, onClick: async () => {
-              const w3 = mine.load, reps = lift.scheme.reps;
-              await logSharedSet(backend, session.id, { id: ctx.uid + "_" + lift.eid + "_" + backend.now(), uid: ctx.uid, handle: ctx.handle, eid: lift.eid, name: lift.name, weight: w3, reps });
-              p3.onLogSet?.({ eid: lift.eid, name: lift.name, weight: w3, reps });
-              await advanceTurn(backend, session.id, Object.keys(session.participants));
-            }, children: [
-              "Log ",
-              mine?.load,
-              " ",
-              ctx.unit,
-              " \xD7 ",
-              lift.scheme.reps
-            ] })
-          ] }, lift.eid);
-        }),
-        /* @__PURE__ */ u3("div", { class: "pn-feed", children: feed.slice(-8).map((e3) => /* @__PURE__ */ u3("div", { class: "pn-feed-row", children: [
-          /* @__PURE__ */ u3("b", { children: e3.handle }),
-          " ",
-          e3.name,
-          " \xB7 ",
-          e3.weight,
-          " \xD7 ",
-          e3.reps,
-          e3.isPR ? " \u{1F3C6}" : ""
-        ] }, e3.id)) }),
-        isHost ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-mint btn-block pn-live-split", onClick: () => transition(backend, session.id, "split"), children: "Done together \u2192 solo accessories" }) : /* @__PURE__ */ u3("p", { class: "pn-hint", children: "Your host moves the group to accessories when ready." })
-      ] })
-    );
-  }
-  if (session.status === "split") {
-    const splitEids = ctx.planEids.filter((e3) => !session.sharedLifts.some((l3) => l3.eid === e3));
+  if (session.status === "active" || session.status === "split") {
     return /* @__PURE__ */ u3("div", { class: "pn-split card", children: [
-      /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Your accessories" }) }),
-      /* @__PURE__ */ u3("p", { class: "pn-sub", children: [
-        "Shared lifts done. Finish your own ",
-        splitEids.length,
-        " accessory move",
-        splitEids.length !== 1 ? "s" : "",
-        " on your normal Train tab \u2014 your partner does theirs."
-      ] }),
+      /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Training together" }) }),
+      /* @__PURE__ */ u3("p", { class: "pn-sub", children: "Your shared lifts are loaded on your Train tab \u2014 do them together at each of your own loads, then finish your own accessories. Your partner does theirs." }),
       /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block", onClick: () => p3.onGoToSplit?.(), children: "Go to my workout" }),
-      isHost ? /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-block", onClick: async () => {
-        await transition(backend, session.id, "complete");
-        p3.onExit();
-      }, children: "End partner session" }) : /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-block", onClick: () => p3.onExit(), children: "Leave" })
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost btn-block", onClick: () => p3.onExit(), children: "Leave session" })
     ] });
   }
   return /* @__PURE__ */ u3("div", { class: "pn-done card", children: [
@@ -2697,6 +2754,7 @@ export {
   CalibrationSheet,
   ExerciseCard,
   FocusShell,
+  MatchBoard,
   PartnerApp,
   PartnerEntry,
   PartnerLobby,
@@ -2717,6 +2775,7 @@ export {
   mountCalibrationSheet,
   mountExerciseCard,
   mountFocusShell,
+  mountMatchBoard,
   mountPartnerApp,
   mountPartnerEntry,
   mountPartnerLobby,
