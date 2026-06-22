@@ -1134,6 +1134,18 @@ function PaceCol({ id, val }) {
     /* @__PURE__ */ u3("input", { type: "text", class: "input-sm input-mmss", id, value: val, placeholder: "8:42", inputmode: "numeric", autocomplete: "off", spellcheck: false, "aria-label": "Pace per mile" })
   ] });
 }
+function RunExtra({ distId, hrId }) {
+  return /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3("div", { class: "run-extra-col", children: [
+      /* @__PURE__ */ u3("label", { children: "Distance (mi)" }),
+      /* @__PURE__ */ u3("input", { type: "number", class: "input-sm", id: distId, min: "0", step: "0.01", inputmode: "decimal", placeholder: "3.0", "aria-label": "Distance in miles" })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "run-extra-col", children: [
+      /* @__PURE__ */ u3("label", { children: "Avg HR" }),
+      /* @__PURE__ */ u3("input", { type: "number", class: "input-sm", id: hrId, min: "0", step: "1", inputmode: "numeric", placeholder: "bpm", "aria-label": "Average heart rate" })
+    ] })
+  ] });
+}
 function OutcomeSelect({ id }) {
   return /* @__PURE__ */ u3("div", { children: [
     /* @__PURE__ */ u3("label", { children: "Outcome" }),
@@ -1227,6 +1239,7 @@ function ExerciseCard(p3) {
         ] }),
         /* @__PURE__ */ u3(Stepper, { id: "tq-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab, onStep: a3.step }),
         p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "tq-w" + i4, val: p3.quickWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "tq-w" + i4, val: p3.quickWVal, wStep: p3.wStep, unit, i: i4, onStep: a3.step }),
+        p3.runEx ? /* @__PURE__ */ u3(RunExtra, { distId: "tq-dist" + i4, hrId: "tq-hr" + i4 }) : null,
         /* @__PURE__ */ u3(OutcomeSelect, { id: "tq-o" + i4 }),
         p3.runEx && p3.hasShoe ? /* @__PURE__ */ u3("div", { id: "shoe-pick-" + i4, children: /* @__PURE__ */ u3(Html2, { html: p3.shoeHtml }) }) : null,
         /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block q-save", "data-i": i4, onClick: (e3) => a3.logSet(e3.currentTarget), children: "Complete set & start rest" })
@@ -1237,6 +1250,7 @@ function ExerciseCard(p3) {
           /* @__PURE__ */ u3(Stepper, { id: "t-s" + i4, value: p3.sets, delta: 1, min: 1, label: "Sets", onStep: a3.step }),
           /* @__PURE__ */ u3(Stepper, { id: "t-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab, onStep: a3.step }),
           p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "t-w" + i4, val: p3.gridWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "t-w" + i4, val: p3.gridWVal, wStep: p3.wStep, unit, i: i4, onStep: a3.step }),
+          p3.runEx ? /* @__PURE__ */ u3(RunExtra, { distId: "t-dist" + i4, hrId: "t-hr" + i4 }) : null,
           /* @__PURE__ */ u3(OutcomeSelect, { id: "t-o" + i4 }),
           /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-copyprev", "data-i": i4, onClick: (e3) => a3.copyPrev(e3.currentTarget), children: "Copy previous set" }),
           /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm ex-save", "data-i": i4, onClick: (e3) => a3.saveAll(e3.currentTarget), children: "Save all" })

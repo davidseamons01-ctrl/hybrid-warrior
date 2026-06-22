@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hdf38f32bb880";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h26dc6b089053";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -12,8 +12,8 @@ import {
   AB_TEMPLATES, abTemplateById, selectAbTemplate, buildAbFinisher,
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout
-} from "./programming.js?v=hdf38f32bb880";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=hdf38f32bb880";
+} from "./programming.js?v=h26dc6b089053";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=h26dc6b089053";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4547,10 +4547,12 @@ async function logSingleSetForExercise(i){
   const maxSets=Math.max(1,Number(ex.sets)||1);
   if(setNo>maxSets){toast(`All ${maxSets} sets already logged for ${name}.`);return{ok:false,atCap:true,maxSets,name};}
   const out=(document.getElementById("tq-o"+i)||{value:"ok"}).value;
-  let aR,aW;
+  let aR,aW,aDist=0,aHR=0;
   if(isRunExerciseName(name)){
     aR=Number(document.getElementById("tq-r"+i)?.value)||0;
     aW=paceSecPerMiFromInput(document.getElementById("tq-w"+i)?.value);
+    aDist=Number(document.getElementById("tq-dist"+i)?.value)||0;
+    aHR=Number(document.getElementById("tq-hr"+i)?.value)||0;
     if(aR<=0){toast(isRunTempoStyle(ex)?"Enter minutes for this run.":"Enter intervals/reps for this set.");return{ok:false}}
     if(aW<=0){toast("Enter pace as mm:ss per mile (example: 8:42).");return{ok:false}}
   }else{
@@ -4565,7 +4567,7 @@ async function logSingleSetForExercise(i){
     const shoeSel=document.querySelector(`#shoe-pick-${i} .shoe-select`);
     if(shoeSel&&shoeSel.value)shoeId=shoeSel.value;
     const distMi=isRunTempoStyle(ex)?((aR/60)*(1609.34/aW)/1609.34)*aR : (aR*(1609.34/aW)*0.5/1609.34);
-    const estMiles=isRunTempoStyle(ex)?aR*(60/aW)/1.609344 : aR*0.5;
+    const estMiles=aDist>0?aDist:(isRunTempoStyle(ex)?aR*(60/aW)/1.609344 : aR*0.5);
     if(shoeId&&estMiles>0){
       addMilesToShoe(shoeId,estMiles);
       const shoe=getShoeById(shoeId);
@@ -4577,6 +4579,8 @@ async function logSingleSetForExercise(i){
     const rpeEl=document.getElementById("tq-rpe"+i);
     const rpeVal=rpeEl?Number(rpeEl.value)||0:0;
     if(rpeVal>0)log.runRpe=rpeVal;
+    if(aDist>0)log.aDist=aDist;
+    if(aHR>0)log.aHR=aHR;
   }
   if(shoeId)log.shoeId=shoeId;
   log.score=calcLogScore(log);
@@ -4624,7 +4628,7 @@ async function cardToggleBody(b){const i=b.dataset.i;const body=document.getElem
 function cardStep(b){const t=document.getElementById(b.dataset.target);if(!t)return;if(t.classList&&t.classList.contains("input-mmss"))return;const d=Number(b.dataset.delta)||0;const min=(t.min!==""?Number(t.min):-Infinity);const step=(t.step&&t.step!=="any")?Number(t.step):1;const cur=Number(t.value)||0;const next=Math.max(min,cur+d);t.value=String(step>=1?Math.round(next):+next.toFixed(2));hapticPulse(8)}
 async function cardLogSet(b){hapticKey();const i=+b.dataset.i;const result=await logSingleSetForExercise(i);if(!result.ok)return;const e=exById(result.ex.eid);let sub="";try{const loggedNow=(S.logs||[]).filter(l=>l.date===activeTrainIso()&&l.exercise===result.name).length;const totalSets=Math.max(1,Number(result.ex.sets)||1);if(loggedNow<totalSets){const tgt=Number(result.ex.target)||0;const wTxt=(!isRunExerciseName(result.name)&&tgt>0)?` · next ${formatLoadLbText(tgt)}`:"";sub=`Set ${loggedNow+1} of ${totalSets}${wTxt}`;}else{sub=`All ${totalSets} sets done ✓`;}}catch(err){}startRestTimer(parseRestSec(e&&e.rest),result.name,sub);const nextSet=Math.min(result.maxSets,result.setNo+1);const setLbl=document.getElementById("tq-set-lbl"+i);if(setLbl)setLbl.textContent=`Set ${nextSet} of ${result.maxSets}`;const tS=document.getElementById("t-s"+i),tR=document.getElementById("t-r"+i),tW=document.getElementById("t-w"+i),tqR=document.getElementById("tq-r"+i),tqW=document.getElementById("tq-w"+i),tqO=document.getElementById("tq-o"+i),tO=document.getElementById("t-o"+i);if(tS)tS.value="1";if(tR)tR.value=String(result.aR);if(tqR)tqR.value=String(result.aR);const wSync=isRunExerciseName(result.name)?paceSecPerMiDisplay(result.aW):String(loadInputDisplayFromLb(result.aW));if(tW)tW.value=wSync;if(tqW)tqW.value=wSync;if(tO&&tqO)tO.value=tqO.value;const run=isRunExerciseName(result.name);const prevLogs=(S.logs||[]).slice(0,-1);const qIsPR=!run&&result.aW>0&&!prevLogs.some(l=>l.exercise===result.name&&(l.aW||0)>=result.aW&&(l.aR||0)>=result.aR);if(qIsPR){triggerHaptic("pr");celebrateFinish()}if(result.setNo>=result.maxSets){toast(`${result.name}: all sets logged for today.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});if(powerFocusOn)applyPowerFocusActive()}else toast(`${result.name} saved — ready for set ${nextSet}.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});}
 function cardCopyPrev(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const name=e?e.name:ex.eid;const row=[...S.logs].reverse().find(l=>l.exercise===name);if(!row){toast("No previous set yet for this exercise.");return}const run=isRunExerciseName(name);const wVal=run?paceSecPerMiDisplay(Number(row.aW)||0):String(loadInputDisplayFromLb(Number(row.aW)||0));document.getElementById("t-s"+i).value=Number(row.aS)||1;document.getElementById("t-r"+i).value=Number(row.aR)||ex.reps||1;document.getElementById("t-w"+i).value=wVal;const tqW=document.getElementById("tq-w"+i);if(tqW)tqW.value=wVal;const o=document.getElementById("t-o"+i);if(o&&row.outcome)o.value=row.outcome;hapticPulse(12);toast("Copied previous set")}
-async function cardSaveAll(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const prevEv=Array.isArray(S.events)?S.events.slice():[];const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};log.score=calcLogScore(log);recordLoggedSet(log);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}const isPR=!run&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);if(isPR){triggerHaptic("pr");celebrateFinish();toastMsg+=" — 🏆 New Record!"}else{triggerHaptic("tick")}toast(toastMsg,{undo:()=>{S.events=prevEv;reprojectLogs();delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});const restSec=e&&e.rest?parseRestSec(e.rest):90;startRestTimer(restSec,name);render()}
+async function cardSaveAll(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const prevEv=Array.isArray(S.events)?S.events.slice():[];const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};if(run){const d=Number(document.getElementById("t-dist"+i)?.value)||0,hr=Number(document.getElementById("t-hr"+i)?.value)||0;if(d>0)log.aDist=d;if(hr>0)log.aHR=hr;}log.score=calcLogScore(log);recordLoggedSet(log);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}const isPR=!run&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);if(isPR){triggerHaptic("pr");celebrateFinish();toastMsg+=" — 🏆 New Record!"}else{triggerHaptic("tick")}toast(toastMsg,{undo:()=>{S.events=prevEv;reprojectLogs();delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});const restSec=e&&e.rest?parseRestSec(e.rest):90;startRestTimer(restSec,name);render()}
 const cardActions={noteInput:cardNoteInput,feelClick:cardFeelClick,skip:cardSkip,rest:cardRest,toggleBody:cardToggleBody,step:cardStep,logSet:cardLogSet,copyPrev:cardCopyPrev,saveAll:cardSaveAll};
 // ── Session-shell cards (UI rebuild #4c): actions + mount into render slots ──
 async function readinessSelect(v){if(!S.sessionReadinessByDate)S.sessionReadinessByDate={};S.sessionReadinessByDate[activeTrainIso()]=v;await persist();render();}

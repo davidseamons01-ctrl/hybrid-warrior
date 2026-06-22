@@ -106,6 +106,22 @@ function PaceCol({ id, val }: { id: string; val: string }) {
   );
 }
 
+// Framework data-tracking: distance + heart rate captured per run.
+function RunExtra({ distId, hrId }: { distId: string; hrId: string }) {
+  return (
+    <>
+      <div class="run-extra-col">
+        <label>Distance (mi)</label>
+        <input type="number" class="input-sm" id={distId} min="0" step="0.01" inputmode="decimal" placeholder="3.0" aria-label="Distance in miles" />
+      </div>
+      <div class="run-extra-col">
+        <label>Avg HR</label>
+        <input type="number" class="input-sm" id={hrId} min="0" step="1" inputmode="numeric" placeholder="bpm" aria-label="Average heart rate" />
+      </div>
+    </>
+  );
+}
+
 function OutcomeSelect({ id }: { id: string }) {
   return (
     <div>
@@ -178,6 +194,7 @@ function ExerciseCard(p: ExerciseCardProps) {
           <span class="quick-set-indicator" id={"tq-set-lbl" + i} style="font-size:11px;color:var(--text3);align-self:center">Set {p.activeSet} of {p.sets}</span>
           <Stepper id={"tq-r" + i} value={p.reps} delta={1} min={1} repLab={p.repLab} onStep={a.step} />
           {p.runEx ? <PaceCol id={"tq-w" + i} val={p.quickWVal} /> : <LoadCol id={"tq-w" + i} val={p.quickWVal} wStep={p.wStep} unit={unit} i={i} onStep={a.step} />}
+          {p.runEx ? <RunExtra distId={"tq-dist" + i} hrId={"tq-hr" + i} /> : null}
           <OutcomeSelect id={"tq-o" + i} />
           {p.runEx && p.hasShoe ? <div id={"shoe-pick-" + i}><Html html={p.shoeHtml} /></div> : null}
           <button type="button" class="btn btn-cta btn-block q-save" data-i={i} onClick={(e) => a.logSet(e.currentTarget as HTMLElement)}>Complete set &amp; start rest</button>
@@ -188,6 +205,7 @@ function ExerciseCard(p: ExerciseCardProps) {
             <Stepper id={"t-s" + i} value={p.sets} delta={1} min={1} label="Sets" onStep={a.step} />
             <Stepper id={"t-r" + i} value={p.reps} delta={1} min={1} repLab={p.repLab} onStep={a.step} />
             {p.runEx ? <PaceCol id={"t-w" + i} val={p.gridWVal} /> : <LoadCol id={"t-w" + i} val={p.gridWVal} wStep={p.wStep} unit={unit} i={i} onStep={a.step} />}
+            {p.runEx ? <RunExtra distId={"t-dist" + i} hrId={"t-hr" + i} /> : null}
             <OutcomeSelect id={"t-o" + i} />
             <button type="button" class="btn btn-sm btn-secondary-solid ex-copyprev" data-i={i} onClick={(e) => a.copyPrev(e.currentTarget as HTMLElement)}>Copy previous set</button>
             <button type="button" class="btn btn-cta btn-sm ex-save" data-i={i} onClick={(e) => a.saveAll(e.currentTarget as HTMLElement)}>Save all</button>

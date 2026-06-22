@@ -84,6 +84,17 @@ describe("ExerciseCard markup contract", () => {
     expect(tqw.value).toBe("8:42");
     expect(el.querySelector(".q-load-helper")).toBeNull(); // runs use pace, not the bar helper
     expect(el.querySelector("#shoe-pick-0 .shoe-select")).toBeTruthy();
+    // framework data-tracking: distance + HR fields on runs (quick row + log-all grid)
+    expect(el.querySelector("#tq-dist0")).toBeTruthy();
+    expect(el.querySelector("#tq-hr0")).toBeTruthy();
+    expect(el.querySelector("#t-dist0")).toBeTruthy();
+    expect(el.querySelector("#t-hr0")).toBeTruthy();
+  });
+
+  it("omits the run distance/HR fields for non-run (lifting) exercises", () => {
+    const el = mount({ runEx: false });
+    expect(el.querySelector("#tq-dist0")).toBeNull();
+    expect(el.querySelector("#tq-hr0")).toBeNull();
   });
 
   it("escapes user text (exercise name, saved note) instead of injecting HTML", () => {
