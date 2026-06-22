@@ -1261,6 +1261,61 @@ function selectAbTemplate(ctx, templates = AB_TEMPLATES) {
   return best;
 }
 
+// src/core/schedule.ts
+var MS_DAY = 864e5;
+var toUTC = (iso) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return Date.UTC(y, m - 1, d);
+};
+function addDaysIso(iso, n) {
+  return new Date(toUTC(iso) + n * MS_DAY).toISOString().slice(0, 10);
+}
+function dowOf(iso) {
+  return new Date(toUTC(iso)).getUTCDay();
+}
+function daysBetween(a, b) {
+  return Math.round((toUTC(b) - toUTC(a)) / MS_DAY);
+}
+function weekStart(iso, startDow = 1) {
+  const diff = (dowOf(iso) - startDow + 7) % 7;
+  return addDaysIso(iso, -diff);
+}
+function weekDates(iso, startDow = 1) {
+  const ws = weekStart(iso, startDow);
+  return Array.from({ length: 7 }, (_, i) => addDaysIso(ws, i));
+}
+function calendarBlockWeek(anchorIso, dateIso, total = 13) {
+  if (!anchorIso || dateIso < anchorIso) return 1;
+  return Math.max(1, Math.min(total, Math.floor(daysBetween(anchorIso, dateIso) / 7) + 1));
+}
+function defaultPlacement(dates, defaultDays, slots) {
+  const set = new Set(defaultDays);
+  let si = 0;
+  return dates.map((date) => {
+    const dow = dowOf(date);
+    if (set.has(dow) && si < slots.length) return { date, dow, slot: slots[si++] };
+    return { date, dow, slot: null };
+  });
+}
+function overridesFromBoard(board, def) {
+  const defByDate = {};
+  def.forEach((d) => {
+    defByDate[d.date] = d;
+  });
+  const out = {};
+  for (const b of board) {
+    const d = defByDate[b.date];
+    const slotChanged = !d || d.slot !== b.slot;
+    if (slotChanged || b.equip) out[b.date] = b.equip ? { slot: b.slot, equip: b.equip } : { slot: b.slot };
+  }
+  return out;
+}
+function boardStatus(board, slots) {
+  const trainingDays = board.filter((b) => b.slot).length;
+  return { trainingDays, total: slots.length, complete: trainingDays >= slots.length };
+}
+var DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 // src/core/qr.ts
 var ECC_L = [
   { ec: 7, data: 19, align: [] },
@@ -1520,6 +1575,7 @@ export {
   ALL_GOALS,
   BASE_GOALS,
   DEFAULT_CODE_TTL_MS,
+  DOW_LABELS,
   JOIN_CODE_ALPHABET,
   PARTNER_COMPOUNDS,
   VIBE_SCHEMES,
@@ -1527,21 +1583,27 @@ export {
   accessoriesFor,
   accessoryReps,
   accessoryRx,
+  addDaysIso,
   addGymBuddy,
   advanceTurn,
   allReady,
   benchmarkWorkout,
   bestPlanId,
+  boardStatus,
   buildAbFinisher,
   buildJointPlan,
   buildSharedLiftPlan,
+  calendarBlockWeek,
   calibrationToMax,
   canPerform,
   canTransition,
   codeRecord,
   cooperVo2max,
   createInMemoryBackend,
+  daysBetween,
+  defaultPlacement,
   detectPlateau,
+  dowOf,
   e1rmSeries,
   epley,
   equipmentSet,
@@ -1579,6 +1641,7 @@ export {
   needsCalibration,
   newPartnerSession,
   normalizeJoinCode,
+  overridesFromBoard,
   paceZonesFromBenchmark,
   parseJoinHash,
   participantCount,
@@ -1621,6 +1684,8 @@ export {
   transition,
   warmupSets,
   warmupText,
+  weekDates,
+  weekStart,
   whyPlan,
   withParticipant,
   wkFactorFor,

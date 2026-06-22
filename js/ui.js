@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h96326ae4dae9";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h7fba79e94605";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -11,9 +11,10 @@ import {
   VIBE_SCHEMES,
   AB_TEMPLATES, abTemplateById, selectAbTemplate, buildAbFinisher,
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
-  steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout
-} from "./programming.js?v=h96326ae4dae9";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=h96326ae4dae9";
+  steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
+  calendarBlockWeek, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
+} from "./programming.js?v=h7fba79e94605";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=h7fba79e94605";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -100,6 +101,7 @@ const DEF={
   extraActivities:[],
   warmupDoneByDate:{},
   exerciseOrderByDate:{},
+  scheduleOverrides:{},
   sessionReadinessByDate:{},
   exerciseNotes:{},
   shoes:[],
@@ -1076,7 +1078,8 @@ function wmax1RM(type){
 }
 // The user's equipment as understood by the substitution engine: prefer the
 // detailed inventory, fall back to the legacy gym/home string.
-function userEquip(){const pr=S.profile.prefs||{};return (Array.isArray(pr.equipmentInv)&&pr.equipmentInv.length)?pr.equipmentInv:(pr.equipment||"gym");}
+let _dayEquipOverride=null; // transient per-day equipment (set while generating a rescheduled day)
+function userEquip(){if(_dayEquipOverride)return _dayEquipOverride;const pr=S.profile.prefs||{};return (Array.isArray(pr.equipmentInv)&&pr.equipmentInv.length)?pr.equipmentInv:(pr.equipment||"gym");}
 // If a main barbell lift in today's session has stalled across recent logged
 // sessions, return a gentle deload suggestion (else "").
 function detectMainLiftPlateau(exs){
@@ -1191,6 +1194,10 @@ function referenceIsoForProgramWeek(){
   return n||today;
 }
 function autoWeek(){
+  if(S.schedule&&S.schedule.template&&Object.keys(S.schedule.template).length){
+    const anchor=firstTrainingIsoOnOrAfter(S.program.start)||S.program.start;
+    S.program.week=calendarBlockWeek(anchor,iso(),13);return;
+  }
   const ref=referenceIsoForProgramWeek();
   const g=globalSessionIndexForDate(ref);
   if(g===null){S.program.week=1;return}
@@ -1247,8 +1254,34 @@ function rhythmStripHtmlForWeek(blockWeek){
   return`<div class="plan-week-rhythm" role="group" aria-label="Train and rest days spanning this training week"><span class="plan-rhythm-label">Week rhythm</span><div class="plan-rhythm-cells">${cells}</div><span class="plan-rhythm-legend" aria-hidden="true"><span class="plan-rhythm-train">●</span> train <span class="plan-rhythm-rest">●</span> rest</span></div>`;
 }
 function rollingPlanForDate(dateIso){
-  const sorted=sortedScheduleDays();
+  // Flexible-planner override: this date was hand-placed (slot moved, day toggled
+  // off, or equipment changed) for one week. Honored before the default rolling map.
+  const ov=(S.scheduleOverrides||{})[dateIso];
+  if(ov){
+    if(ov.slot===null||ov.slot==="rest")return{focus:"Rest day · you moved this",exs:[],finisher:"Light walk or mobility — optional.",slot:null,blockWeek:null,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN(),_rescheduled:true};
+    const anchor=firstTrainingIsoOnOrAfter(S.program.start)||S.program.start;
+    const bw=calendarBlockWeek(anchor,dateIso,13);
+    const prevEq=_dayEquipOverride;if(ov.equip)_dayEquipOverride=ov.equip;
+    let p;try{p=mkDay(ov.slot,bw);}finally{_dayEquipOverride=prevEq;}
+    p.slot=ov.slot;p.blockWeek=bw;p.globalIdx=null;p.sessionInWeek=null;p.sessionsPerWeek=planSlotsN();p._rescheduled=true;if(ov.equip)p._equipOverride=ov.equip;
+    p.exs=applyExerciseOrderForDate(dateIso,p.exs||[]);
+    return p;
+  }
   const dow=parseIsoNoon(dateIso).getDay();
+  // Standing weekly template (opt-in): if the user saved a custom weekly pattern,
+  // the default arrangement follows it (dow → slot) with calendar-based block week.
+  const tpl=S.schedule&&S.schedule.template;
+  if(tpl&&Object.keys(tpl).length){
+    const tslot=tpl[dow];
+    if(tslot===null||tslot===undefined||tslot==="rest")return{focus:"Active Recovery",exs:[],finisher:"Light walk + foam rolling.",slot:null,blockWeek:null,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN()};
+    const anchor=firstTrainingIsoOnOrAfter(S.program.start)||S.program.start;
+    if(dateIso<anchor)return{focus:"Program starts soon",exs:[],finisher:"Check your start date in Settings.",slot:null,blockWeek:1,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN()};
+    const bw=calendarBlockWeek(anchor,dateIso,13);
+    const tp=mkDay(tslot,bw);tp.slot=tslot;tp.blockWeek=bw;tp.globalIdx=null;tp.sessionInWeek=null;tp.sessionsPerWeek=Object.values(tpl).filter(Boolean).length||planSlotsN();tp._templated=true;
+    tp.exs=applyExerciseOrderForDate(dateIso,tp.exs||[]);
+    return tp;
+  }
+  const sorted=sortedScheduleDays();
   if(!sorted.includes(dow))return{focus:"Active Recovery",exs:[],finisher:"Light walk + foam rolling.",slot:null,blockWeek:null,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN()};
   const g=globalSessionIndexForDate(dateIso);
   if(g===null)return{focus:"Program starts soon",exs:[],finisher:"Check your start date in Settings.",slot:null,blockWeek:1,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN()};
@@ -4422,6 +4455,7 @@ function renderToday(){
   <div id="weather-slot"></div>
   ${planHasRun(plan)?runZonesPanelHtml():""}
   <button type="button" class="btn btn-secondary-solid btn-block" id="train-bring-friend" style="margin:2px 0 8px">👥 Bring a friend — lift together</button>
+  <button type="button" class="btn btn-secondary-solid btn-block" id="train-reschedule" style="margin:2px 0 8px">📅 Plan / reschedule this week</button>
   ${fuelingAdviceHtml(plan)}
   ${plan.exs.length?`<div class="power-focus-bar"><span class="power-focus-label">${powerFocusOn?"Focus Mode":"Session"}</span><button type="button" class="power-focus-toggle ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit Focus":"Focus Mode"}</button><button type="button" class="ghost-mode-toggle ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost On":"Ghost"}</button></div>`:""}
   ${plan.exs.length&&trainFocusIdx===null?`${plan.deloadHint?`<div class="card section" style="border-color:var(--gold);background:rgba(212,175,55,.06)"><div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:2px">⚠️ Progress check</div><p style="font-size:12px;color:var(--text2);line-height:1.45;margin:0">${escPlanChip(plan.deloadHint)}</p></div>`:""}<div id="readiness-mount"></div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
@@ -5070,6 +5104,53 @@ function openRunTestModal(preKind){
     logBenchmark(k,val);close();render();toast("Pace zones updated from your test.");
   };
 }
+// ── Flexible weekly schedule planner ──
+function slotLabel(slot){try{return String((mkDay(slot,S.program.week||1)||{}).focus||slot).replace(/\s*\(DELOAD\)/,"").replace(/\s*[·—].*/,"").trim()||slot;}catch(e){return slot;}}
+function openSchedulePlanner(weekStartIso){
+  const plan=PLANS[S.planId!=null?S.planId:0];
+  const slots=(plan&&plan.slots)||[];
+  const wkDates=weekDates(weekStartIso||iso(),1);
+  const tpl=S.schedule&&S.schedule.template;const tplActive=!!(tpl&&Object.keys(tpl).length);
+  const rolling=defaultPlacement(wkDates,sortedScheduleDays(),slots);
+  const baseline=wkDates.map((date,idx)=>({date,dow:dowOf(date),slot:tplActive?(tpl[dowOf(date)]??null):(rolling[idx]?rolling[idx].slot:null)}));
+  const days=wkDates.map((date,idx)=>{
+    const dow=dowOf(date),ov=(S.scheduleOverrides||{})[date];
+    let slot=baseline[idx].slot,equip;
+    if(ov){slot=("slot"in ov)?ov.slot:slot;equip=ov.equip;}
+    return{date,dow,label:DOW_LABELS[dow]+" "+parseIsoNoon(date).getDate(),slot,equip,isToday:date===iso()};
+  });
+  const seen=new Set(),sessionOptions=[];
+  for(const s of slots){if(seen.has(s))continue;seen.add(s);sessionOptions.push({slot:s,label:slotLabel(s)});}
+  const host=document.createElement("div");host.className="sp-host";document.body.appendChild(host);
+  const close=()=>{try{host.remove()}catch(e){}};
+  mountSchedulePlanner(host,{
+    weekLabel:"Week of "+parseIsoNoon(wkDates[0]).toLocaleDateString(undefined,{month:"short",day:"numeric"}),
+    days,sessionOptions,canReset:tplActive,
+    equipOptions:[{value:"gym",label:"Gym / full"},{value:"home",label:"Home / limited"}],
+    actions:{
+      apply:(board)=>{applyWeekOverrides(board,baseline);close();render();toast("This week's schedule updated.");},
+      saveDefault:(board)=>{saveScheduleTemplate(board);close();render();toast("Saved as your default weekly schedule.");},
+      reset:()=>{close();clearScheduleTemplate();},
+      cancel:close
+    }
+  });
+}
+function applyWeekOverrides(board,def){
+  const ov=overridesFromBoard(board.map(d=>({date:d.date,dow:d.dow,slot:d.slot,equip:d.equip})),def);
+  if(!S.scheduleOverrides)S.scheduleOverrides={};
+  for(const d of board){if(ov[d.date])S.scheduleOverrides[d.date]=ov[d.date];else delete S.scheduleOverrides[d.date];}
+  persist();
+}
+function saveScheduleTemplate(board){
+  const tpl={},days=[];
+  for(const d of board){if(d.slot){tpl[d.dow]=d.slot;days.push(d.dow);}else tpl[d.dow]=null;}
+  if(!S.schedule)S.schedule={};
+  S.schedule.template=tpl;
+  S.schedule.days=[...new Set(days)].sort((a,b)=>a-b);
+  if(S.scheduleOverrides)for(const d of board)delete S.scheduleOverrides[d.date];
+  persist();
+}
+function clearScheduleTemplate(){if(S.schedule){S.schedule.template=null;}persist();render();toast("Back to your program's automatic schedule.");}
 function partnerLogSet(ev){
   try{
     const day=activeTrainIso();
@@ -5106,6 +5187,7 @@ function bindToday(){
   mountFocusShellTab();
   mountTrainCards();
   {const bf=document.getElementById("train-bring-friend");if(bf)bf.onclick=()=>openPartnerSession();}
+  {const rs=document.getElementById("train-reschedule");if(rs)rs.onclick=()=>openSchedulePlanner();}
   {const rt=document.getElementById("run-test-btn");if(rt)rt.onclick=openRunTestModal;}
   {const a=document.getElementById("ab-fin-add");if(a)a.onclick=()=>{applyAbFinisher();render();toast("Core finisher added — scroll to the bottom of your session.");};}
   {const s=document.getElementById("ab-fin-swap");if(s)s.onclick=()=>{cycleAbFinisher();render();};}

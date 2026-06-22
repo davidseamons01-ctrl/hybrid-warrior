@@ -1925,6 +1925,56 @@ function mountMatchBoard(container, props) {
   R(/* @__PURE__ */ u3(MatchBoard, { ...props }), container);
 }
 
+// src/ui/schedule-planner.tsx
+function SchedulePlanner(p3) {
+  const [board, setBoard] = d2(p3.days);
+  const set = (i4, patch) => setBoard((b2) => b2.map((d3, j3) => j3 === i4 ? { ...d3, ...patch } : d3));
+  const trainingDays = board.filter((d3) => d3.slot).length;
+  const a3 = p3.actions;
+  return /* @__PURE__ */ u3("div", { class: "sp-overlay", role: "dialog", "aria-modal": "true", "aria-label": "Weekly schedule planner", onClick: (e3) => {
+    if (e3.target === e3.currentTarget) a3.cancel();
+  }, children: /* @__PURE__ */ u3("div", { class: "sp-sheet", children: [
+    /* @__PURE__ */ u3("div", { class: "sp-head", children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("h2", { children: "Plan your week" }),
+        /* @__PURE__ */ u3("span", { class: "sp-week", children: p3.weekLabel })
+      ] }),
+      /* @__PURE__ */ u3("span", { class: "sp-count", children: [
+        trainingDays,
+        " training day",
+        trainingDays === 1 ? "" : "s"
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("p", { class: "sp-sub", children: "Put each session on the day that fits \u2014 or set a day to Rest. Switch a day to Home if you won't have your full gym; the workout adapts." }),
+    /* @__PURE__ */ u3("div", { class: "sp-rows", children: board.map((d3, i4) => /* @__PURE__ */ u3("div", { class: `sp-row${d3.slot ? " on" : ""}${d3.isToday ? " today" : ""}`, children: [
+      /* @__PURE__ */ u3("div", { class: "sp-day", children: [
+        d3.label,
+        d3.isToday ? /* @__PURE__ */ u3("span", { class: "sp-today", children: "today" }) : null
+      ] }),
+      /* @__PURE__ */ u3("select", { class: "sp-slot input-sm", value: d3.slot ?? "rest", onChange: (e3) => set(i4, { slot: e3.target.value === "rest" ? null : e3.target.value }), children: [
+        /* @__PURE__ */ u3("option", { value: "rest", children: "Rest / off" }),
+        p3.sessionOptions.map((o3) => /* @__PURE__ */ u3("option", { value: o3.slot, children: o3.label }, o3.slot))
+      ] }),
+      d3.slot ? /* @__PURE__ */ u3("select", { class: "sp-equip input-sm", value: d3.equip || p3.equipOptions[0]?.value, onChange: (e3) => set(i4, { equip: e3.target.value }), children: p3.equipOptions.map((o3) => /* @__PURE__ */ u3("option", { value: o3.value, children: o3.label }, o3.value)) }) : /* @__PURE__ */ u3("span", { class: "sp-rest-lbl", children: "\u2014" })
+    ] }, d3.date)) }),
+    /* @__PURE__ */ u3("div", { class: "sp-actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-ghost sp-cancel", onClick: () => a3.cancel(), children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid sp-save-default", disabled: !!p3.busy, onClick: () => a3.saveDefault(board), children: "Save as my default" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta sp-apply", disabled: !!p3.busy, onClick: () => a3.apply(board), children: "Apply to this week" })
+    ] }),
+    /* @__PURE__ */ u3("p", { class: "sp-foot", children: [
+      "\u201CApply to this week\u201D changes just this week. \u201CSave as my default\u201D makes this your standing weekly pattern going forward.",
+      p3.canReset && p3.actions.reset ? /* @__PURE__ */ u3(S, { children: [
+        " \xB7 ",
+        /* @__PURE__ */ u3("button", { type: "button", class: "sp-reset", onClick: () => p3.actions.reset(), children: "Back to my program\u2019s automatic schedule" })
+      ] }) : null
+    ] })
+  ] }) });
+}
+function mountSchedulePlanner(container, props) {
+  R(/* @__PURE__ */ u3(SchedulePlanner, { ...props }), container);
+}
+
 // src/core/strength.ts
 function epley(w3, r3) {
   return r3 <= 0 || w3 <= 0 ? 0 : w3 * (1 + r3 / 30);
@@ -2781,6 +2831,7 @@ export {
   PlanView,
   ProfileSettings,
   ReadinessCard,
+  SchedulePlanner,
   SessionFeelCard,
   SessionSummary,
   SharedBlockProposal,
@@ -2802,6 +2853,7 @@ export {
   mountPlan,
   mountProfileSettings,
   mountReadinessCard,
+  mountSchedulePlanner,
   mountSessionFeelCard,
   mountSessionSummary,
   mountSharedBlockProposal,
