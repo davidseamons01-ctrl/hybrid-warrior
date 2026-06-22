@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h7fba79e94605";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hb084f4911f10";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h7fba79e94605";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=h7fba79e94605";
+} from "./programming.js?v=hb084f4911f10";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=hb084f4911f10";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -945,10 +945,15 @@ function bindAppSwipeNav(){
   app.dataset.swipeBound="1";
   const TABS=[TAB_TRAIN,TAB_PLAN,TAB_YOU,TAB_SOCIAL];
   let sx=null,sy=null;
-  const blockSel="input,select,textarea,canvas,.focus-session-viewport,.ex-log-grid,.quick-log-row";
+  const blockSel="input,select,textarea,canvas,.table-wrap,.focus-session-viewport,.ex-log-grid,.quick-log-row,[data-no-swipe]";
+  // Don't capture a tab-swipe that begins inside something the user is scrolling
+  // horizontally (wide tables, carousels) or interacting with.
+  const inHScroll=(node)=>{let el=node;for(let i=0;i<6&&el&&el!==app;i++){if(el.scrollWidth-el.clientWidth>4){const ov=getComputedStyle(el).overflowX;if(ov==="auto"||ov==="scroll")return true;}el=el.parentElement;}return false;};
   app.addEventListener("touchstart",e=>{
+    if((S.profile.prefs||{}).tabSwipe===false){sx=null;return;}
     const t=e.touches&&e.touches[0];if(!t)return;
     if(e.target.closest&&e.target.closest(blockSel))return;
+    if(inHScroll(e.target))return;
     sx=t.clientX;sy=t.clientY;
   },{passive:true});
   app.addEventListener("touchend",e=>{
@@ -5625,7 +5630,7 @@ function buildProfileSettingsProps(){
       equipment:prefs.equipment||"gym",style:prefs.style||"balanced",units:prefs.units||"imperial",
       quick:Number(prefs.quickSessionMin)>0?"15":"0",
       light:(prefs.appearance||"dark")==="light",oled:!!prefs.oledMode,womenSimpleUi:prefs.womenSimpleUi!==false,
-      audioCues:!!prefs.audioCues,altitude:!!prefs.altitudeTraining,biometric:!!localStorage.getItem("hw-webauthn-cred"),shareMaxes:prefs.shareMaxesWithPartners!==false
+      audioCues:!!prefs.audioCues,altitude:!!prefs.altitudeTraining,biometric:!!localStorage.getItem("hw-webauthn-cred"),shareMaxes:prefs.shareMaxesWithPartners!==false,tabSwipe:prefs.tabSwipe!==false
     },
     massLabel:massUnitLabel(),isFemale:p.sex==="female",biometricAvailable:typeof window!=="undefined"&&!!window.PublicKeyCredential,
     womenModeOptions:wmOpts,adapt:{bench:S.adapt.bench,squat:S.adapt.squat,dead:S.adapt.dead,run:S.adapt.run},
@@ -5643,7 +5648,7 @@ async function applyProfileSettings(form){
   S.profile.bodyFat=Number(form.bodyFat)||0;S.profile.neckCirc=Number(form.neck)||0;S.profile.age=Number(form.age)||S.profile.age;
   S.profile.sex=form.sex;
   const appearance=form.light?"light":"dark",units=form.units==="metric"?"metric":"imperial";
-  const _prefs={...(S.profile.prefs||{}),lifeStage:form.lifeStage,womenMode:form.womenMode||((S.profile.prefs||{}).womenMode||"auto"),equipment:form.equipment,style:form.style,appearance,units,quickSessionMin:Number(form.quick)||0,audioCues:!!form.audioCues,altitudeTraining:!!form.altitude,oledMode:!!form.oled,shareMaxesWithPartners:!!form.shareMaxes};
+  const _prefs={...(S.profile.prefs||{}),lifeStage:form.lifeStage,womenMode:form.womenMode||((S.profile.prefs||{}).womenMode||"auto"),equipment:form.equipment,style:form.style,appearance,units,quickSessionMin:Number(form.quick)||0,audioCues:!!form.audioCues,altitudeTraining:!!form.altitude,oledMode:!!form.oled,shareMaxesWithPartners:!!form.shareMaxes,tabSwipe:!!form.tabSwipe};
   if(S.profile.sex==="female")_prefs.womenSimpleUi=!!form.womenSimpleUi;else delete _prefs.womenSimpleUi;
   S.profile.prefs=_prefs;
   const r=parseMM(form.run);if(r>0)S.profile.run4mi=r;

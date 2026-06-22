@@ -776,6 +776,16 @@ function ProfileSettings(props) {
         onChange: (v3) => set("shareMaxes", v3)
       }
     ),
+    /* @__PURE__ */ u3(
+      Toggle,
+      {
+        id: "s-tab-swipe",
+        checked: f4.tabSwipe,
+        title: "Swipe between tabs",
+        desc: "swipe left/right to switch tabs. Off if it interferes with scrolling tables or sliders. (Swiping over a table never changes tabs either way.)",
+        onChange: (v3) => set("tabSwipe", v3)
+      }
+    ),
     props.biometricAvailable ? /* @__PURE__ */ u3(
       Toggle,
       {

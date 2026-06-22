@@ -12,7 +12,7 @@ export interface ProfileFormValues {
   sex: string; lifeStage: string; womenMode: string;
   equipment: string; style: string; units: string; quick: string;
   light: boolean; oled: boolean; womenSimpleUi: boolean;
-  audioCues: boolean; altitude: boolean; biometric: boolean; shareMaxes: boolean;
+  audioCues: boolean; altitude: boolean; biometric: boolean; shareMaxes: boolean; tabSwipe: boolean;
 }
 
 export interface ProfileSettingsActions {
@@ -219,6 +219,13 @@ function ProfileSettings(props: ProfileSettingsProps) {
         title="Share maxes with gym partners"
         desc="let people you lift with see your strength numbers so shared lifts auto-scale to each person. Off = partners do a quick calibration set instead."
         onChange={(v) => set("shareMaxes", v)}
+      />
+      <Toggle
+        id="s-tab-swipe"
+        checked={f.tabSwipe}
+        title="Swipe between tabs"
+        desc="swipe left/right to switch tabs. Off if it interferes with scrolling tables or sliders. (Swiping over a table never changes tabs either way.)"
+        onChange={(v) => set("tabSwipe", v)}
       />
       {props.biometricAvailable ? (
         <Toggle

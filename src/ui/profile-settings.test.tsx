@@ -7,7 +7,7 @@ const initial: ProfileFormValues = {
   bench: "225", squat: "315", dead: "405", weight: "185", goalWt: "175", run: "35:00",
   waist: "34", hips: "40", shoulders: "46", bodyFat: "18", neck: "15.5", age: "30",
   sex: "male", lifeStage: "general", womenMode: "auto", equipment: "gym", style: "balanced", units: "imperial", quick: "0",
-  light: false, oled: false, womenSimpleUi: true, audioCues: false, altitude: false, biometric: false, shareMaxes: true,
+  light: false, oled: false, womenSimpleUi: true, audioCues: false, altitude: false, biometric: false, shareMaxes: true, tabSwipe: true,
 };
 
 const noopActions: ProfileSettingsActions = {
