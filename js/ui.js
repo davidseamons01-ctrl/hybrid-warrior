@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h8435e001644e";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h96326ae4dae9";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -12,8 +12,8 @@ import {
   AB_TEMPLATES, abTemplateById, selectAbTemplate, buildAbFinisher,
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout
-} from "./programming.js?v=h8435e001644e";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=h8435e001644e";
+} from "./programming.js?v=h96326ae4dae9";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=h96326ae4dae9";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -3273,6 +3273,25 @@ function goalEtaCardHtml(){
   if(!rows.length)return"";
   return`<div class="card section" style="padding:14px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">🎯 Goal projections</div>${rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600;color:var(--text)">${r.label}</div><div style="font-size:10px;color:var(--text3)">${escPlanChip(r.detail)}</div></div><div style="font-size:12px;color:var(--text2);text-align:right;align-self:center">${escPlanChip(r.eta)}</div></div>`).join("")}<div style="font-size:10px;color:var(--text3);margin-top:8px">"Current" = your best logged e1RM (same number as Trophy Room). Projected from your logged trend.</div></div>`;
 }
+// Recent-runs analytics — surfaces the framework's logged distance/pace/HR.
+function recentRunsHtml(){
+  const runs=(S.logs||[]).filter(l=>inferType(l.exercise)==="run");
+  if(!runs.length)return"";
+  const recent=runs.slice(-8).reverse();
+  const wkAgo=addCalendarDaysIso(iso(),-7);
+  const wk=runs.filter(l=>l.date>=wkAgo);
+  const wkMiles=wk.reduce((s,l)=>s+(Number(l.aDist)||0),0);
+  const hrs=wk.map(l=>Number(l.aHR)||0).filter(Boolean);
+  const avgHr=hrs.length?Math.round(hrs.reduce((a,b)=>a+b,0)/hrs.length):0;
+  const summary=`7-day: <b style="color:var(--text)">${wkMiles>0?wkMiles.toFixed(1)+" mi":"—"}</b>${avgHr?` · avg HR <b style="color:var(--text)">${avgHr} bpm</b>`:""}`;
+  const rows=recent.map(l=>{
+    const d=Number(l.aDist)||0,p=Number(l.aW)||0,hr=Number(l.aHR)||0;
+    return`<tr><td>${prDateLabel(l.date)}</td><td style="color:var(--text)">${l.exercise}</td><td>${d>0?d.toFixed(2):"—"}</td><td>${p>0?mmss(p):"—"}</td><td>${hr>0?hr:"—"}</td></tr>`;
+  }).join("");
+  return`<div class="section"><div class="card" style="padding:14px"><div class="card-h"><h2>Recent runs</h2></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.45">${summary} · distance, pace (min/mi) &amp; heart rate from your logged runs.</div>
+    <div class="table-wrap"><table class="log-report-table"><thead><tr><th>Date</th><th>Run</th><th>Dist (mi)</th><th>Pace</th><th>HR</th></tr></thead><tbody>${rows}</tbody></table></div></div></div>`;
+}
 function renderDash(){
   autoWeek();
   const d=new Date(),w=S.program.week,plan=rollingPlanForDate(iso());
@@ -3499,6 +3518,7 @@ function renderDash(){
     <div class="dash-strength-legend"><span><i style="background:var(--gold)"></i>Squat 1RM ÷ Pace (lb/min)</span></div>
     <div class="dash-chart-wrap"><canvas id="dash-str-pace-chart" class="dash-canvas" height="220" aria-label="Strength-to-Pace ratio chart"></canvas><div class="dash-chart-caption">Track how your lifting strength and running efficiency move together over time.</div></div>
   </div></div>
+  ${recentRunsHtml()}
   <div class="section"><div class="card" style="padding:14px"><div class="card-h"><h2>Strength Benchmarks</h2></div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45">Your estimated 1RM vs. standard percentiles for your body weight (${formatLoadLbText(Number(S.profile.weight)||0)}, ${S.profile.sex||"male"}).</div>
     ${strengthBenchmarkHtml()}
@@ -4347,7 +4367,8 @@ function buildExerciseCardProps(ex,i){
   const gridPaceCol=`<div><label>Pace (mm:ss/mi)</label><input type="text" class="input-sm input-mmss" id="t-w${i}" value="${paceGrid}" placeholder="8:42" inputmode="numeric" autocomplete="off" spellcheck="false" aria-label="Pace per mile"></div>`;
   const gridLiftCol=`<div><label>Load (${massUnitLabel()})</label><div class="stepper"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${-wStep}">−</button><input type="number" class="input-sm" id="t-w${i}" value="${loadInputDisplayFromLb(Number(ex.target)||0)}" min="0" step="any"><button type="button" class="step-btn" data-target="t-w${i}" data-delta="${wStep}">+</button><button type="button" class="icon-btn q-load-helper" data-i="${i}" title="Open bar load helper" aria-label="Plate calculator">🏋️</button></div></div>`;
   const ghostHtml=ghostLineHtml(ex.eid,activeTrainIso());
-  return{i,eid:ex.eid,originalEid:ex.originalEid||ex.eid,num:i+1,done,exNm,rxText:formatPrescribedRx(ex),reason:ex.reason||"",repLab,restHuman,restTitle,unit:massUnitLabel(),feelLead,runEx,sets:ex.sets,reps:ex.reps,activeSet,wStep,quickWVal:runEx?paceQuick:String(loadInputDisplayFromLb(lwLb)),gridWVal:runEx?paceGrid:String(loadInputDisplayFromLb(Number(ex.target)||0)),savedNote,hasShoe:runEx&&!!shoeHtml,plateMathHtml:inlinePlateMathHtml(ex),ghostHtml,cueRowHtml:cueRow,mainVideoHtml,quickVideoHtml,howBlockHtml:howBlock,anatomyHtml:anatomyContainer(mm),runRpeSelectHtml:runRpeSelect,shoeHtml,lastLine,actions:cardActions};
+  const benchmark=(ex.isBenchmark||/_test$/.test(ex.eid))?(ex.eid==="mile_test"?"mile":ex.eid==="fivek_test"?"fivek":"cooper"):undefined;
+  return{i,eid:ex.eid,originalEid:ex.originalEid||ex.eid,num:i+1,done,exNm,rxText:formatPrescribedRx(ex),reason:ex.reason||"",repLab,restHuman,restTitle,unit:massUnitLabel(),feelLead,runEx,benchmark,sets:ex.sets,reps:ex.reps,activeSet,wStep,quickWVal:runEx?paceQuick:String(loadInputDisplayFromLb(lwLb)),gridWVal:runEx?paceGrid:String(loadInputDisplayFromLb(Number(ex.target)||0)),savedNote,hasShoe:runEx&&!!shoeHtml,plateMathHtml:inlinePlateMathHtml(ex),ghostHtml,cueRowHtml:cueRow,mainVideoHtml,quickVideoHtml,howBlockHtml:howBlock,anatomyHtml:anatomyContainer(mm),runRpeSelectHtml:runRpeSelect,shoeHtml,lastLine,actions:cardActions};
 }
 let _trainCardProps=new Map();
 function cardHost(ex,i){const pr=buildExerciseCardProps(ex,i);_trainCardProps.set(i,pr);return`<div class="exercise-card-host" data-card-i="${i}"></div>`;}
@@ -4633,7 +4654,7 @@ function cardStep(b){const t=document.getElementById(b.dataset.target);if(!t)ret
 async function cardLogSet(b){hapticKey();const i=+b.dataset.i;const result=await logSingleSetForExercise(i);if(!result.ok)return;const e=exById(result.ex.eid);let sub="";try{const loggedNow=(S.logs||[]).filter(l=>l.date===activeTrainIso()&&l.exercise===result.name).length;const totalSets=Math.max(1,Number(result.ex.sets)||1);if(loggedNow<totalSets){const tgt=Number(result.ex.target)||0;const wTxt=(!isRunExerciseName(result.name)&&tgt>0)?` · next ${formatLoadLbText(tgt)}`:"";sub=`Set ${loggedNow+1} of ${totalSets}${wTxt}`;}else{sub=`All ${totalSets} sets done ✓`;}}catch(err){}startRestTimer(parseRestSec(e&&e.rest),result.name,sub);const nextSet=Math.min(result.maxSets,result.setNo+1);const setLbl=document.getElementById("tq-set-lbl"+i);if(setLbl)setLbl.textContent=`Set ${nextSet} of ${result.maxSets}`;const tS=document.getElementById("t-s"+i),tR=document.getElementById("t-r"+i),tW=document.getElementById("t-w"+i),tqR=document.getElementById("tq-r"+i),tqW=document.getElementById("tq-w"+i),tqO=document.getElementById("tq-o"+i),tO=document.getElementById("t-o"+i);if(tS)tS.value="1";if(tR)tR.value=String(result.aR);if(tqR)tqR.value=String(result.aR);const wSync=isRunExerciseName(result.name)?paceSecPerMiDisplay(result.aW):String(loadInputDisplayFromLb(result.aW));if(tW)tW.value=wSync;if(tqW)tqW.value=wSync;if(tO&&tqO)tO.value=tqO.value;const run=isRunExerciseName(result.name);const prevLogs=(S.logs||[]).slice(0,-1);const qIsPR=!run&&result.aW>0&&!prevLogs.some(l=>l.exercise===result.name&&(l.aW||0)>=result.aW&&(l.aR||0)>=result.aR);if(qIsPR){triggerHaptic("pr");celebrateFinish()}if(result.setNo>=result.maxSets){toast(`${result.name}: all sets logged for today.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});if(powerFocusOn)applyPowerFocusActive()}else toast(`${result.name} saved — ready for set ${nextSet}.${qIsPR?" 🏆 New Record!":""}`,{duration:qIsPR?4000:undefined});}
 function cardCopyPrev(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return;const e=exById(ex.eid);const name=e?e.name:ex.eid;const row=[...S.logs].reverse().find(l=>l.exercise===name);if(!row){toast("No previous set yet for this exercise.");return}const run=isRunExerciseName(name);const wVal=run?paceSecPerMiDisplay(Number(row.aW)||0):String(loadInputDisplayFromLb(Number(row.aW)||0));document.getElementById("t-s"+i).value=Number(row.aS)||1;document.getElementById("t-r"+i).value=Number(row.aR)||ex.reps||1;document.getElementById("t-w"+i).value=wVal;const tqW=document.getElementById("tq-w"+i);if(tqW)tqW.value=wVal;const o=document.getElementById("t-o"+i);if(o&&row.outcome)o.value=row.outcome;hapticPulse(12);toast("Copied previous set")}
 async function cardSaveAll(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const prevEv=Array.isArray(S.events)?S.events.slice():[];const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};if(run){const d=Number(document.getElementById("t-dist"+i)?.value)||0,hr=Number(document.getElementById("t-hr"+i)?.value)||0;if(d>0)log.aDist=d;if(hr>0)log.aHR=hr;}log.score=calcLogScore(log);recordLoggedSet(log);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}const isPR=!run&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);if(isPR){triggerHaptic("pr");celebrateFinish();toastMsg+=" — 🏆 New Record!"}else{triggerHaptic("tick")}toast(toastMsg,{undo:()=>{S.events=prevEv;reprojectLogs();delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});const restSec=e&&e.rest?parseRestSec(e.rest):90;startRestTimer(restSec,name);render()}
-const cardActions={noteInput:cardNoteInput,feelClick:cardFeelClick,skip:cardSkip,rest:cardRest,toggleBody:cardToggleBody,step:cardStep,logSet:cardLogSet,copyPrev:cardCopyPrev,saveAll:cardSaveAll};
+const cardActions={noteInput:cardNoteInput,feelClick:cardFeelClick,skip:cardSkip,rest:cardRest,toggleBody:cardToggleBody,step:cardStep,logSet:cardLogSet,copyPrev:cardCopyPrev,saveAll:cardSaveAll,benchmarkLog:(kind)=>openRunTestModal(kind)};
 // ── Session-shell cards (UI rebuild #4c): actions + mount into render slots ──
 async function readinessSelect(v){if(!S.sessionReadinessByDate)S.sessionReadinessByDate={};S.sessionReadinessByDate[activeTrainIso()]=v;await persist();render();}
 async function sessionFeelSelect(feel){const day=activeTrainIso();if(!S.sessionFeelByDate)S.sessionFeelByDate={};const prev=S.sessionFeelByDate[day];if(prev===feel){revertSessionFeelNudge(prev);delete S.sessionFeelByDate[day];await persist();render();toast("Session feel cleared.");return}if(prev)revertSessionFeelNudge(prev);applySessionFeelNudge(feel);S.sessionFeelByDate[day]=feel;await persist();render();toast("Session feel updated.");}
@@ -5024,7 +5045,7 @@ function runZonesPanelHtml(){
   <div class="run-zones-grid">${cell("Easy",z.easy)}${cell("Steady",z.steady)}${cell("Tempo",z.tempo)}${cell("Interval",z.interval)}${cell("Long",z.long)}</div>
   <div class="run-zones-src">From: ${src}</div></div>`;
 }
-function openRunTestModal(){
+function openRunTestModal(preKind){
   const host=document.createElement("div");host.className="pn-overlay";
   const close=()=>{try{host.remove()}catch(e){}};
   host.innerHTML=`<div class="cal-sheet run-test-sheet"><div class="cal-title">Log a fitness test</div>
@@ -5036,6 +5057,7 @@ function openRunTestModal(){
   document.body.appendChild(host);
   host.onclick=e=>{if(e.target===host)close();};
   const wrap=host.querySelector("#rt-input-wrap"),kindSel=host.querySelector("#rt-kind");
+  if(preKind&&["cooper","mile","fivek"].includes(preKind))kindSel.value=preKind;
   const renderInput=()=>{const k=kindSel.value;wrap.innerHTML=k==="cooper"
     ?`<label>Distance covered in 12:00 (miles)</label><input type="number" id="rt-val" class="input-sm" step="0.01" min="0" placeholder="1.5" inputmode="decimal" style="width:120px">`
     :`<label>${k==="mile"?"Mile":"5K"} time (mm:ss)</label><input type="text" id="rt-val" class="input-sm input-mmss" placeholder="${k==="mile"?"7:00":"25:00"}" inputmode="numeric" autocomplete="off" style="width:120px">`;};

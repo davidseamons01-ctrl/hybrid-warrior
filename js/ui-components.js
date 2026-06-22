@@ -1215,45 +1215,50 @@ function ExerciseCard(p3) {
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ u3("div", { class: "feel-chips", children: [
-        /* @__PURE__ */ u3("span", { children: p3.feelLead }),
-        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "easy", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Too easy (RPE < 7)" }),
-        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip on", "data-feel": "ok", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Just right (RPE 7-8)" }),
-        /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "hard", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Too hard (RPE 9+)" })
-      ] }),
-      /* @__PURE__ */ u3(Html2, { html: p3.runRpeSelectHtml }),
-      /* @__PURE__ */ u3("div", { class: "ex-note-wrap", children: [
-        /* @__PURE__ */ u3("label", { class: "ex-note-label", children: [
-          "My notes for ",
-          p3.exNm
+      p3.benchmark ? /* @__PURE__ */ u3("div", { class: "ex-benchmark", children: [
+        /* @__PURE__ */ u3("p", { class: "ex-benchmark-note", children: "Complete the test, then log your result to recalculate your pace zones." }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block ex-bench-log", "data-kind": p3.benchmark, onClick: () => a3.benchmarkLog(p3.benchmark), children: "\u{1F4C8} Log result & set my pace zones" })
+      ] }) : /* @__PURE__ */ u3(S, { children: [
+        /* @__PURE__ */ u3("div", { class: "feel-chips", children: [
+          /* @__PURE__ */ u3("span", { children: p3.feelLead }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "easy", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Too easy (RPE < 7)" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip on", "data-feel": "ok", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Just right (RPE 7-8)" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "feel-chip", "data-feel": "hard", "data-i": i4, onClick: (e3) => a3.feelClick(e3.currentTarget), children: "Too hard (RPE 9+)" })
         ] }),
-        /* @__PURE__ */ u3("textarea", { class: "ex-note-input", "data-eid": p3.eid, placeholder: "Cues, grip width, stance notes\u2026", rows: 2, maxlength: 500, value: p3.savedNote, onInput: (e3) => a3.noteInput(e3.currentTarget) }),
-        p3.savedNote ? /* @__PURE__ */ u3("span", { class: "ex-note-saved", children: "Saved" }) : null
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "quick-log-row", children: [
-        /* @__PURE__ */ u3("span", { class: "quick-set-indicator", id: "tq-set-lbl" + i4, style: "font-size:11px;color:var(--text3);align-self:center", children: [
-          "Set ",
-          p3.activeSet,
-          " of ",
-          p3.sets
+        /* @__PURE__ */ u3(Html2, { html: p3.runRpeSelectHtml }),
+        /* @__PURE__ */ u3("div", { class: "ex-note-wrap", children: [
+          /* @__PURE__ */ u3("label", { class: "ex-note-label", children: [
+            "My notes for ",
+            p3.exNm
+          ] }),
+          /* @__PURE__ */ u3("textarea", { class: "ex-note-input", "data-eid": p3.eid, placeholder: "Cues, grip width, stance notes\u2026", rows: 2, maxlength: 500, value: p3.savedNote, onInput: (e3) => a3.noteInput(e3.currentTarget) }),
+          p3.savedNote ? /* @__PURE__ */ u3("span", { class: "ex-note-saved", children: "Saved" }) : null
         ] }),
-        /* @__PURE__ */ u3(Stepper, { id: "tq-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab, onStep: a3.step }),
-        p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "tq-w" + i4, val: p3.quickWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "tq-w" + i4, val: p3.quickWVal, wStep: p3.wStep, unit, i: i4, onStep: a3.step }),
-        p3.runEx ? /* @__PURE__ */ u3(RunExtra, { distId: "tq-dist" + i4, hrId: "tq-hr" + i4 }) : null,
-        /* @__PURE__ */ u3(OutcomeSelect, { id: "tq-o" + i4 }),
-        p3.runEx && p3.hasShoe ? /* @__PURE__ */ u3("div", { id: "shoe-pick-" + i4, children: /* @__PURE__ */ u3(Html2, { html: p3.shoeHtml }) }) : null,
-        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block q-save", "data-i": i4, onClick: (e3) => a3.logSet(e3.currentTarget), children: "Complete set & start rest" })
-      ] }),
-      /* @__PURE__ */ u3("details", { class: "ex-logall-details", style: "margin-top:6px", children: [
-        /* @__PURE__ */ u3("summary", { style: "font-size:11px;color:var(--text3);cursor:pointer", children: "Log all sets at once" }),
-        /* @__PURE__ */ u3("div", { class: "ex-log-grid", style: "margin-top:8px", children: [
-          /* @__PURE__ */ u3(Stepper, { id: "t-s" + i4, value: p3.sets, delta: 1, min: 1, label: "Sets", onStep: a3.step }),
-          /* @__PURE__ */ u3(Stepper, { id: "t-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab, onStep: a3.step }),
-          p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "t-w" + i4, val: p3.gridWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "t-w" + i4, val: p3.gridWVal, wStep: p3.wStep, unit, i: i4, onStep: a3.step }),
-          p3.runEx ? /* @__PURE__ */ u3(RunExtra, { distId: "t-dist" + i4, hrId: "t-hr" + i4 }) : null,
-          /* @__PURE__ */ u3(OutcomeSelect, { id: "t-o" + i4 }),
-          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-copyprev", "data-i": i4, onClick: (e3) => a3.copyPrev(e3.currentTarget), children: "Copy previous set" }),
-          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm ex-save", "data-i": i4, onClick: (e3) => a3.saveAll(e3.currentTarget), children: "Save all" })
+        /* @__PURE__ */ u3("div", { class: "quick-log-row", children: [
+          /* @__PURE__ */ u3("span", { class: "quick-set-indicator", id: "tq-set-lbl" + i4, style: "font-size:11px;color:var(--text3);align-self:center", children: [
+            "Set ",
+            p3.activeSet,
+            " of ",
+            p3.sets
+          ] }),
+          /* @__PURE__ */ u3(Stepper, { id: "tq-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab, onStep: a3.step }),
+          p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "tq-w" + i4, val: p3.quickWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "tq-w" + i4, val: p3.quickWVal, wStep: p3.wStep, unit, i: i4, onStep: a3.step }),
+          p3.runEx ? /* @__PURE__ */ u3(RunExtra, { distId: "tq-dist" + i4, hrId: "tq-hr" + i4 }) : null,
+          /* @__PURE__ */ u3(OutcomeSelect, { id: "tq-o" + i4 }),
+          p3.runEx && p3.hasShoe ? /* @__PURE__ */ u3("div", { id: "shoe-pick-" + i4, children: /* @__PURE__ */ u3(Html2, { html: p3.shoeHtml }) }) : null,
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block q-save", "data-i": i4, onClick: (e3) => a3.logSet(e3.currentTarget), children: "Complete set & start rest" })
+        ] }),
+        /* @__PURE__ */ u3("details", { class: "ex-logall-details", style: "margin-top:6px", children: [
+          /* @__PURE__ */ u3("summary", { style: "font-size:11px;color:var(--text3);cursor:pointer", children: "Log all sets at once" }),
+          /* @__PURE__ */ u3("div", { class: "ex-log-grid", style: "margin-top:8px", children: [
+            /* @__PURE__ */ u3(Stepper, { id: "t-s" + i4, value: p3.sets, delta: 1, min: 1, label: "Sets", onStep: a3.step }),
+            /* @__PURE__ */ u3(Stepper, { id: "t-r" + i4, value: p3.reps, delta: 1, min: 1, repLab: p3.repLab, onStep: a3.step }),
+            p3.runEx ? /* @__PURE__ */ u3(PaceCol, { id: "t-w" + i4, val: p3.gridWVal }) : /* @__PURE__ */ u3(LoadCol, { id: "t-w" + i4, val: p3.gridWVal, wStep: p3.wStep, unit, i: i4, onStep: a3.step }),
+            p3.runEx ? /* @__PURE__ */ u3(RunExtra, { distId: "t-dist" + i4, hrId: "t-hr" + i4 }) : null,
+            /* @__PURE__ */ u3(OutcomeSelect, { id: "t-o" + i4 }),
+            /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-secondary-solid ex-copyprev", "data-i": i4, onClick: (e3) => a3.copyPrev(e3.currentTarget), children: "Copy previous set" }),
+            /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-sm ex-save", "data-i": i4, onClick: (e3) => a3.saveAll(e3.currentTarget), children: "Save all" })
+          ] })
         ] })
       ] }),
       /* @__PURE__ */ u3("div", { id: "expdf-" + i4, class: "ex-pdf-area" })

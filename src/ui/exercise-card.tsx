@@ -25,6 +25,7 @@ export interface ExerciseCardProps {
   unit: string;         // mass unit label
   feelLead: string;
   runEx: boolean;
+  benchmark?: string;   // benchmark kind ("cooper"|"mile"|"fivek") → test card instead of log inputs
   sets: number;
   reps: number;
   activeSet: number;
@@ -60,6 +61,7 @@ export interface ExerciseCardActions {
   logSet: (el: HTMLElement) => void;
   copyPrev: (el: HTMLElement) => void;
   saveAll: (el: HTMLElement) => void;
+  benchmarkLog: (kind: string) => void;
 }
 
 /** Render trusted, app-generated HTML without adding a layout box. */
@@ -178,6 +180,12 @@ function ExerciseCard(p: ExerciseCardProps) {
             <span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span>
           </div>
         </div>
+        {p.benchmark ? (
+          <div class="ex-benchmark">
+            <p class="ex-benchmark-note">Complete the test, then log your result to recalculate your pace zones.</p>
+            <button type="button" class="btn btn-cta btn-block ex-bench-log" data-kind={p.benchmark} onClick={() => a.benchmarkLog(p.benchmark!)}>📈 Log result &amp; set my pace zones</button>
+          </div>
+        ) : (<>
         <div class="feel-chips">
           <span>{p.feelLead}</span>
           <button type="button" class="feel-chip" data-feel="easy" data-i={i} onClick={(e) => a.feelClick(e.currentTarget as HTMLElement)}>Too easy (RPE &lt; 7)</button>
@@ -211,6 +219,7 @@ function ExerciseCard(p: ExerciseCardProps) {
             <button type="button" class="btn btn-cta btn-sm ex-save" data-i={i} onClick={(e) => a.saveAll(e.currentTarget as HTMLElement)}>Save all</button>
           </div>
         </details>
+        </>)}
         <div id={"expdf-" + i} class="ex-pdf-area"></div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "hybrid-warrior-h8435e001644e";
+const CACHE_NAME = "hybrid-warrior-h96326ae4dae9";
 const APP_SHELL = [
   "./",
   "./index.html",

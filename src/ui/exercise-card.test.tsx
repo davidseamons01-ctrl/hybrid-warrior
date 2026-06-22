@@ -11,7 +11,7 @@ import { render } from "preact";
 import { ExerciseCard, type ExerciseCardProps, type ExerciseCardActions } from "./exercise-card";
 
 function noopActions(): ExerciseCardActions {
-  return { noteInput() {}, feelClick() {}, skip() {}, rest() {}, toggleBody() {}, step() {}, logSet() {}, copyPrev() {}, saveAll() {} };
+  return { noteInput() {}, feelClick() {}, skip() {}, rest() {}, toggleBody() {}, step() {}, logSet() {}, copyPrev() {}, saveAll() {}, benchmarkLog() {} };
 }
 
 function baseProps(over: Partial<ExerciseCardProps> = {}): ExerciseCardProps {
@@ -95,6 +95,17 @@ describe("ExerciseCard markup contract", () => {
     const el = mount({ runEx: false });
     expect(el.querySelector("#tq-dist0")).toBeNull();
     expect(el.querySelector("#tq-hr0")).toBeNull();
+  });
+
+  it("shows a benchmark test card (log-result button, no pace/log inputs) for benchmark runs", () => {
+    const calls: string[] = [];
+    const el = mount({ runEx: true, benchmark: "cooper", actions: { ...noopActions(), benchmarkLog: (k: string) => calls.push(k) } });
+    expect(el.querySelector(".ex-bench-log")).toBeTruthy();
+    expect(el.querySelector(".feel-chips")).toBeNull();     // no RPE chips on a test
+    expect(el.querySelector("#tq-w0")).toBeNull();          // no pace input
+    expect(el.querySelector(".ex-logall-details")).toBeNull();
+    (el.querySelector(".ex-bench-log") as HTMLElement).dispatchEvent(new Event("click", { bubbles: true }));
+    expect(calls).toEqual(["cooper"]);
   });
 
   it("escapes user text (exercise name, saved note) instead of injecting HTML", () => {
