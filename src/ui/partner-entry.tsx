@@ -26,8 +26,9 @@ function PartnerEntry(p: PartnerEntryProps) {
       {p.mode === "idle" ? (
         <div class="pn-idle">
           <p class="pn-sub">Train with a friend in person — share a few big lifts at each of your own loads, then split to your own accessories.</p>
-          <button type="button" class="btn btn-cta btn-block pn-start" onClick={() => a.startSession()}>Start a session</button>
+          <button type="button" class="btn btn-cta btn-block pn-start" onClick={() => a.startSession()} disabled={!!p.busy}>{p.busy ? "Starting…" : "Start a session"}</button>
           <button type="button" class="btn btn-secondary-solid btn-block pn-open-join" onClick={() => a.openJoin()}>Join with a code</button>
+          {p.joinError ? <div class="pn-error">{p.joinError}</div> : null}
         </div>
       ) : null}
 

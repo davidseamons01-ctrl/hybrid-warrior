@@ -1688,8 +1688,9 @@ function PartnerEntry(p3) {
     /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Lift Together" }) }),
     p3.mode === "idle" ? /* @__PURE__ */ u3("div", { class: "pn-idle", children: [
       /* @__PURE__ */ u3("p", { class: "pn-sub", children: "Train with a friend in person \u2014 share a few big lifts at each of your own loads, then split to your own accessories." }),
-      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block pn-start", onClick: () => a3.startSession(), children: "Start a session" }),
-      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-block pn-open-join", onClick: () => a3.openJoin(), children: "Join with a code" })
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-cta btn-block pn-start", onClick: () => a3.startSession(), disabled: !!p3.busy, children: p3.busy ? "Starting\u2026" : "Start a session" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-block pn-open-join", onClick: () => a3.openJoin(), children: "Join with a code" }),
+      p3.joinError ? /* @__PURE__ */ u3("div", { class: "pn-error", children: p3.joinError }) : null
     ] }) : null,
     p3.mode === "hosting" ? /* @__PURE__ */ u3("div", { class: "pn-hosting", children: [
       /* @__PURE__ */ u3("div", { class: "pn-code", "aria-label": `Join code ${p3.code || ""}`, children: [...p3.code || ""].map((c3, i4) => /* @__PURE__ */ u3("span", { class: "pn-code-char", children: c3 }, i4)) }),
@@ -2410,12 +2411,23 @@ function PartnerApp(p3) {
       doJoin(p3.initialJoinCode);
     }
   }, []);
+  function describeErr(e3) {
+    if (e3?.code === "permission-denied" || /insufficient permissions/i.test(e3?.message || ""))
+      return "Partner sessions need a server update (Firestore rules). Tap \u24D8 for the fix.";
+    return "Couldn't start: " + (e3?.message || "network error \u2014 check your connection.");
+  }
   async function startSession() {
     setBusy(true);
+    setJoinError("");
     try {
       const r3 = await hostCreateSession(backend, me, { vibe, shareMaxes: ctx.shareMaxes });
       setCode(r3.code);
       setSessionId(r3.session.id);
+    } catch (e3) {
+      if (typeof console !== "undefined") console.error("[partner] hostCreateSession failed", e3);
+      const msg = describeErr(e3);
+      setJoinError(msg);
+      p3.onToast?.(msg);
     } finally {
       setBusy(false);
     }
@@ -2429,6 +2441,11 @@ function PartnerApp(p3) {
         setSessionId(r3.session.id);
         setCode(r3.session.joinCode || "");
       } else setJoinError(ERR[r3.error] || "Could not join.");
+    } catch (e3) {
+      if (typeof console !== "undefined") console.error("[partner] joinByCode failed", e3);
+      const msg = describeErr(e3);
+      setJoinError(msg);
+      p3.onToast?.(msg);
     } finally {
       setBusy(false);
     }

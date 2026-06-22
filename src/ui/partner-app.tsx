@@ -95,11 +95,20 @@ function PartnerApp(p: PartnerAppProps) {
     if (p.initialJoinCode && !triedInitial.current) { triedInitial.current = true; doJoin(p.initialJoinCode); }
   }, []);
 
+  function describeErr(e: any): string {
+    if (e?.code === "permission-denied" || /insufficient permissions/i.test(e?.message || ""))
+      return "Partner sessions need a server update (Firestore rules). Tap ⓘ for the fix.";
+    return "Couldn't start: " + (e?.message || "network error — check your connection.");
+  }
   async function startSession() {
-    setBusy(true);
+    setBusy(true); setJoinError("");
     try {
       const r = await hostCreateSession(backend, me, { vibe, shareMaxes: ctx.shareMaxes });
       setCode(r.code); setSessionId(r.session.id);
+    } catch (e) {
+      if (typeof console !== "undefined") console.error("[partner] hostCreateSession failed", e);
+      const msg = describeErr(e);
+      setJoinError(msg); p.onToast?.(msg);
     } finally { setBusy(false); }
   }
   async function doJoin(raw: string) {
@@ -108,6 +117,10 @@ function PartnerApp(p: PartnerAppProps) {
       const r = await joinByCode(backend, me, raw, { shareMaxes: ctx.shareMaxes });
       if (r.ok) { setSessionId(r.session.id); setCode(r.session.joinCode || ""); }
       else setJoinError(ERR[r.error] || "Could not join.");
+    } catch (e) {
+      if (typeof console !== "undefined") console.error("[partner] joinByCode failed", e);
+      const msg = describeErr(e);
+      setJoinError(msg); p.onToast?.(msg);
     } finally { setBusy(false); }
   }
 
