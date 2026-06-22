@@ -1969,6 +1969,260 @@ function mountCalibrationSheet(container, props) {
   R(/* @__PURE__ */ u3(CalibrationSheet, { ...props }), container);
 }
 
+// src/core/qr.ts
+var ECC_L = [
+  { ec: 7, data: 19, align: [] },
+  // v1, 21×21
+  { ec: 10, data: 34, align: [6, 18] },
+  // v2, 25×25
+  { ec: 15, data: 55, align: [6, 22] },
+  // v3, 29×29
+  { ec: 20, data: 80, align: [6, 26] },
+  // v4, 33×33
+  { ec: 26, data: 108, align: [6, 30] }
+  // v5, 37×37
+];
+var EXP = new Array(512);
+var LOG = new Array(256);
+(function initGF() {
+  let x2 = 1;
+  for (let i4 = 0; i4 < 255; i4++) {
+    EXP[i4] = x2;
+    LOG[x2] = i4;
+    x2 <<= 1;
+    if (x2 & 256) x2 ^= 285;
+  }
+  for (let i4 = 255; i4 < 512; i4++) EXP[i4] = EXP[i4 - 255];
+})();
+var gfMul = (a3, b2) => a3 === 0 || b2 === 0 ? 0 : EXP[LOG[a3] + LOG[b2]];
+function reedSolomon(data, n2) {
+  let gen = [1];
+  for (let i4 = 0; i4 < n2; i4++) {
+    const next = new Array(gen.length + 1).fill(0);
+    for (let j3 = 0; j3 < gen.length; j3++) {
+      next[j3] ^= gen[j3];
+      next[j3 + 1] ^= gfMul(gen[j3], EXP[i4]);
+    }
+    gen = next;
+  }
+  const res = data.concat(new Array(n2).fill(0));
+  for (let i4 = 0; i4 < data.length; i4++) {
+    const coef = res[i4];
+    if (coef !== 0) for (let j3 = 1; j3 < gen.length; j3++) res[i4 + j3] ^= gfMul(gen[j3], coef);
+  }
+  return res.slice(data.length);
+}
+function utf8(text) {
+  const out = [];
+  for (const b2 of new TextEncoder().encode(text)) out.push(b2);
+  return out;
+}
+var getBit = (x2, i4) => (x2 >>> i4 & 1) !== 0;
+function newGrid(size) {
+  const mod = [];
+  const fn = [];
+  for (let r3 = 0; r3 < size; r3++) {
+    mod.push(new Array(size).fill(false));
+    fn.push(new Array(size).fill(false));
+  }
+  return { mod, fn };
+}
+function placeFinder(mod, fn, R2, C3, size) {
+  for (let dr = -1; dr <= 7; dr++) {
+    for (let dc = -1; dc <= 7; dc++) {
+      const r3 = R2 + dr, c3 = C3 + dc;
+      if (r3 < 0 || r3 >= size || c3 < 0 || c3 >= size) continue;
+      fn[r3][c3] = true;
+      let dark = false;
+      if (dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6) {
+        const d3 = Math.max(Math.abs(dr - 3), Math.abs(dc - 3));
+        dark = d3 === 3 || d3 <= 1;
+      }
+      mod[r3][c3] = dark;
+    }
+  }
+}
+function placeAlignment(mod, fn, cr, cc) {
+  for (let dr = -2; dr <= 2; dr++) {
+    for (let dc = -2; dc <= 2; dc++) {
+      fn[cr + dr][cc + dc] = true;
+      mod[cr + dr][cc + dc] = Math.max(Math.abs(dr), Math.abs(dc)) !== 1;
+    }
+  }
+}
+function formatBits(mask) {
+  const data = 1 << 3 | mask;
+  let rem = data;
+  for (let i4 = 0; i4 < 10; i4++) rem = rem << 1 ^ (rem >> 9) * 1335;
+  return (data << 10 | rem) ^ 21522;
+}
+function reserveFormat(fn, size) {
+  for (let i4 = 0; i4 < 9; i4++) {
+    fn[8][i4] = true;
+    fn[i4][8] = true;
+  }
+  for (let i4 = 0; i4 < 8; i4++) {
+    fn[8][size - 1 - i4] = true;
+    fn[size - 1 - i4][8] = true;
+  }
+}
+function drawFormat(mod, size, mask) {
+  const bits = formatBits(mask);
+  for (let i4 = 0; i4 < 6; i4++) mod[i4][8] = getBit(bits, i4);
+  mod[7][8] = getBit(bits, 6);
+  mod[8][8] = getBit(bits, 7);
+  mod[8][7] = getBit(bits, 8);
+  for (let i4 = 9; i4 < 15; i4++) mod[8][14 - i4] = getBit(bits, i4);
+  for (let i4 = 0; i4 < 8; i4++) mod[8][size - 1 - i4] = getBit(bits, i4);
+  for (let i4 = 8; i4 < 15; i4++) mod[size - 15 + i4][8] = getBit(bits, i4);
+  mod[size - 8][8] = true;
+}
+var MASK_FN = [
+  (r3, c3) => (r3 + c3) % 2 === 0,
+  (r3) => r3 % 2 === 0,
+  (_r, c3) => c3 % 3 === 0,
+  (r3, c3) => (r3 + c3) % 3 === 0,
+  (r3, c3) => (Math.floor(r3 / 2) + Math.floor(c3 / 3)) % 2 === 0,
+  (r3, c3) => r3 * c3 % 2 + r3 * c3 % 3 === 0,
+  (r3, c3) => (r3 * c3 % 2 + r3 * c3 % 3) % 2 === 0,
+  (r3, c3) => ((r3 + c3) % 2 + r3 * c3 % 3) % 2 === 0
+];
+function penalty(mod, size) {
+  let p3 = 0;
+  for (let i4 = 0; i4 < size; i4++) {
+    let runR = 1, runC = 1;
+    for (let j3 = 1; j3 < size; j3++) {
+      if (mod[i4][j3] === mod[i4][j3 - 1]) {
+        runR++;
+        if (runR === 5) p3 += 3;
+        else if (runR > 5) p3++;
+      } else runR = 1;
+      if (mod[j3][i4] === mod[j3 - 1][i4]) {
+        runC++;
+        if (runC === 5) p3 += 3;
+        else if (runC > 5) p3++;
+      } else runC = 1;
+    }
+  }
+  for (let r3 = 0; r3 < size - 1; r3++)
+    for (let c3 = 0; c3 < size - 1; c3++)
+      if (mod[r3][c3] === mod[r3][c3 + 1] && mod[r3][c3] === mod[r3 + 1][c3] && mod[r3][c3] === mod[r3 + 1][c3 + 1]) p3 += 3;
+  const A3 = [true, false, true, true, true, false, true, false, false, false, false];
+  const B3 = [false, false, false, false, true, false, true, true, true, false, true];
+  const matches = (get, start) => {
+    for (let pat = 0; pat < 11; pat++) if (get(start + pat) !== A3[pat]) return matchB(get, start);
+    return true;
+  };
+  const matchB = (get, start) => {
+    for (let pat = 0; pat < 11; pat++) if (get(start + pat) !== B3[pat]) return false;
+    return true;
+  };
+  for (let i4 = 0; i4 < size; i4++)
+    for (let j3 = 0; j3 <= size - 11; j3++) {
+      if (matches((k3) => mod[i4][k3], j3)) p3 += 40;
+      if (matches((k3) => mod[k3][i4], j3)) p3 += 40;
+    }
+  let dark = 0;
+  for (let r3 = 0; r3 < size; r3++) for (let c3 = 0; c3 < size; c3++) if (mod[r3][c3]) dark++;
+  const ratio = dark * 100 / (size * size);
+  p3 += Math.floor(Math.abs(ratio - 50) / 5) * 10;
+  return p3;
+}
+function qrMatrix(text) {
+  const bytes = utf8(text);
+  const need = 4 + 8 + bytes.length * 8;
+  let vi = -1;
+  for (let i4 = 0; i4 < ECC_L.length; i4++) if (ECC_L[i4].data * 8 >= need) {
+    vi = i4;
+    break;
+  }
+  if (vi < 0) return null;
+  const spec = ECC_L[vi];
+  const size = 17 + 4 * (vi + 1);
+  const bits = [];
+  const push = (val, len) => {
+    for (let i4 = len - 1; i4 >= 0; i4--) bits.push(getBit(val, i4));
+  };
+  push(4, 4);
+  push(bytes.length, 8);
+  for (const b2 of bytes) push(b2, 8);
+  const cap = spec.data * 8;
+  for (let i4 = 0; i4 < 4 && bits.length < cap; i4++) bits.push(false);
+  while (bits.length % 8 !== 0) bits.push(false);
+  const padBytes = [236, 17];
+  for (let i4 = 0; bits.length < cap; i4++) push(padBytes[i4 % 2], 8);
+  const dataCw = [];
+  for (let i4 = 0; i4 < bits.length; i4 += 8) {
+    let b2 = 0;
+    for (let j3 = 0; j3 < 8; j3++) b2 = b2 << 1 | (bits[i4 + j3] ? 1 : 0);
+    dataCw.push(b2);
+  }
+  const all = dataCw.concat(reedSolomon(dataCw, spec.ec));
+  const { mod, fn } = newGrid(size);
+  placeFinder(mod, fn, 0, 0, size);
+  placeFinder(mod, fn, 0, size - 7, size);
+  placeFinder(mod, fn, size - 7, 0, size);
+  for (let i4 = 8; i4 < size - 8; i4++) {
+    const v3 = i4 % 2 === 0;
+    if (!fn[6][i4]) {
+      mod[6][i4] = v3;
+      fn[6][i4] = true;
+    }
+    if (!fn[i4][6]) {
+      mod[i4][6] = v3;
+      fn[i4][6] = true;
+    }
+  }
+  if (spec.align.length) {
+    const first = spec.align[0], last = spec.align[spec.align.length - 1];
+    for (const r3 of spec.align) for (const c3 of spec.align) {
+      if (r3 === first && c3 === first || r3 === first && c3 === last || r3 === last && c3 === first) continue;
+      placeAlignment(mod, fn, r3, c3);
+    }
+  }
+  reserveFormat(fn, size);
+  fn[size - 8][8] = true;
+  let bi = 0;
+  for (let right = size - 1; right >= 1; right -= 2) {
+    if (right === 6) right = 5;
+    for (let vert = 0; vert < size; vert++) {
+      for (let j3 = 0; j3 < 2; j3++) {
+        const col = right - j3;
+        const upward = (right + 1 & 2) === 0;
+        const row = upward ? size - 1 - vert : vert;
+        if (!fn[row][col] && bi < all.length * 8) {
+          mod[row][col] = getBit(all[bi >> 3], 7 - (bi & 7));
+          bi++;
+        }
+      }
+    }
+  }
+  let best = -1, bestPenalty = Infinity;
+  for (let m3 = 0; m3 < 8; m3++) {
+    for (let r3 = 0; r3 < size; r3++) for (let c3 = 0; c3 < size; c3++) if (!fn[r3][c3] && MASK_FN[m3](r3, c3)) mod[r3][c3] = !mod[r3][c3];
+    drawFormat(mod, size, m3);
+    const pen = penalty(mod, size);
+    if (pen < bestPenalty) {
+      bestPenalty = pen;
+      best = m3;
+    }
+    for (let r3 = 0; r3 < size; r3++) for (let c3 = 0; c3 < size; c3++) if (!fn[r3][c3] && MASK_FN[m3](r3, c3)) mod[r3][c3] = !mod[r3][c3];
+  }
+  for (let r3 = 0; r3 < size; r3++) for (let c3 = 0; c3 < size; c3++) if (!fn[r3][c3] && MASK_FN[best](r3, c3)) mod[r3][c3] = !mod[r3][c3];
+  drawFormat(mod, size, best);
+  return mod;
+}
+function qrSvg(text, opts = {}) {
+  const m3 = qrMatrix(text);
+  if (!m3) return null;
+  const margin = opts.margin ?? 4;
+  const n2 = m3.length;
+  const dim = n2 + margin * 2;
+  let path = "";
+  for (let r3 = 0; r3 < n2; r3++) for (let c3 = 0; c3 < n2; c3++) if (m3[r3][c3]) path += `M${c3 + margin} ${r3 + margin}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect width="${dim}" height="${dim}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
+}
+
 // src/core/partner-pairing.ts
 function participantFromUser(u4, opts) {
   return {
@@ -2201,6 +2455,11 @@ function PartnerApp(p3) {
       };
     });
   }, [suggestions, vibe, session && JSON.stringify(session.participants)]);
+  const qrHtml = T2(() => {
+    if (!code) return null;
+    const base = typeof location !== "undefined" ? location.origin + location.pathname : "";
+    return qrSvg(base + "#join=" + code);
+  }, [code]);
   if (!session) {
     return /* @__PURE__ */ u3(
       PartnerEntry,
@@ -2231,6 +2490,7 @@ function PartnerApp(p3) {
         "Join code: ",
         /* @__PURE__ */ u3("b", { children: code })
       ] }) : null,
+      isHost && qrHtml ? /* @__PURE__ */ u3("div", { class: "pn-qr", "aria-label": "Scan to join", dangerouslySetInnerHTML: { __html: qrHtml } }) : null,
       /* @__PURE__ */ u3(
         PartnerLobby,
         {

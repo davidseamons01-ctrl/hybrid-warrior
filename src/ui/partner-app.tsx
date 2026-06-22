@@ -8,6 +8,7 @@ import { PartnerEntry } from "./partner-entry";
 import { PartnerLobby, type LobbyParticipant } from "./partner-lobby";
 import { SharedBlockProposal, type ProposalLift } from "./shared-block-proposal";
 import { CalibrationSheet } from "./calibration-sheet";
+import { qrSvg } from "../core/qr";
 import {
   suggestSharedLifts, buildSharedLiftPlan, VIBE_SCHEMES, PARTNER_COMPOUNDS,
   type PartnerUser, type Vibe, type Suggestion,
@@ -132,6 +133,13 @@ function PartnerApp(p: PartnerAppProps) {
     });
   }, [suggestions, vibe, session && JSON.stringify(session.participants)]);
 
+  // Scannable QR of the deep-link join URL (host's lobby). Recomputed only when the code changes.
+  const qrHtml = useMemo(() => {
+    if (!code) return null;
+    const base = typeof location !== "undefined" ? location.origin + location.pathname : "";
+    return qrSvg(base + "#join=" + code);
+  }, [code]);
+
   // ── render by phase ──
   if (!session) {
     return (
@@ -151,6 +159,7 @@ function PartnerApp(p: PartnerAppProps) {
     return (
       <div class="pn-flow">
         {isHost && code ? <div class="pn-lobby-code">Join code: <b>{code}</b></div> : null}
+        {isHost && qrHtml ? <div class="pn-qr" aria-label="Scan to join" dangerouslySetInnerHTML={{ __html: qrHtml }} /> : null}
         <PartnerLobby
           participants={roster} meUid={ctx.uid} isHost={isHost}
           actions={{

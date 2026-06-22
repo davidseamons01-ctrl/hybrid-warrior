@@ -862,6 +862,260 @@ async function advanceTurn(be, id, order) {
   }
   await be.patchSession(id, { liveState: { turn: { uid, setNo } }, updatedAt: be.now() });
 }
+
+// src/core/qr.ts
+var ECC_L = [
+  { ec: 7, data: 19, align: [] },
+  // v1, 21×21
+  { ec: 10, data: 34, align: [6, 18] },
+  // v2, 25×25
+  { ec: 15, data: 55, align: [6, 22] },
+  // v3, 29×29
+  { ec: 20, data: 80, align: [6, 26] },
+  // v4, 33×33
+  { ec: 26, data: 108, align: [6, 30] }
+  // v5, 37×37
+];
+var EXP = new Array(512);
+var LOG = new Array(256);
+(function initGF() {
+  let x = 1;
+  for (let i = 0; i < 255; i++) {
+    EXP[i] = x;
+    LOG[x] = i;
+    x <<= 1;
+    if (x & 256) x ^= 285;
+  }
+  for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+})();
+var gfMul = (a, b) => a === 0 || b === 0 ? 0 : EXP[LOG[a] + LOG[b]];
+function reedSolomon(data, n) {
+  let gen = [1];
+  for (let i = 0; i < n; i++) {
+    const next = new Array(gen.length + 1).fill(0);
+    for (let j = 0; j < gen.length; j++) {
+      next[j] ^= gen[j];
+      next[j + 1] ^= gfMul(gen[j], EXP[i]);
+    }
+    gen = next;
+  }
+  const res = data.concat(new Array(n).fill(0));
+  for (let i = 0; i < data.length; i++) {
+    const coef = res[i];
+    if (coef !== 0) for (let j = 1; j < gen.length; j++) res[i + j] ^= gfMul(gen[j], coef);
+  }
+  return res.slice(data.length);
+}
+function utf8(text) {
+  const out = [];
+  for (const b of new TextEncoder().encode(text)) out.push(b);
+  return out;
+}
+var getBit = (x, i) => (x >>> i & 1) !== 0;
+function newGrid(size) {
+  const mod = [];
+  const fn = [];
+  for (let r = 0; r < size; r++) {
+    mod.push(new Array(size).fill(false));
+    fn.push(new Array(size).fill(false));
+  }
+  return { mod, fn };
+}
+function placeFinder(mod, fn, R, C, size) {
+  for (let dr = -1; dr <= 7; dr++) {
+    for (let dc = -1; dc <= 7; dc++) {
+      const r = R + dr, c = C + dc;
+      if (r < 0 || r >= size || c < 0 || c >= size) continue;
+      fn[r][c] = true;
+      let dark = false;
+      if (dr >= 0 && dr <= 6 && dc >= 0 && dc <= 6) {
+        const d = Math.max(Math.abs(dr - 3), Math.abs(dc - 3));
+        dark = d === 3 || d <= 1;
+      }
+      mod[r][c] = dark;
+    }
+  }
+}
+function placeAlignment(mod, fn, cr, cc) {
+  for (let dr = -2; dr <= 2; dr++) {
+    for (let dc = -2; dc <= 2; dc++) {
+      fn[cr + dr][cc + dc] = true;
+      mod[cr + dr][cc + dc] = Math.max(Math.abs(dr), Math.abs(dc)) !== 1;
+    }
+  }
+}
+function formatBits(mask) {
+  const data = 1 << 3 | mask;
+  let rem = data;
+  for (let i = 0; i < 10; i++) rem = rem << 1 ^ (rem >> 9) * 1335;
+  return (data << 10 | rem) ^ 21522;
+}
+function reserveFormat(fn, size) {
+  for (let i = 0; i < 9; i++) {
+    fn[8][i] = true;
+    fn[i][8] = true;
+  }
+  for (let i = 0; i < 8; i++) {
+    fn[8][size - 1 - i] = true;
+    fn[size - 1 - i][8] = true;
+  }
+}
+function drawFormat(mod, size, mask) {
+  const bits = formatBits(mask);
+  for (let i = 0; i < 6; i++) mod[i][8] = getBit(bits, i);
+  mod[7][8] = getBit(bits, 6);
+  mod[8][8] = getBit(bits, 7);
+  mod[8][7] = getBit(bits, 8);
+  for (let i = 9; i < 15; i++) mod[8][14 - i] = getBit(bits, i);
+  for (let i = 0; i < 8; i++) mod[8][size - 1 - i] = getBit(bits, i);
+  for (let i = 8; i < 15; i++) mod[size - 15 + i][8] = getBit(bits, i);
+  mod[size - 8][8] = true;
+}
+var MASK_FN = [
+  (r, c) => (r + c) % 2 === 0,
+  (r) => r % 2 === 0,
+  (_r, c) => c % 3 === 0,
+  (r, c) => (r + c) % 3 === 0,
+  (r, c) => (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0,
+  (r, c) => r * c % 2 + r * c % 3 === 0,
+  (r, c) => (r * c % 2 + r * c % 3) % 2 === 0,
+  (r, c) => ((r + c) % 2 + r * c % 3) % 2 === 0
+];
+function penalty(mod, size) {
+  let p = 0;
+  for (let i = 0; i < size; i++) {
+    let runR = 1, runC = 1;
+    for (let j = 1; j < size; j++) {
+      if (mod[i][j] === mod[i][j - 1]) {
+        runR++;
+        if (runR === 5) p += 3;
+        else if (runR > 5) p++;
+      } else runR = 1;
+      if (mod[j][i] === mod[j - 1][i]) {
+        runC++;
+        if (runC === 5) p += 3;
+        else if (runC > 5) p++;
+      } else runC = 1;
+    }
+  }
+  for (let r = 0; r < size - 1; r++)
+    for (let c = 0; c < size - 1; c++)
+      if (mod[r][c] === mod[r][c + 1] && mod[r][c] === mod[r + 1][c] && mod[r][c] === mod[r + 1][c + 1]) p += 3;
+  const A = [true, false, true, true, true, false, true, false, false, false, false];
+  const B = [false, false, false, false, true, false, true, true, true, false, true];
+  const matches = (get, start) => {
+    for (let pat = 0; pat < 11; pat++) if (get(start + pat) !== A[pat]) return matchB(get, start);
+    return true;
+  };
+  const matchB = (get, start) => {
+    for (let pat = 0; pat < 11; pat++) if (get(start + pat) !== B[pat]) return false;
+    return true;
+  };
+  for (let i = 0; i < size; i++)
+    for (let j = 0; j <= size - 11; j++) {
+      if (matches((k) => mod[i][k], j)) p += 40;
+      if (matches((k) => mod[k][i], j)) p += 40;
+    }
+  let dark = 0;
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (mod[r][c]) dark++;
+  const ratio = dark * 100 / (size * size);
+  p += Math.floor(Math.abs(ratio - 50) / 5) * 10;
+  return p;
+}
+function qrMatrix(text) {
+  const bytes = utf8(text);
+  const need = 4 + 8 + bytes.length * 8;
+  let vi = -1;
+  for (let i = 0; i < ECC_L.length; i++) if (ECC_L[i].data * 8 >= need) {
+    vi = i;
+    break;
+  }
+  if (vi < 0) return null;
+  const spec = ECC_L[vi];
+  const size = 17 + 4 * (vi + 1);
+  const bits = [];
+  const push = (val, len) => {
+    for (let i = len - 1; i >= 0; i--) bits.push(getBit(val, i));
+  };
+  push(4, 4);
+  push(bytes.length, 8);
+  for (const b of bytes) push(b, 8);
+  const cap = spec.data * 8;
+  for (let i = 0; i < 4 && bits.length < cap; i++) bits.push(false);
+  while (bits.length % 8 !== 0) bits.push(false);
+  const padBytes = [236, 17];
+  for (let i = 0; bits.length < cap; i++) push(padBytes[i % 2], 8);
+  const dataCw = [];
+  for (let i = 0; i < bits.length; i += 8) {
+    let b = 0;
+    for (let j = 0; j < 8; j++) b = b << 1 | (bits[i + j] ? 1 : 0);
+    dataCw.push(b);
+  }
+  const all = dataCw.concat(reedSolomon(dataCw, spec.ec));
+  const { mod, fn } = newGrid(size);
+  placeFinder(mod, fn, 0, 0, size);
+  placeFinder(mod, fn, 0, size - 7, size);
+  placeFinder(mod, fn, size - 7, 0, size);
+  for (let i = 8; i < size - 8; i++) {
+    const v = i % 2 === 0;
+    if (!fn[6][i]) {
+      mod[6][i] = v;
+      fn[6][i] = true;
+    }
+    if (!fn[i][6]) {
+      mod[i][6] = v;
+      fn[i][6] = true;
+    }
+  }
+  if (spec.align.length) {
+    const first = spec.align[0], last = spec.align[spec.align.length - 1];
+    for (const r of spec.align) for (const c of spec.align) {
+      if (r === first && c === first || r === first && c === last || r === last && c === first) continue;
+      placeAlignment(mod, fn, r, c);
+    }
+  }
+  reserveFormat(fn, size);
+  fn[size - 8][8] = true;
+  let bi = 0;
+  for (let right = size - 1; right >= 1; right -= 2) {
+    if (right === 6) right = 5;
+    for (let vert = 0; vert < size; vert++) {
+      for (let j = 0; j < 2; j++) {
+        const col = right - j;
+        const upward = (right + 1 & 2) === 0;
+        const row = upward ? size - 1 - vert : vert;
+        if (!fn[row][col] && bi < all.length * 8) {
+          mod[row][col] = getBit(all[bi >> 3], 7 - (bi & 7));
+          bi++;
+        }
+      }
+    }
+  }
+  let best = -1, bestPenalty = Infinity;
+  for (let m = 0; m < 8; m++) {
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!fn[r][c] && MASK_FN[m](r, c)) mod[r][c] = !mod[r][c];
+    drawFormat(mod, size, m);
+    const pen = penalty(mod, size);
+    if (pen < bestPenalty) {
+      bestPenalty = pen;
+      best = m;
+    }
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!fn[r][c] && MASK_FN[m](r, c)) mod[r][c] = !mod[r][c];
+  }
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (!fn[r][c] && MASK_FN[best](r, c)) mod[r][c] = !mod[r][c];
+  drawFormat(mod, size, best);
+  return mod;
+}
+function qrSvg(text, opts = {}) {
+  const m = qrMatrix(text);
+  if (!m) return null;
+  const margin = opts.margin ?? 4;
+  const n = m.length;
+  const dim = n + margin * 2;
+  let path = "";
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (m[r][c]) path += `M${c + margin} ${r + margin}h1v1h-1z`;
+  return `<svg viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg"><rect width="${dim}" height="${dim}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
+}
 export {
   ALL_EQUIPMENT,
   ALL_GOALS,
@@ -919,8 +1173,11 @@ export {
   phaseSetsFor,
   projectLogs,
   projectWeeksToGoal,
+  qrMatrix,
+  qrSvg,
   rankPlans,
   recentBestE1RM,
+  reedSolomon,
   removeGymBuddy,
   resolveMax,
   roundToIncrement,
