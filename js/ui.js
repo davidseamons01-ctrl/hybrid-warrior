@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hb1c4c3cadf5d";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h63355e9abf3f";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -8,8 +8,8 @@ import {
   e1rmSeries, detectPlateau, projectWeeksToGoal,
   accessoryRx, mergeEvents,
   setLoggedFromLog, setDeletedEvent, projectLogs, fromLegacyLogs
-} from "./programming.js?v=hb1c4c3cadf5d";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=hb1c4c3cadf5d";
+} from "./programming.js?v=h63355e9abf3f";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp } from "./ui-components.js?v=h63355e9abf3f";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4381,7 +4381,7 @@ function renderToday(){
   ${isTaperWeek(w)&&!isDeloadWeek(w)?`<div class="card section taper-banner"><div class="taper-banner-icon">📉</div><div class="taper-banner-body"><div class="taper-banner-title">Taper Week ${w}</div><div class="taper-banner-text">Volume reduced by 40% while intensity stays high. This primes your nervous system for ${w===12?"next week's Test":"the Peak phase"}.</div></div></div>`:""}
   ${nextTrainingDotsHtml(6)}
   <div id="weather-slot"></div>
-  ${plan.exs.length?`<button type="button" class="btn btn-secondary-solid btn-block" id="train-bring-friend" style="margin:2px 0 8px">👥 Bring a friend — lift together</button>`:""}
+  <button type="button" class="btn btn-secondary-solid btn-block" id="train-bring-friend" style="margin:2px 0 8px">👥 Bring a friend — lift together</button>
   ${fuelingAdviceHtml(plan)}
   ${plan.exs.length?`<div class="power-focus-bar"><span class="power-focus-label">${powerFocusOn?"Focus Mode":"Session"}</span><button type="button" class="power-focus-toggle ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit Focus":"Focus Mode"}</button><button type="button" class="ghost-mode-toggle ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost On":"Ghost"}</button></div>`:""}
   ${plan.exs.length&&trainFocusIdx===null?`${plan.deloadHint?`<div class="card section" style="border-color:var(--gold);background:rgba(212,175,55,.06)"><div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:2px">⚠️ Progress check</div><p style="font-size:12px;color:var(--text2);line-height:1.45;margin:0">${escPlanChip(plan.deloadHint)}</p></div>`:""}<div id="readiness-mount"></div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
