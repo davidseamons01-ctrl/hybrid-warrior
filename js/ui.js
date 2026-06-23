@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h8abd41697820";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hcc917f72f171";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -12,9 +12,9 @@ import {
   AB_TEMPLATES, abTemplateById, selectAbTemplate, buildAbFinisher,
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
-  calendarBlockWeek, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h8abd41697820";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=h8abd41697820";
+  calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
+} from "./programming.js?v=hcc917f72f171";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=hcc917f72f171";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
@@ -1198,16 +1198,22 @@ function referenceIsoForProgramWeek(){
   const n=nextTrainingIso(today);
   return n||today;
 }
-function autoWeek(){
-  if(S.schedule&&S.schedule.template&&Object.keys(S.schedule.template).length){
-    const anchor=firstTrainingIsoOnOrAfter(S.program.start)||S.program.start;
-    S.program.week=calendarBlockWeek(anchor,iso(),13);return;
+// Program week is anchored to a fixed point (pinned to the current session-based
+// week the first time we see a user) and then advances by CALENDAR weeks. This
+// makes the week stable: rescheduling which days you train never changes it.
+function ensureWeekAnchor(){
+  if(!S.program.weekAnchor||!S.program.weekAnchor.iso){
+    let w=S.program.week||1;
+    try{const g=globalSessionIndexForDate(referenceIsoForProgramWeek());if(g!==null)w=blockWeekFromGlobalIdx(g);}catch(e){}
+    S.program.weekAnchor={iso:iso(),week:clamp(w,1,13)};
   }
-  const ref=referenceIsoForProgramWeek();
-  const g=globalSessionIndexForDate(ref);
-  if(g===null){S.program.week=1;return}
-  S.program.week=blockWeekFromGlobalIdx(g);
+  return S.program.weekAnchor;
 }
+function programWeekForDate(dateIso){
+  const wa=ensureWeekAnchor();
+  return weekFromAnchor(wa.iso,wa.week,dateIso,13);
+}
+function autoWeek(){S.program.week=programWeekForDate(iso());}
 function trainingDatesForIndexRange(startG,endG){
   const anchor=firstTrainingIsoOnOrAfter(S.program.start);
   if(!anchor||startG>endG)return[];
@@ -1264,8 +1270,7 @@ function rollingPlanForDate(dateIso){
   const ov=(S.scheduleOverrides||{})[dateIso];
   if(ov){
     if(ov.slot===null||ov.slot==="rest")return{focus:"Rest day · you moved this",exs:[],finisher:"Light walk or mobility — optional.",slot:null,blockWeek:null,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN(),_rescheduled:true};
-    const anchor=firstTrainingIsoOnOrAfter(S.program.start)||S.program.start;
-    const bw=calendarBlockWeek(anchor,dateIso,13);
+    const bw=programWeekForDate(dateIso);
     const prevEq=_dayEquipOverride;if(ov.equip)_dayEquipOverride=ov.equip;
     let p;try{p=mkDay(ov.slot,bw);}finally{_dayEquipOverride=prevEq;}
     p.slot=ov.slot;p.blockWeek=bw;p.globalIdx=null;p.sessionInWeek=null;p.sessionsPerWeek=planSlotsN();p._rescheduled=true;if(ov.equip)p._equipOverride=ov.equip;
@@ -1281,7 +1286,7 @@ function rollingPlanForDate(dateIso){
     if(tslot===null||tslot===undefined||tslot==="rest")return{focus:"Active Recovery",exs:[],finisher:"Light walk + foam rolling.",slot:null,blockWeek:null,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN()};
     const anchor=firstTrainingIsoOnOrAfter(S.program.start)||S.program.start;
     if(dateIso<anchor)return{focus:"Program starts soon",exs:[],finisher:"Check your start date in Settings.",slot:null,blockWeek:1,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN()};
-    const bw=calendarBlockWeek(anchor,dateIso,13);
+    const bw=programWeekForDate(dateIso);
     const tp=mkDay(tslot,bw);tp.slot=tslot;tp.blockWeek=bw;tp.globalIdx=null;tp.sessionInWeek=null;tp.sessionsPerWeek=Object.values(tpl).filter(Boolean).length||planSlotsN();tp._templated=true;
     tp.exs=applyExerciseOrderForDate(dateIso,tp.exs||[]);
     return tp;

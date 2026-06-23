@@ -30,6 +30,14 @@ export function calendarBlockWeek(anchorIso: string, dateIso: string, total = 13
   return Math.max(1, Math.min(total, Math.floor(daysBetween(anchorIso, dateIso) / 7) + 1));
 }
 
+/** Program week relative to a fixed {date, week} anchor, advancing by calendar
+ *  weeks. Stable across schedule changes — the week never depends on which days
+ *  you train. */
+export function weekFromAnchor(anchorIso: string, anchorWeek: number, dateIso: string, total = 13): number {
+  const w = anchorWeek + Math.floor(daysBetween(anchorIso, dateIso) / 7);
+  return Math.max(1, Math.min(total, w));
+}
+
 export interface DayPlan { date: string; dow: Dow; slot: string | null; equip?: string }
 export interface SessionOverride { slot: string | null; equip?: string }
 

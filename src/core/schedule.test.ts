@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  addDaysIso, dowOf, daysBetween, weekStart, weekDates, calendarBlockWeek,
+  addDaysIso, dowOf, daysBetween, weekStart, weekDates, calendarBlockWeek, weekFromAnchor,
   defaultPlacement, overridesFromBoard, boardStatus, type DayPlan,
 } from "./schedule";
 
@@ -24,6 +24,15 @@ describe("date helpers (UTC, date-only)", () => {
     expect(calendarBlockWeek("2026-06-01", "2026-06-08")).toBe(2);
     expect(calendarBlockWeek("2026-06-01", "2026-05-20")).toBe(1); // before start
     expect(calendarBlockWeek("2026-06-01", "2027-01-01", 13)).toBe(13); // capped
+  });
+
+  it("weekFromAnchor advances by calendar from a pinned {date, week} and is schedule-stable", () => {
+    // pinned: on 2026-06-22 the lifter was in week 5
+    expect(weekFromAnchor("2026-06-22", 5, "2026-06-22")).toBe(5);   // same day → unchanged
+    expect(weekFromAnchor("2026-06-22", 5, "2026-06-28")).toBe(5);   // +6 days, same week
+    expect(weekFromAnchor("2026-06-22", 5, "2026-06-29")).toBe(6);   // +7 days → next week
+    expect(weekFromAnchor("2026-06-22", 5, "2026-06-15")).toBe(4);   // a week earlier
+    expect(weekFromAnchor("2026-06-22", 12, "2026-08-01", 13)).toBe(13); // capped at total
   });
 });
 

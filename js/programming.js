@@ -1288,6 +1288,10 @@ function calendarBlockWeek(anchorIso, dateIso, total = 13) {
   if (!anchorIso || dateIso < anchorIso) return 1;
   return Math.max(1, Math.min(total, Math.floor(daysBetween(anchorIso, dateIso) / 7) + 1));
 }
+function weekFromAnchor(anchorIso, anchorWeek, dateIso, total = 13) {
+  const w = anchorWeek + Math.floor(daysBetween(anchorIso, dateIso) / 7);
+  return Math.max(1, Math.min(total, w));
+}
 function defaultPlacement(dates, defaultDays, slots) {
   const set = new Set(defaultDays);
   let si = 0;
@@ -1685,6 +1689,7 @@ export {
   warmupSets,
   warmupText,
   weekDates,
+  weekFromAnchor,
   weekStart,
   whyPlan,
   withParticipant,
