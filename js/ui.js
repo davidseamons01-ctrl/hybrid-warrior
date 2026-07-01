@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hcc917f72f171";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h4551a5ec5f74";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,11 +13,12 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=hcc917f72f171";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=hcc917f72f171";
+} from "./programming.js?v=h4551a5ec5f74";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=h4551a5ec5f74";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const TAB_TRAIN="train",TAB_PLAN="plan",TAB_YOU="you",TAB_SOCIAL="social";
+const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
+function socialViewActive(){return tab===TAB_YOU&&youSub==="community"}
 const PLANS=(function(){
   const G=["strength","hybrid","fat_loss","muscle","beginner","powerlifting","endurance","hybrid_runner"];
   const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy","Beginner Foundations","Powerlifting","Endurance","Hybrid Runner"];
@@ -82,7 +83,7 @@ function activeTrainIso(){
 }
 const DEF={
   v:7,
-  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,neckCirc:0,onboarded:false,prefs:{equipment:"gym",equipmentInv:null,experienceMonths:0,primaryGoal:"",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"dark",units:"imperial",quickSessionMin:0,womenSimpleUi:true}},
+  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,neckCirc:0,onboarded:false,prefs:{equipment:"gym",equipmentInv:null,experienceMonths:0,primaryGoal:"",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"dark",units:"imperial",quickSessionMin:0,uiMode:"",accentTheme:""}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   scheduleAdjust:{catchUpQueue:[],missChoices:{},missSnoozed:{},extraTrainingIso:null,catchUpClearedDate:null},
@@ -587,14 +588,15 @@ function womenBaselineTier(){
   if(strength>=2.8)return "intermediate";
   return "beginner";
 }
-let tab=TAB_YOU;let trainSub="workout";let youSub="home";let logDate=iso();let logHistoryFilter="";let logBulkSelectOn=false;let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;let powerFocusOn=false;let ghostModeOn=false;
+let tab=TAB_YOU;let trainSub="workout";let youSub="settings";let logDate=iso();let logHistoryFilter="";let logBulkSelectOn=false;let expandedWeek=null;let pdfLib=null,pdfCache=new Map();let toastTimer=null;let powerFocusOn=false;let ghostModeOn=false;
 const DASH_RANGES=[["1w","1W"],["1m","1M"],["3m","3M"],["6m","6M"],["all","All-Time"]];
 let authMode="up";let currentUser=null;let offlineMode=false;let obStep=0;let lastLogSummary=null;let obChosenPlan=null;
 let pendingPartnerJoin=null;// deep-link join code captured at boot, fired once signed in
 function maybeOpenPendingPartnerJoin(){if(pendingPartnerJoin&&fbDb&&currentUser){const c=pendingPartnerJoin;pendingPartnerJoin=null;setTimeout(()=>{try{openPartnerSession(c)}catch(e){}},350);}}
 function tabFromHash(){
   const h=(location.hash||"").replace(/^#/,"").toLowerCase();
-  if(h===TAB_TRAIN||h===TAB_PLAN||h===TAB_YOU||h===TAB_SOCIAL)return h;
+  if(h===TAB_SOCIAL){youSub="community";return TAB_YOU}
+  if(h===TAB_TRAIN||h===TAB_PLAN||h===TAB_PROGRESS||h===TAB_YOU)return h;
   return null;
 }
 function syncTabToHash(){
@@ -930,11 +932,11 @@ function bindGlobalFab(){
     const hr=new Date().getHours();
     const hasSessionToday=S.logs&&S.logs.some(l=>l.date===iso());
     if(hr<11&&!hasSessionToday){
-      tab=TAB_YOU;youSub="home";location.hash=TAB_YOU;sessionStorage.setItem("hw-scroll","#dash-extra-health");render();
+      tab=TAB_PROGRESS;location.hash=TAB_PROGRESS;sessionStorage.setItem("hw-scroll","#dash-extra-health");render();
     }else if(hasSessionToday){
-      tab=TAB_YOU;youSub="home";location.hash=TAB_YOU;sessionStorage.setItem("hw-scroll","#dash-extra-health");render();
+      tab=TAB_PROGRESS;location.hash=TAB_PROGRESS;sessionStorage.setItem("hw-scroll","#dash-extra-health");render();
     }else{
-      tab=TAB_YOU;youSub="home";location.hash=TAB_YOU;sessionStorage.setItem("hw-scroll","#dash-extra-act");render();
+      tab=TAB_PROGRESS;location.hash=TAB_PROGRESS;sessionStorage.setItem("hw-scroll","#dash-extra-act");render();
     }
   };
   const mic=document.getElementById("fabVoiceLog");
@@ -943,7 +945,7 @@ function bindGlobalFab(){
 function bindAppSwipeNav(){
   const app=document.getElementById("app");if(!app||app.dataset.swipeBound==="1")return;
   app.dataset.swipeBound="1";
-  const TABS=[TAB_TRAIN,TAB_PLAN,TAB_YOU,TAB_SOCIAL];
+  const TABS=[TAB_TRAIN,TAB_PLAN,TAB_PROGRESS,TAB_YOU];
   let sx=null,sy=null;
   const blockSel="input,select,textarea,canvas,.table-wrap,.focus-session-viewport,.ex-log-grid,.quick-log-row,[data-no-swipe]";
   // Don't capture a tab-swipe that begins inside something the user is scrolling
@@ -976,22 +978,36 @@ function applyAppearanceMeta(m){
   const light=(S.profile.prefs||{}).appearance==="light";
   m.setAttribute("content",light?"#e8eaef":"#000000");
 }
+const ACCENT_THEMES=["ember","ocean","forest","violet"];
+/** Accent is a pure color preference — never derived from who the user is.
+    Pre-overhaul profiles map once to the palette closest to what they saw. */
+function accentPref(){
+  const prefs=S.profile.prefs||{};
+  if(ACCENT_THEMES.includes(prefs.accentTheme))return prefs.accentTheme;
+  if(S.profile.onboarded)return S.profile.sex==="female"?"violet":"forest";
+  return "ember";
+}
 function applyVisualTheme(forceNeutral=false){
   const b=document.body;
   if(!b)return;
-  b.classList.remove("theme-neutral","theme-feminine","theme-masculine","women-vivid","appearance-light","theme-oled","blackout");
-  if(forceNeutral||!S.profile.onboarded)b.classList.add("theme-neutral");
-  else if(S.profile.sex==="female"){b.classList.add("theme-feminine");b.classList.add("women-vivid")}
-  else b.classList.add("theme-masculine");
+  b.classList.remove("theme-neutral","theme-feminine","theme-masculine","women-vivid","appearance-light","theme-oled","blackout","theme-ember","theme-ocean","theme-forest","theme-violet");
+  b.classList.add("theme-"+((forceNeutral||!S.profile.onboarded)?"ember":accentPref()));
   if(!forceNeutral&&S.profile.onboarded&&(S.profile.prefs||{}).appearance==="light")b.classList.add("appearance-light");
   if(!forceNeutral&&S.profile.onboarded&&(S.profile.prefs||{}).oledMode)b.classList.add("theme-oled");
   // Blackout Pro: true-black performance look in dark mode (light mode opts out).
   if(!b.classList.contains("appearance-light"))b.classList.add("blackout");
   applyAppearanceMeta();
 }
-function useWomenSoftUi(){
-  return S.profile.sex==="female"&&((S.profile.prefs||{}).womenSimpleUi!==false);
+/** Coached = plain language, lighter layouts. Pro = full data density.
+    User-switchable in Settings; replaces the retired womenSimpleUi fork
+    (profiles that had the old simple layout stay in coached mode). */
+function uiModePref(){
+  const prefs=S.profile.prefs||{};
+  if(prefs.uiMode==="coached"||prefs.uiMode==="pro")return prefs.uiMode;
+  return(S.profile.sex==="female"&&prefs.womenSimpleUi!==false)?"coached":"pro";
 }
+function coachedModeOn(){return uiModePref()==="coached"}
+function useWomenSoftUi(){return coachedModeOn()}
 function planCompactOn(){
   return useWomenSoftUi()?sessionStorage.getItem("hw-plan-compact")!=="0":sessionStorage.getItem("hw-plan-compact")==="1";
 }
@@ -1884,7 +1900,7 @@ function runPlateCalc(totalInput,barInput){
   if(useMetric()){const r=calcPlatesPerSideKg(total,bar);return{text:formatPlateResultKg(r,bar)}}
   const r=calcPlatesPerSide(total,bar);return{text:formatPlateResult(r,bar)};
 }
-function normalizeTabs(){if(tab==="dash"){tab=TAB_YOU;youSub="home"}else if(tab==="today"){tab=TAB_TRAIN;trainSub="workout"}else if(tab==="log"){tab=TAB_TRAIN;trainSub="log"}else if(tab==="program")tab=TAB_PLAN;else if(tab==="settings"){tab=TAB_YOU;youSub="settings"}else if(tab==="ref"){tab=TAB_YOU;youSub="home"}else if(tab==="social")tab=TAB_SOCIAL}
+function normalizeTabs(){if(tab==="dash"||tab==="ref"){tab=TAB_PROGRESS}else if(tab==="today"){tab=TAB_TRAIN;trainSub="workout"}else if(tab==="log"){tab=TAB_TRAIN;trainSub="log"}else if(tab==="program")tab=TAB_PLAN;else if(tab==="settings"){tab=TAB_YOU;youSub="settings"}else if(tab===TAB_SOCIAL){tab=TAB_YOU;youSub="community"}if(tab===TAB_YOU&&(youSub==="home"||youSub==="ref"))youSub="settings"}
 function isExLoggedToday(eid){const e=exById(eid),name=e?e.name:eid;const d=activeTrainIso();return S.logs.some(l=>l.date===d&&l.exercise===name)}
 function inferType(n){n=(n||"").toLowerCase();if(n.includes("bench")||n.includes("incline")||n.includes("close")||n.includes("dip"))return"bench";if((n.includes("squat")&&!n.includes("air"))||n.includes("bulgarian"))return"squat";if(n.includes("deadlift")||n.includes("rdl"))return"dead";if(n.includes("run")||n.includes("800")||n.includes("tempo")||n.includes("jog")||n.includes("cooper")||n.includes("trial")||n.includes("5k")||n.includes("mile")||n.includes("fartlek")||n.includes("interval"))return"run";return"acc"}
 /** True for programmed run/cardio moves that use pace (sec/mi) in tW/aW, not bar load. */
@@ -2504,26 +2520,42 @@ function renderNavBanners(){
   const rv=document.getElementById("nav-refresh-verify");
   if(rv)rv.onclick=async()=>{try{await currentUser.reload();if(currentUser.emailVerified)toast("Email verified.");render()}catch(e){toast(e.message||"Could not refresh.")}};
 }
+const NAV_ICONS={
+  train:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5a2 2 0 0 0-3 0L2 8l4.5 4.5M17.5 6.5a2 2 0 0 1 3 0L22 8l-4.5 4.5"/><path d="M2 12h20"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4"/></svg>`,
+  plan:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,
+  progress:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>`,
+  you:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`
+};
+function navTabs(){
+  return[[TAB_TRAIN,"Today","Your session & log",NAV_ICONS.train],[TAB_PLAN,"Plan","Weekly schedule & block",NAV_ICONS.plan],[TAB_PROGRESS,"Progress","Trends, PRs & streaks",NAV_ICONS.progress],[TAB_YOU,"You","Profile, settings & community",NAV_ICONS.you]];
+}
+// One-glance training status on the Today tab: a reminder dot if today is a
+// training day you haven't logged yet, a check once you've trained today.
+function trainStatusBadge(cls){
+  try{
+    const today=iso(),trains=globalSessionIndexForDate(today)!==null,loggedToday=(S.logs||[]).some(l=>l.date===today);
+    if(trains&&loggedToday)return`<span class="${cls} done" aria-hidden="true" style="position:absolute;top:4px;right:6px;font-size:10px;line-height:1;color:var(--mint)">✓</span>`;
+    if(trains)return`<span class="${cls}" aria-hidden="true" title="Training day — not logged yet" style="position:absolute;top:5px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--fire);box-shadow:0 0 0 2px var(--bg,#0e0f14)"></span>`;
+  }catch(e){}
+  return"";
+}
+function renderTabBar(){
+  let bar=document.getElementById("tabBar");
+  if(!bar){bar=document.createElement("nav");bar.id="tabBar";bar.className="tabbar";bar.setAttribute("aria-label","Primary");document.body.appendChild(bar)}
+  const nav=document.getElementById("mainNav");
+  bar.hidden=!nav||nav.style.display==="none";
+  bar.innerHTML=navTabs().map(([id,lb,hint,ic])=>`<button class="tabbar-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""}><span class="tabbar-ic" aria-hidden="true">${ic}</span>${lb}${id===TAB_TRAIN?trainStatusBadge("tabbar-badge"):""}</button>`).join("");
+  bar.querySelectorAll(".tabbar-btn").forEach(b=>b.onclick=()=>{triggerHaptic("light");location.hash=b.dataset.t;});
+}
 function renderNav(){
   renderNavBanners();
   const el=document.getElementById("navInner");const w=S.program.week;
-  const NAV_ICONS={train:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5a2 2 0 0 0-3 0L2 8l4.5 4.5M17.5 6.5a2 2 0 0 1 3 0L22 8l-4.5 4.5"/><path d="M2 12h20"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4"/></svg>`,plan:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,you:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`,social:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`};
-  const tabs=[[TAB_TRAIN,"Train","Today & log",NAV_ICONS.train],[TAB_PLAN,"Plan","13-week calendar",NAV_ICONS.plan],[TAB_YOU,"You","Progress & settings",NAV_ICONS.you],[TAB_SOCIAL,"Social","Challenges",NAV_ICONS.social]];
-  // One-glance training status on the Train tab: a reminder dot if today is a
-  // training day you haven't logged yet, a check once you've trained today.
-  let trainBadge="";
-  try{
-    const today=iso(),trains=globalSessionIndexForDate(today)!==null,loggedToday=(S.logs||[]).some(l=>l.date===today);
-    if(trains&&loggedToday)trainBadge=`<span class="nav-train-status" aria-hidden="true" style="position:absolute;top:4px;right:6px;font-size:10px;line-height:1;color:var(--mint)">✓</span>`;
-    else if(trains)trainBadge=`<span class="nav-train-status" aria-hidden="true" title="Training day — not logged yet" style="position:absolute;top:5px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--fire);box-shadow:0 0 0 2px var(--bg,#17171d)"></span>`;
-  }catch(e){}
-  el.innerHTML=`<div class="logo">Hybrid<span class="logo-tag">Training</span></div><button type="button" class="nav-search-btn" id="nav-global-search" aria-label="Open search" title="Search"><svg class="nav-search-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>`+tabs.map(([id,lb,hint,ic])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""} style="position:relative"><span class="nav-ic" aria-hidden="true">${ic}</span><span class="nav-lb">${lb}</span>${id===TAB_TRAIN?trainBadge:""}</button>`).join("")+
+  el.innerHTML=`<div class="logo">Hybrid<span class="logo-tag">Training</span></div><button type="button" class="nav-search-btn" id="nav-global-search" aria-label="Open search" title="Search"><svg class="nav-search-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>`+navTabs().map(([id,lb,hint,ic])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""} style="position:relative"><span class="nav-ic" aria-hidden="true">${ic}</span><span class="nav-lb">${lb}</span>${id===TAB_TRAIN?trainStatusBadge("nav-train-status"):""}</button>`).join("")+
     `<div class="nav-pill" id="navPill">Week ${w}/13 · ${phaseName(w)}</div>`+
-    `<span class="nav-sync-indicator ${typeof navigator!=="undefined"&&navigator.onLine?"online":"offline"}" id="navSyncInd" title="${typeof navigator!=="undefined"&&navigator.onLine?"Synced":"Offline"}">${typeof navigator!=="undefined"&&navigator.onLine?"●":"○"}</span>`+
-    (currentUser?`<button class="nav-btn" id="nav-so" style="color:var(--text3);flex-shrink:0;font-size:11px" type="button" title="${(currentUser.email||"").replace(/"/g,"&quot;")}">Sign out</button>`:offlineMode?`<span style="font-size:10px;color:var(--text3)">Offline</span>`:``);
+    `<span class="nav-sync-indicator ${typeof navigator!=="undefined"&&navigator.onLine?"online":"offline"}" id="navSyncInd" title="${typeof navigator!=="undefined"&&navigator.onLine?"Synced":"Offline"}">${typeof navigator!=="undefined"&&navigator.onLine?"●":"○"}</span>`;
   el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{location.hash=b.dataset.t;});
-  const so=document.getElementById("nav-so");if(so)so.onclick=async()=>{const ok=await showCustomModal("Sign out?","Your data stays on this device until you clear it.",{confirmLabel:"Sign out"});if(ok)doSignOut()};
   const gs=document.getElementById("nav-global-search");if(gs)gs.onclick=()=>openGlobalSearch();
+  renderTabBar();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2929,14 +2961,14 @@ function startSocialSubs(){
     _socialUnsubProfiles=fbDb.collection("community").limit(200).onSnapshot(snap=>{
       const list=[];snap.forEach(d=>{const v=d.data()||{};if(v&&v.handle)list.push(v)});
       _socialCache.profiles=list;_socialCache.fetchedAt=Date.now();
-      if(tab===TAB_SOCIAL)mountSocialTab();
+      if(socialViewActive())mountSocialTab();
     },err=>{console.warn("community sub",err&&err.message)});
   }catch(e){console.warn("startSocialSubs profiles",e&&e.message)}
   try{
     _socialUnsubPosts=fbDb.collection("community_posts").orderBy("createdAt","desc").limit(50).onSnapshot(snap=>{
       const list=[];snap.forEach(d=>list.push(d.data()||{}));
       _socialCache.posts=list;
-      if(tab===TAB_SOCIAL)mountSocialTab();
+      if(socialViewActive())mountSocialTab();
     },err=>{console.warn("community_posts sub",err&&err.message)});
   }catch(e){console.warn("startSocialSubs posts",e&&e.message)}
 }
@@ -4349,9 +4381,9 @@ function renderTrain(){
   return`<div class="subtab-row"><button type="button" class="subtab ${trainSub==="workout"?"on":""} train-sub" data-s="workout">Session</button><button type="button" class="subtab ${trainSub==="log"?"on":""} train-sub" data-s="log">Log</button></div><div id="train-inner">${trainSub==="workout"?renderToday():renderLog()}</div>`;
 }
 function renderYou(){
-  if(youSub==="ref")youSub="home";
-  const inner=youSub==="settings"?renderSettings():renderDash();
-  return`<div class="subtab-row you-subtabs" role="tablist" aria-label="You sections"><button type="button" class="subtab ${youSub==="home"?"on":""} you-sub" role="tab" aria-selected="${youSub==="home"}" data-s="home">Overview</button><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" role="tab" aria-selected="${youSub==="settings"}" data-s="settings">Settings</button></div><div id="you-inner">${inner}</div>`;
+  if(youSub!=="settings"&&youSub!=="community")youSub="settings";
+  const inner=youSub==="community"?`<div class="pane show" id="p-social"></div>`:renderSettings();
+  return`<div class="subtab-row you-subtabs" role="tablist" aria-label="You sections"><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" role="tab" aria-selected="${youSub==="settings"}" data-s="settings">Settings</button><button type="button" class="subtab ${youSub==="community"?"on":""} you-sub" role="tab" aria-selected="${youSub==="community"}" data-s="community">Community</button></div><div id="you-inner">${inner}</div>`;
 }
 function bindTrain(){
   document.querySelectorAll(".train-sub").forEach(b=>b.onclick=()=>{if(b.dataset.s==="log")trainFocusIdx=null;trainSub=b.dataset.s;render()});
@@ -4360,7 +4392,7 @@ function bindTrain(){
 function bindYou(){
   releaseWorkoutWakeLock();
   document.querySelectorAll(".you-sub").forEach(b=>b.onclick=()=>{youSub=b.dataset.s;render()});
-  if(youSub==="home")bindDash();
+  if(youSub==="community")bindSocial();
   else{enhanceNumericInputs(document.getElementById("you-inner")||document);bindSettings()}
 }
 
@@ -5634,12 +5666,12 @@ function buildProfileSettingsProps(){
       sex:p.sex||"male",lifeStage:prefs.lifeStage||"general",womenMode:prefs.womenMode||"auto",
       equipment:prefs.equipment||"gym",style:prefs.style||"balanced",units:prefs.units||"imperial",
       quick:Number(prefs.quickSessionMin)>0?"15":"0",
-      light:(prefs.appearance||"dark")==="light",oled:!!prefs.oledMode,womenSimpleUi:prefs.womenSimpleUi!==false,
+      light:(prefs.appearance||"dark")==="light",oled:!!prefs.oledMode,uiMode:uiModePref(),accent:accentPref(),
       audioCues:!!prefs.audioCues,altitude:!!prefs.altitudeTraining,biometric:!!localStorage.getItem("hw-webauthn-cred"),shareMaxes:prefs.shareMaxesWithPartners!==false,tabSwipe:prefs.tabSwipe!==false
     },
     massLabel:massUnitLabel(),isFemale:p.sex==="female",biometricAvailable:typeof window!=="undefined"&&!!window.PublicKeyCredential,
     womenModeOptions:wmOpts,adapt:{bench:S.adapt.bench,squat:S.adapt.squat,dead:S.adapt.dead,run:S.adapt.run},
-    actions:{save:applyProfileSettings,applyAppearance:applyProfileAppearance,applyUnits:applyProfileUnits,setAudioCues:setProfileAudio,setAltitude:setProfileAltitude,setBiometric:setProfileBiometric,resetAdaptation:resetProfileAdaptation}
+    actions:{save:applyProfileSettings,applyAppearance:applyProfileAppearance,applyAccent:applyProfileAccent,applyUiMode:applyProfileUiMode,applyUnits:applyProfileUnits,setAudioCues:setProfileAudio,setAltitude:setProfileAltitude,setBiometric:setProfileBiometric,resetAdaptation:resetProfileAdaptation}
   };
 }
 function mountProfileSettingsTab(){const c=document.getElementById("settings-profile-mount");if(c)mountProfileSettings(c,buildProfileSettingsProps());}
@@ -5654,13 +5686,17 @@ async function applyProfileSettings(form){
   S.profile.sex=form.sex;
   const appearance=form.light?"light":"dark",units=form.units==="metric"?"metric":"imperial";
   const _prefs={...(S.profile.prefs||{}),lifeStage:form.lifeStage,womenMode:form.womenMode||((S.profile.prefs||{}).womenMode||"auto"),equipment:form.equipment,style:form.style,appearance,units,quickSessionMin:Number(form.quick)||0,audioCues:!!form.audioCues,altitudeTraining:!!form.altitude,oledMode:!!form.oled,shareMaxesWithPartners:!!form.shareMaxes,tabSwipe:!!form.tabSwipe};
-  if(S.profile.sex==="female")_prefs.womenSimpleUi=!!form.womenSimpleUi;else delete _prefs.womenSimpleUi;
+  _prefs.uiMode=form.uiMode==="coached"?"coached":"pro";
+  _prefs.accentTheme=ACCENT_THEMES.includes(form.accent)?form.accent:"ember";
+  delete _prefs.womenSimpleUi;
   S.profile.prefs=_prefs;
   const r=parseMM(form.run);if(r>0)S.profile.run4mi=r;
   const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}
   await persist();applyVisualTheme(false);render();toast("Saved");
 }
 async function applyProfileAppearance(light,oled){S.profile.prefs={...(S.profile.prefs||{}),appearance:light?"light":"dark",oledMode:!!oled};await persist();applyVisualTheme(false);}
+async function applyProfileAccent(a){S.profile.prefs={...(S.profile.prefs||{}),accentTheme:ACCENT_THEMES.includes(a)?a:"ember"};await persist();applyVisualTheme(false);}
+async function applyProfileUiMode(m){const v=m==="coached"?"coached":"pro";S.profile.prefs={...(S.profile.prefs||{}),uiMode:v};await persist();render();toast(v==="coached"?"Coached mode — simpler screens, plain language.":"Pro mode — full data density.");}
 async function applyProfileUnits(units){S.profile.prefs={...(S.profile.prefs||{}),units:units==="metric"?"metric":"imperial"};await persist();render();toast("Units updated");}
 async function setProfileAudio(v){S.profile.prefs={...(S.profile.prefs||{}),audioCues:!!v};await persist();toast(v?"Audio cues enabled":"Audio cues disabled");}
 async function setProfileAltitude(v){S.profile.prefs={...(S.profile.prefs||{}),altitudeTraining:!!v};await persist();toast(v?"Altitude adjustment enabled — run paces +5%":"Altitude adjustment disabled");}
@@ -5762,8 +5798,8 @@ async function getPdf(n,s){await ensurePdf();if(pdfCache.has(n))return pdfCache.
 // ═══════════════════════════════════════════════════════════
 //  MASTER RENDER
 // ═══════════════════════════════════════════════════════════
-function maybeShowWomenMissWelcome(){
-  if(!useWomenSoftUi()||!S.profile.onboarded)return;
+function maybeShowMissWelcome(){
+  if(!coachedModeOn()||!S.profile.onboarded)return;
   const m=oldestUnresolvedMiss();
   if(!m)return;
   if(document.querySelector(".miss-welcome-overlay")){
@@ -5811,15 +5847,15 @@ function render(){
     const tabChanged=_prevTab!==null&&_prevTab!==tab;
     _prevTab=tab;
     if(tab!==TAB_TRAIN&&powerFocusOn){powerFocusOn=false;document.body.classList.remove("power-focus")}
-    if(tab!==TAB_SOCIAL&&typeof stopSocialSubs==="function")stopSocialSubs();
+    if(!socialViewActive()&&typeof stopSocialSubs==="function")stopSocialSubs();
     let html,bindFn;
     if(tab===TAB_TRAIN){html=`<div class="pane show" id="p-train">${renderTrain()}</div>`;bindFn=bindTrain}
     else if(tab===TAB_PLAN){
-      const planClass=[useWomenSoftUi()?"plan-women-simple":"",planCompactOn()?"plan-compact":""].filter(Boolean).join(" ");
+      const planClass=[coachedModeOn()?"plan-simple":"",planCompactOn()?"plan-compact":""].filter(Boolean).join(" ");
       html=`<div class="pane show ${planClass}" id="p-plan">${renderProgram()}</div>`;
       bindFn=bindProgram;
     }
-    else if(tab===TAB_SOCIAL){html=`<div class="pane show" id="p-social"></div>`;bindFn=bindSocial}
+    else if(tab===TAB_PROGRESS){html=`<div class="pane show" id="p-progress">${renderDash()}</div>`;bindFn=bindDash}
     else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
     if(tabChanged){
       const old=app.firstElementChild;
@@ -5843,7 +5879,7 @@ function render(){
     if(psw&&tab===TAB_PLAN){sessionStorage.removeItem("hw-plan-scroll-wk");requestAnimationFrame(()=>{document.querySelector(`#p-plan .pw-head[data-w="${psw}"]`)?.scrollIntoView({behavior:"smooth",block:"start"})})}
     const hs=sessionStorage.getItem("hw-scroll");if(hs){sessionStorage.removeItem("hw-scroll");scrollToHashAfterRender(hs)}
     if(sessionStorage.getItem("ease-open")==="1"){sessionStorage.removeItem("ease-open");requestAnimationFrame(()=>document.getElementById("train-ease-wiz")?.classList.add("show"))}
-    maybeShowWomenMissWelcome();
+    maybeShowMissWelcome();
     updateGlobalFabVisibility();
   }catch(err){
     const e=document.getElementById("authErr");
@@ -5859,23 +5895,25 @@ function isThemePreviewHost(){
   const h=(location.hostname||"").toLowerCase();
   return h==="localhost"||h==="127.0.0.1"||h==="[::1]";
 }
-/** Local dev only: e.g. http://127.0.0.1:8080/index.html?themePreview=female — previews feminine/masculine styling without Firebase (does not save profile). */
+/** Local dev only: e.g. http://127.0.0.1:8080/index.html?themePreview=coached&accent=ocean — previews UI modes/accents without Firebase (does not save profile). Legacy female/male values map to coached/pro. */
 function tryThemePreviewBoot(){
   if(!isThemePreviewHost())return false;
   const q=new URLSearchParams(location.search);
   const t=(q.get("themePreview")||"").toLowerCase();
   if(!t)return false;
-  const female=t==="female"||t==="feminine"||t==="woman";
-  const male=t==="male"||t==="masculine"||t==="man";
-  if(!female&&!male)return false;
-  S.profile.sex=female?"female":"male";
+  const coached=t==="coached"||t==="female"||t==="feminine"||t==="woman"||t==="simple";
+  const pro=t==="pro"||t==="male"||t==="masculine"||t==="man";
+  if(!coached&&!pro)return false;
   S.profile.onboarded=true;
-  if(female)S.profile.prefs={...(S.profile.prefs||{}),womenSimpleUi:true};
+  const acc=(q.get("accent")||"").toLowerCase();
+  S.profile.prefs={...(S.profile.prefs||{}),uiMode:coached?"coached":"pro",accentTheme:ACCENT_THEMES.includes(acc)?acc:"ember"};
   const auth=document.getElementById("authScreen");if(auth)auth.style.display="none";
   const ob=document.getElementById("obScreen");if(ob)ob.classList.remove("show");
   const nav=document.getElementById("mainNav");if(nav)nav.style.display="";
   const appEl=document.getElementById("app");if(appEl)appEl.style.display="";
   applyVisualTheme(false);
+  const routeTab=tabFromHash();if(routeTab)tab=routeTab;
+  window.addEventListener("hashchange",()=>{const t=tabFromHash();if(t){tab=t;render();}});
   render();
   return true;
 }

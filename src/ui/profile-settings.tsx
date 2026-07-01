@@ -11,13 +11,16 @@ export interface ProfileFormValues {
   bodyFat: string; neck: string; age: string;
   sex: string; lifeStage: string; womenMode: string;
   equipment: string; style: string; units: string; quick: string;
-  light: boolean; oled: boolean; womenSimpleUi: boolean;
+  light: boolean; oled: boolean;
+  uiMode: string; accent: string;
   audioCues: boolean; altitude: boolean; biometric: boolean; shareMaxes: boolean; tabSwipe: boolean;
 }
 
 export interface ProfileSettingsActions {
   save: (form: ProfileFormValues) => void;
   applyAppearance: (light: boolean, oled: boolean) => void; // live, no re-render
+  applyAccent: (accent: string) => void;                    // live, no re-render
+  applyUiMode: (mode: string) => void;                      // re-renders (layout density changes)
   applyUnits: (units: string) => void;                      // re-renders (reconverts)
   setAudioCues: (v: boolean) => void;
   setAltitude: (v: boolean) => void;
@@ -138,6 +141,41 @@ function ProfileSettings(props: ProfileSettingsProps) {
         </div>
       </div>
 
+      <div class="grid2" style="margin-top:14px">
+        <div>
+          <label>Experience mode</label>
+          <select
+            value={f.uiMode}
+            onChange={(e) => {
+              const v = (e.target as HTMLSelectElement).value;
+              set("uiMode", v);
+              a.applyUiMode(v);
+            }}
+          >
+            <option value="coached">Coached — simple &amp; guided</option>
+            <option value="pro">Pro — full data</option>
+          </select>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.45">Coached keeps screens short and plain-language. Pro shows every number. Switch anytime — same program underneath.</p>
+        </div>
+        <div>
+          <label>Accent color</label>
+          <select
+            value={f.accent}
+            onChange={(e) => {
+              const v = (e.target as HTMLSelectElement).value;
+              set("accent", v);
+              a.applyAccent(v);
+            }}
+          >
+            <option value="ember">Ember — warm orange</option>
+            <option value="ocean">Ocean — cool blue</option>
+            <option value="forest">Forest — calm green</option>
+            <option value="violet">Violet — electric purple</option>
+          </select>
+          <p style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.45">Pure color preference — applies instantly.</p>
+        </div>
+      </div>
+
       <Toggle
         id="s-light"
         checked={f.light}
@@ -173,17 +211,6 @@ function ProfileSettings(props: ProfileSettingsProps) {
           <option value="metric">Metric (kg)</option>
         </select>
       </div>
-
-      {props.isFemale ? (
-        <div style="margin-top:8px;padding:10px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)">
-          <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:12px;color:var(--text2);line-height:1.45">
-            <input type="checkbox" style="margin-top:3px;flex-shrink:0" checked={f.womenSimpleUi} onChange={(e) => set("womenSimpleUi", (e.target as HTMLInputElement).checked)} />
-            <span>
-              <b style="color:var(--text)">Simpler layout &amp; colors</b> — Pinterest-style cards on Home, shorter Plan, pastels. How-to videos prefer female coaches. Turn off anytime.
-            </span>
-          </label>
-        </div>
-      ) : null}
 
       <div style="margin-top:8px">
         <label>When time is tight (Train tab)</label>

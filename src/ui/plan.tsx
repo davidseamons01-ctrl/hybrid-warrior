@@ -207,7 +207,7 @@ function PlanView(props: PlanProps) {
         <Html html={props.anchorSummaryHtml} />
 
         {ws ? (
-          <div class="card plan-hide-women" style="margin-bottom:10px;border-left:3px solid var(--mint)">
+          <div class="card plan-hide-simple" style="margin-bottom:10px;border-left:3px solid var(--mint)">
             <div class="card-h"><h2>Women's Program Summary</h2><span class="badge badge-mint">{ws.label}</span></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Baseline: <b style="color:var(--text)">{ws.tier}</b> · Life stage: <b style="color:var(--text)">{ws.life}</b> · Equipment: <b style="color:var(--text)">{ws.eq}</b> · Session style: <b style="color:var(--text)">{ws.style}</b></div>
             <div style="display:grid;gap:4px">{ws.tracks.map((t, i) => <div key={i} style="font-size:11px;color:var(--text2)">• {t}</div>)}</div>
@@ -215,7 +215,7 @@ function PlanView(props: PlanProps) {
           </div>
         ) : null}
 
-        <div class="card plan-hide-women" style="margin-bottom:10px">
+        <div class="card plan-hide-simple" style="margin-bottom:10px">
           <div class="card-h"><h2>Expected Changes Heatmap</h2></div>
           <div class="row" style="gap:14px">
             <div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">{hm.glutes}%</b></div>
@@ -225,7 +225,7 @@ function PlanView(props: PlanProps) {
           </div>
         </div>
 
-        <div class="plan-timeline-wrap plan-hide-women">
+        <div class="plan-timeline-wrap plan-hide-simple">
           <div class="timeline" role="list" aria-label="Training weeks 1 to 13">
             {props.timeline.map((t) => (
               <div
@@ -241,9 +241,9 @@ function PlanView(props: PlanProps) {
           <p class="plan-timeline-hint">Tap a number to expand that week · color = phase (legend below).</p>
         </div>
 
-        <p class="plan-hide-women" style="font-size:11px;color:var(--text3);margin:8px 0 0;line-height:1.45">Weeks are <b style="color:var(--text2)">training weeks</b> ({c.slots} session{c.slotsPlural ? "s" : ""} each, in order from your start date — not Mon–Sun buckets).</p>
+        <p class="plan-hide-simple" style="font-size:11px;color:var(--text3);margin:8px 0 0;line-height:1.45">Weeks are <b style="color:var(--text2)">training weeks</b> ({c.slots} session{c.slotsPlural ? "s" : ""} each, in order from your start date — not Mon–Sun buckets).</p>
 
-        <details class="plan-phase-legend card section plan-hide-women">
+        <details class="plan-phase-legend card section plan-hide-simple">
           <summary class="plan-phase-legend-sum">How phase colors work</summary>
           <p class="plan-phase-legend-note">Weeks <b>4</b> and <b>8</b> are deloads inside Hypertrophy and Strength. Week <b>13</b> is test / consolidation.</p>
           <ul class="plan-phase-legend-list">

@@ -7,11 +7,11 @@ const initial: ProfileFormValues = {
   bench: "225", squat: "315", dead: "405", weight: "185", goalWt: "175", run: "35:00",
   waist: "34", hips: "40", shoulders: "46", bodyFat: "18", neck: "15.5", age: "30",
   sex: "male", lifeStage: "general", womenMode: "auto", equipment: "gym", style: "balanced", units: "imperial", quick: "0",
-  light: false, oled: false, womenSimpleUi: true, audioCues: false, altitude: false, biometric: false, shareMaxes: true, tabSwipe: true,
+  light: false, oled: false, uiMode: "pro", accent: "ember", audioCues: false, altitude: false, biometric: false, shareMaxes: true, tabSwipe: true,
 };
 
 const noopActions: ProfileSettingsActions = {
-  save: () => {}, applyAppearance: () => {}, applyUnits: () => {},
+  save: () => {}, applyAppearance: () => {}, applyAccent: () => {}, applyUiMode: () => {}, applyUnits: () => {},
   setAudioCues: () => {}, setAltitude: () => {}, setBiometric: () => true, resetAdaptation: () => {},
 };
 
@@ -67,6 +67,24 @@ describe("ProfileSettings", () => {
     btn.click();
     expect(save).toHaveBeenCalledTimes(1);
     expect(save.mock.calls[0][0].bench).toBe("235");
+  });
+
+  it("changing experience mode calls applyUiMode immediately", () => {
+    const applyUiMode = vi.fn();
+    const el = mount({ applyUiMode });
+    const sel = [...el.querySelectorAll("select")].find((s) => [...s.options].some((o) => o.value === "coached")) as HTMLSelectElement;
+    sel.value = "coached";
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(applyUiMode).toHaveBeenCalledWith("coached");
+  });
+
+  it("changing accent calls applyAccent immediately", () => {
+    const applyAccent = vi.fn();
+    const el = mount({ applyAccent });
+    const sel = [...el.querySelectorAll("select")].find((s) => [...s.options].some((o) => o.value === "ocean")) as HTMLSelectElement;
+    sel.value = "violet";
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(applyAccent).toHaveBeenCalledWith("violet");
   });
 
   it("reset adaptation button calls resetAdaptation", () => {

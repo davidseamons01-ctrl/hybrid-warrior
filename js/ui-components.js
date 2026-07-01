@@ -682,6 +682,48 @@ function ProfileSettings(props) {
         ] })
       ] })
     ] }),
+    /* @__PURE__ */ u3("div", { class: "grid2", style: "margin-top:14px", children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "Experience mode" }),
+        /* @__PURE__ */ u3(
+          "select",
+          {
+            value: f4.uiMode,
+            onChange: (e3) => {
+              const v3 = e3.target.value;
+              set("uiMode", v3);
+              a3.applyUiMode(v3);
+            },
+            children: [
+              /* @__PURE__ */ u3("option", { value: "coached", children: "Coached \u2014 simple & guided" }),
+              /* @__PURE__ */ u3("option", { value: "pro", children: "Pro \u2014 full data" })
+            ]
+          }
+        ),
+        /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--text3);margin-top:4px;line-height:1.45", children: "Coached keeps screens short and plain-language. Pro shows every number. Switch anytime \u2014 same program underneath." })
+      ] }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("label", { children: "Accent color" }),
+        /* @__PURE__ */ u3(
+          "select",
+          {
+            value: f4.accent,
+            onChange: (e3) => {
+              const v3 = e3.target.value;
+              set("accent", v3);
+              a3.applyAccent(v3);
+            },
+            children: [
+              /* @__PURE__ */ u3("option", { value: "ember", children: "Ember \u2014 warm orange" }),
+              /* @__PURE__ */ u3("option", { value: "ocean", children: "Ocean \u2014 cool blue" }),
+              /* @__PURE__ */ u3("option", { value: "forest", children: "Forest \u2014 calm green" }),
+              /* @__PURE__ */ u3("option", { value: "violet", children: "Violet \u2014 electric purple" })
+            ]
+          }
+        ),
+        /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--text3);margin-top:4px;line-height:1.45", children: "Pure color preference \u2014 applies instantly." })
+      ] })
+    ] }),
     /* @__PURE__ */ u3(
       Toggle,
       {
@@ -726,13 +768,6 @@ function ProfileSettings(props) {
         }
       )
     ] }),
-    props.isFemale ? /* @__PURE__ */ u3("div", { style: "margin-top:8px;padding:10px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border-lit)", children: /* @__PURE__ */ u3("label", { style: "display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:12px;color:var(--text2);line-height:1.45", children: [
-      /* @__PURE__ */ u3("input", { type: "checkbox", style: "margin-top:3px;flex-shrink:0", checked: f4.womenSimpleUi, onChange: (e3) => set("womenSimpleUi", e3.target.checked) }),
-      /* @__PURE__ */ u3("span", { children: [
-        /* @__PURE__ */ u3("b", { style: "color:var(--text)", children: "Simpler layout & colors" }),
-        " \u2014 Pinterest-style cards on Home, shorter Plan, pastels. How-to videos prefer female coaches. Turn off anytime."
-      ] })
-    ] }) }) : null,
     /* @__PURE__ */ u3("div", { style: "margin-top:8px", children: [
       /* @__PURE__ */ u3("label", { children: "When time is tight (Train tab)" }),
       /* @__PURE__ */ u3("select", { value: f4.quick, onChange: (e3) => set("quick", e3.target.value), children: [
@@ -989,7 +1024,7 @@ function PlanView(props) {
         /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-sm", id: "plan-jump-current", onClick: () => a3.jumpCurrent(), children: "Open this week" })
       ] }) }),
       /* @__PURE__ */ u3(Html, { html: props.anchorSummaryHtml }),
-      ws ? /* @__PURE__ */ u3("div", { class: "card plan-hide-women", style: "margin-bottom:10px;border-left:3px solid var(--mint)", children: [
+      ws ? /* @__PURE__ */ u3("div", { class: "card plan-hide-simple", style: "margin-bottom:10px;border-left:3px solid var(--mint)", children: [
         /* @__PURE__ */ u3("div", { class: "card-h", children: [
           /* @__PURE__ */ u3("h2", { children: "Women's Program Summary" }),
           /* @__PURE__ */ u3("span", { class: "badge badge-mint", children: ws.label })
@@ -1013,7 +1048,7 @@ function PlanView(props) {
           ws.fa.join(" \xB7 ")
         ] }) : null
       ] }) : null,
-      /* @__PURE__ */ u3("div", { class: "card plan-hide-women", style: "margin-bottom:10px", children: [
+      /* @__PURE__ */ u3("div", { class: "card plan-hide-simple", style: "margin-bottom:10px", children: [
         /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Expected Changes Heatmap" }) }),
         /* @__PURE__ */ u3("div", { class: "row", style: "gap:14px", children: [
           /* @__PURE__ */ u3("div", { style: "font-size:11px;color:var(--text2)", children: [
@@ -1046,7 +1081,7 @@ function PlanView(props) {
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ u3("div", { class: "plan-timeline-wrap plan-hide-women", children: [
+      /* @__PURE__ */ u3("div", { class: "plan-timeline-wrap plan-hide-simple", children: [
         /* @__PURE__ */ u3("div", { class: "timeline", role: "list", "aria-label": "Training weeks 1 to 13", children: props.timeline.map((t3) => /* @__PURE__ */ u3(
           "div",
           {
@@ -1061,7 +1096,7 @@ function PlanView(props) {
         )) }),
         /* @__PURE__ */ u3("p", { class: "plan-timeline-hint", children: "Tap a number to expand that week \xB7 color = phase (legend below)." })
       ] }),
-      /* @__PURE__ */ u3("p", { class: "plan-hide-women", style: "font-size:11px;color:var(--text3);margin:8px 0 0;line-height:1.45", children: [
+      /* @__PURE__ */ u3("p", { class: "plan-hide-simple", style: "font-size:11px;color:var(--text3);margin:8px 0 0;line-height:1.45", children: [
         "Weeks are ",
         /* @__PURE__ */ u3("b", { style: "color:var(--text2)", children: "training weeks" }),
         " (",
@@ -1070,7 +1105,7 @@ function PlanView(props) {
         c3.slotsPlural ? "s" : "",
         " each, in order from your start date \u2014 not Mon\u2013Sun buckets)."
       ] }),
-      /* @__PURE__ */ u3("details", { class: "plan-phase-legend card section plan-hide-women", children: [
+      /* @__PURE__ */ u3("details", { class: "plan-phase-legend card section plan-hide-simple", children: [
         /* @__PURE__ */ u3("summary", { class: "plan-phase-legend-sum", children: "How phase colors work" }),
         /* @__PURE__ */ u3("p", { class: "plan-phase-legend-note", children: [
           "Weeks ",
