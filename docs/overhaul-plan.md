@@ -107,7 +107,15 @@ never inferred from gender, age, or anything else.
    you" badges, and Adjust week opening the schedule planner in place. The
    13-week block view lives behind a subtab (auto-selected for week deep
    links).
-6. **Cleanup + hardening.** Delete dead legacy paths from `js/ui.js`,
-   accessibility pass, performance pass, PWA polish.
+6. **Cleanup + hardening.** ✅ SHIPPED 2026-07-02 (first pass, from a
+   hands-on mobile audit of every tab/subtab): Today reordered so warm-up +
+   exercises come right after the hero — Workout tools, Music, Bar load
+   helper, Impact map, and Why-this-session collapsed into ONE "Toolbox"
+   fold below the workout (17 → 13 top-level surfaces; workout starts 5th,
+   was 11th). Duplicate "Account & plan" header removed in Settings. Dead
+   code deleted: renderProgram/bindProgram, power-focus-bar/toggle +
+   ghost-mode-toggle CSS. Mobile FABs raised clear of the session footer.
+   Remaining for later passes: legacy CSS pruning at scale, a11y sweep of
+   legacy folds, Classic-dashboard retirement decision.
 
 Each phase ends with: `npm run verify` green, manual preview check, deploy.

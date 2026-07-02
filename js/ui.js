@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hca3c8eec25c1";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=ha58e505e1107";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=hca3c8eec25c1";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard} from "./ui-components.js?v=hca3c8eec25c1";
+} from "./programming.js?v=ha58e505e1107";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard} from "./ui-components.js?v=ha58e505e1107";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4544,6 +4544,11 @@ function renderToday(){
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does catch-up work?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p></details><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">Why am I seeing this?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p></details><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today" style="margin-top:8px">Add to today</button></div>`:""}
+  ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">Posture / prehab add-on</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
+  ${wuBlock}
+  ${plan.quickNote?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Minimum session:</b> first two lifts keep your streak honest. Finisher below is optional — add it if you have bandwidth.</div></div>`:""}
+  <div class="stack">${plan.exs.length?(()=>{const wuSets=generateWarmupSets(plan);const wuHtml=wuSets.length?`<div class="warmup-sets-group"><div class="warmup-sets-label">Warm-up ramp</div>${wuSets.map((wu,wi)=>cardHost(wu,900+wi)).join("")}</div>`:"";return wuHtml+renderExerciseStack(plan.exs)})():`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>${activeRecoveryCardHtml()}`}</div>
+  <details class="card section" id="train-toolbox"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Toolbox <span style="font-size:11px;color:var(--text3);font-weight:400">· tools, music &amp; session info</span></summary><div style="margin-top:10px">
   <div id="train-tools-mount"></div>
   <details class="train-music-player section" id="train-music-player">
     <summary class="train-music-summary"><span class="train-music-icon">♫</span> Workout Music</summary>
@@ -4570,10 +4575,7 @@ function renderToday(){
   </div>
   ${plan.exs.length?`<details class="card section"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Today's impact map <span style="font-size:11px;color:var(--text3);font-weight:400">· tap to view muscles worked</span></summary><div class="fig-wrap" style="margin-top:10px"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div></details>`:""}
   ${meta?`<div class="card section"><button type="button" class="details-toggle" id="why-toggle" style="width:100%;text-align:left">Why this session? (coaching notes)</button><div class="details-panel" id="why-body"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div></div>`:""}
-  ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">Posture / prehab add-on</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
-  ${wuBlock}
-  ${plan.quickNote?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Minimum session:</b> first two lifts keep your streak honest. Finisher below is optional — add it if you have bandwidth.</div></div>`:""}
-  <div class="stack">${plan.exs.length?(()=>{const wuSets=generateWarmupSets(plan);const wuHtml=wuSets.length?`<div class="warmup-sets-group"><div class="warmup-sets-label">Warm-up ramp</div>${wuSets.map((wu,wi)=>cardHost(wu,900+wi)).join("")}</div>`:"";return wuHtml+renderExerciseStack(plan.exs)})():`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>${activeRecoveryCardHtml()}`}</div>
+  </div></details>
   ${skipped.length?`<div class="card section" style="font-size:12px;color:var(--text2)">Skipped today: <b style="color:var(--text)">${skippedLbl||"—"}</b> · <button type="button" class="details-toggle" id="skip-restore">Restore skipped lifts</button></div>`:""}
   ${plan.exs.length?`<div id="session-feel-mount"></div>`:""}
   ${plan.exs.length?`<div class="card section" id="train-ease-panel"><div style="font-size:13px;font-weight:600;margin-bottom:4px">Program feels too heavy?</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Nudge all lift/run adaptation down ~5% and add 5 minutes to your session budget (max 75 min) — right from here, no Settings detour.</p><button type="button" class="btn btn-secondary-solid btn-sm" id="train-ease-toggle">Show ease options</button><div class="ease-wizard" id="train-ease-wiz"><p style="font-size:12px;color:var(--text2);margin-bottom:8px">Targets ease until your logs show you're ahead of prescription again.</p><button type="button" class="btn btn-cta btn-sm" id="train-ease-go">Ease my program</button></div></div>`:""}
@@ -5689,7 +5691,6 @@ function planAnchorSummaryHtml(short){
   return`<details class="plan-intro-fold card section"><summary class="plan-intro-sum">How this block lines up on your calendar</summary><div class="plan-intro-body">${longInner}</div></details>`;
 }
 // ── Plan tab (13-week block): Preact component (UI rebuild #3) ──
-function renderProgram(){return`<div id="plan-mount"></div>`;}
 // ── Plan tab (overhaul phase 5): this-week-first; 13-week block one tap away ──
 let planSub="week";
 function wk7DaysHtml(){
@@ -5754,7 +5755,6 @@ function buildPlanProps(){
   return{compact,womenSimple:wSimple,toggleLabel,context:{week:cur,phaseName:phaseName(cur),slots,slotsPlural:slots!==1},heatmap:weeklyExpectedChanges(),women:womenProgramSummary(),anchorSummaryHtml:planAnchorSummaryHtml(wSimple),nextDotsHtml:nextTrainingDotsHtml(8),timeline,weeks,actions:{toggleCompact:planToggleCompact,jumpCurrent:planJumpCurrent,selectWeek:planSelectWeek,toggleWeek:planToggleWeek,reorder:planReorderExercise}};
 }
 function mountPlanTab(){const c=document.getElementById("plan-mount");if(c)mountPlan(c,buildPlanProps());}
-function bindProgram(){mountPlanTab();}
 function planToggleCompact(){
   if(useWomenSoftUi()){const on=sessionStorage.getItem("hw-plan-compact")!=="0";sessionStorage.setItem("hw-plan-compact",on?"0":"1");}
   else sessionStorage.setItem("hw-plan-compact",sessionStorage.getItem("hw-plan-compact")==="1"?"0":"1");
@@ -5804,7 +5804,7 @@ function renderSettings(){
   <details class="settings-fold settings-section" data-k="account email firebase sign plan switch onboard offline sync program start date calendar block parked trial onboarding wizard resume">
     <summary>Account &amp; plan</summary>
     <div class="settings-fold-body"><div class="grid2 section" style="margin-bottom:0">
-    <div class="card settings-section" data-k="account email firebase sign plan switch onboard offline sync program start date calendar block" id="settings-account"><div class="card-h"><h2>Account & plan</h2></div>
+    <div class="card settings-section" data-k="account email firebase sign plan switch onboard offline sync program start date calendar block" id="settings-account">
       ${currentUser?`<div style="font-size:13px;font-weight:700;margin-bottom:4px">${currentUser.email}</div><div style="font-size:10px;color:var(--mint);margin-bottom:10px">Syncing to cloud</div><button class="btn btn-ghost btn-block" id="s-signout">Sign Out</button>`:`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">${offlineMode?"Offline mode":"Not connected"}</div>`}
       <div style="margin-top:12px"><label>Program start date</label><input type="date" id="s-pstart" value="${(S.program&&S.program.start)||iso()}"></div>
       <details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does the start date work?</summary><p style="font-size:10px;color:var(--text3);margin:6px 0 0;line-height:1.45">Session 1 = first allowed train day on or after this date (then your template continues in weekday order).</p></details>
@@ -6614,4 +6614,4 @@ function mkDay(slot,w){
   return out;
 }
 
-export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderProgram, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, buildTrainingHeatmapProps, buildAchievementsProps, buildBodyMetricsProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
+export { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS, DEF, S, currentUser, persist, load, save, initFB, cloudPush, mkDay, todayPlanFiltered, applyLog, applyDayAdaptation, rollingPlanForDate, render, renderDash, renderToday, renderSettings, buildPlanProps, buildExerciseCardProps, buildSessionSummaryProps, buildPersonalRecordsProps, buildStrengthProgressProps, buildTrainingHeatmapProps, buildAchievementsProps, buildBodyMetricsProps, bindDash, bindToday, bindAuthUI, recordLoggedSet, tombstoneLogs, reprojectLogs };
