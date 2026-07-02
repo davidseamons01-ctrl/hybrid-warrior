@@ -1471,6 +1471,209 @@ function mountFocusShell(container, props) {
   R(/* @__PURE__ */ u3(FocusShell, { ...props }), container);
 }
 
+// src/ui/session-player.tsx
+function fmtClock(sec) {
+  const s3 = Math.max(0, Math.round(sec));
+  return `${Math.floor(s3 / 60)}:${String(s3 % 60).padStart(2, "0")}`;
+}
+var FEELS = [
+  ["easy", "Too easy", "Easy"],
+  ["ok", "Just right", "Solid"],
+  ["hard", "Too hard", "Grind"]
+];
+function SessionPlayer(p3) {
+  const a3 = p3.actions;
+  const exs = p3.exercises;
+  const firstOpen = Math.max(0, exs.findIndex((e3) => e3.doneSets < e3.sets));
+  const [idx, setIdx] = d2(firstOpen);
+  const [done, setDone] = d2(() => exs.map((e3) => e3.doneSets));
+  const [wLb, setWLb] = d2(() => exs.map((e3) => e3.weightLb));
+  const [reps, setReps] = d2(() => exs.map((e3) => e3.reps));
+  const [feel, setFeel] = d2("ok");
+  const [phase, setPhase] = d2(exs.every((e3) => e3.doneSets >= e3.sets) ? "done" : "lift");
+  const [restLeft, setRestLeft] = d2(0);
+  const [restTotal, setRestTotal] = d2(1);
+  const [restNext, setRestNext] = d2("");
+  const [prFlash, setPrFlash] = d2(false);
+  const [busy, setBusy] = d2(false);
+  const restUntil = A2(0);
+  const startTs = A2(Date.now());
+  const ex = exs[idx];
+  const totalSets = exs.reduce((t3, e3) => t3 + e3.sets, 0);
+  const doneTotal = done.reduce((t3, d3, i4) => t3 + Math.min(d3, exs[i4].sets), 0);
+  const pct = totalSets ? Math.round(100 * doneTotal / totalSets) : 0;
+  y2(() => {
+    if (phase !== "rest") return;
+    const t3 = setInterval(() => {
+      const left = (restUntil.current - Date.now()) / 1e3;
+      if (left <= 0) {
+        clearInterval(t3);
+        setPhase("lift");
+        try {
+          if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+        } catch {
+        }
+      } else setRestLeft(left);
+    }, 200);
+    return () => clearInterval(t3);
+  }, [phase]);
+  const nextIncomplete = (from, doneArr) => {
+    for (let k3 = 0; k3 < exs.length; k3++) {
+      const i4 = (from + k3) % exs.length;
+      if (doneArr[i4] < exs[i4].sets) return i4;
+    }
+    return null;
+  };
+  const startRest = (sec, label) => {
+    restUntil.current = Date.now() + Math.max(5, sec) * 1e3;
+    setRestTotal(Math.max(5, sec));
+    setRestLeft(Math.max(5, sec));
+    setRestNext(label);
+    setPhase("rest");
+  };
+  const adj = (kind, dir) => {
+    if (kind === "w") setWLb((arr) => arr.map((v3, i4) => i4 === idx ? Math.max(0, v3 + dir * ex.stepLb) : v3));
+    else setReps((arr) => arr.map((v3, i4) => i4 === idx ? Math.max(1, v3 + dir) : v3));
+  };
+  const logCurrent = async () => {
+    if (busy) return;
+    setBusy(true);
+    const r3 = await a3.logSet(idx, { reps: reps[idx], weightLb: wLb[idx], outcome: feel });
+    setBusy(false);
+    if (!r3.ok) return;
+    if (r3.isPR) {
+      setPrFlash(true);
+      setTimeout(() => setPrFlash(false), 2200);
+    }
+    const nd = done.slice();
+    nd[idx] = nd[idx] + 1;
+    setDone(nd);
+    setFeel("ok");
+    if (nd[idx] >= ex.sets) {
+      const n2 = nextIncomplete(idx + 1, nd);
+      if (n2 == null) {
+        setPhase("done");
+        return;
+      }
+      setIdx(n2);
+      startRest(ex.restSec, `Next up: ${exs[n2].name}`);
+    } else {
+      startRest(ex.restSec, `Next: set ${nd[idx] + 1} of ${ex.sets} \u2014 ${ex.name}`);
+    }
+  };
+  const skipExercise = () => {
+    const n2 = nextIncomplete(idx + 1, done);
+    if (n2 == null || n2 === idx) {
+      setPhase("done");
+      return;
+    }
+    setIdx(n2);
+    setPhase("lift");
+  };
+  const elapsed = fmtClock((Date.now() - startTs.current) / 1e3);
+  const repLab = ex ? ex.runTempo ? "min" : ex.isRun ? "intervals" : "reps" : "reps";
+  const R2 = 84, CIRC = 2 * Math.PI * R2;
+  return /* @__PURE__ */ u3("div", { class: "sp-overlay", role: "dialog", "aria-modal": "true", "aria-label": "Workout session", children: [
+    /* @__PURE__ */ u3("div", { class: "sp-top", children: [
+      /* @__PURE__ */ u3("button", { type: "button", class: "sp-close", "aria-label": "Exit session", onClick: () => a3.exit(), children: "\xD7" }),
+      /* @__PURE__ */ u3("div", { class: "sp-top-mid", children: [
+        /* @__PURE__ */ u3("div", { class: "sp-top-title", children: p3.title }),
+        /* @__PURE__ */ u3("div", { class: "sp-top-sub", children: [
+          doneTotal,
+          " of ",
+          totalSets,
+          " sets \xB7 ",
+          exs.length,
+          " exercise",
+          exs.length !== 1 ? "s" : ""
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "sp-top-count", children: [
+        Math.min(idx + 1, exs.length),
+        "/",
+        exs.length
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "sp-progress", children: /* @__PURE__ */ u3("div", { class: "sp-progress-fill", style: `width:${pct}%` }) }),
+    phase === "lift" && ex ? /* @__PURE__ */ u3("div", { class: "sp-main", children: [
+      /* @__PURE__ */ u3("div", { class: "sp-kicker", children: [
+        "Set ",
+        Math.min(done[idx] + 1, ex.sets),
+        " of ",
+        ex.sets
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "sp-exname", children: ex.name }),
+      p3.coached ? ex.cue ? /* @__PURE__ */ u3("p", { class: "sp-cue", children: ex.cue }) : null : /* @__PURE__ */ u3("p", { class: "sp-rx", children: [
+        ex.rx,
+        ex.restSec ? ` \xB7 rest ${fmtClock(ex.restSec)}` : ""
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "sp-adjust-row", children: [
+        /* @__PURE__ */ u3("div", { class: "sp-adjust", children: [
+          /* @__PURE__ */ u3("button", { type: "button", class: "sp-step", "aria-label": "Decrease load", onClick: () => adj("w", -1), children: "\u2212" }),
+          /* @__PURE__ */ u3("div", { class: "sp-adjust-val", children: [
+            /* @__PURE__ */ u3("b", { children: p3.formatW(wLb[idx], ex.isRun) }),
+            /* @__PURE__ */ u3("span", { children: ex.isRun ? "pace" : "load" })
+          ] }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "sp-step", "aria-label": "Increase load", onClick: () => adj("w", 1), children: "+" })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "sp-adjust", children: [
+          /* @__PURE__ */ u3("button", { type: "button", class: "sp-step", "aria-label": "Decrease reps", onClick: () => adj("r", -1), children: "\u2212" }),
+          /* @__PURE__ */ u3("div", { class: "sp-adjust-val", children: [
+            /* @__PURE__ */ u3("b", { children: reps[idx] }),
+            /* @__PURE__ */ u3("span", { children: repLab })
+          ] }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "sp-step", "aria-label": "Increase reps", onClick: () => adj("r", 1), children: "+" })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "sp-feel-row", role: "radiogroup", "aria-label": "How did that feel", children: FEELS.map(([v3, coachedLbl, proLbl]) => /* @__PURE__ */ u3("button", { type: "button", role: "radio", "aria-checked": feel === v3, class: `sp-feel ${feel === v3 ? "on" : ""}`, onClick: () => setFeel(v3), children: p3.coached ? coachedLbl : proLbl }, v3)) }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "sp-log", onClick: logCurrent, disabled: busy, children: busy ? "Saving\u2026" : "Log set" }),
+      prFlash ? /* @__PURE__ */ u3("div", { class: "sp-pr", role: "status", children: "\u{1F3C6} New record!" }) : null,
+      /* @__PURE__ */ u3("div", { class: "sp-secondary-row", children: /* @__PURE__ */ u3("button", { type: "button", class: "sp-ghost-btn", onClick: skipExercise, children: "Skip exercise" }) })
+    ] }) : null,
+    phase === "rest" ? /* @__PURE__ */ u3("div", { class: "sp-main sp-rest", "aria-live": "polite", children: [
+      /* @__PURE__ */ u3("div", { class: "sp-kicker", children: "Rest" }),
+      /* @__PURE__ */ u3("div", { class: "sp-ring-wrap", children: [
+        /* @__PURE__ */ u3("svg", { class: "sp-ring", viewBox: "0 0 200 200", "aria-hidden": "true", children: [
+          /* @__PURE__ */ u3("circle", { cx: "100", cy: "100", r: R2, class: "sp-ring-track" }),
+          /* @__PURE__ */ u3("circle", { cx: "100", cy: "100", r: R2, class: "sp-ring-fill", style: `stroke-dasharray:${CIRC};stroke-dashoffset:${CIRC * (1 - restLeft / restTotal)}` })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "sp-ring-time", children: fmtClock(restLeft) })
+      ] }),
+      /* @__PURE__ */ u3("p", { class: "sp-rest-next", children: restNext }),
+      /* @__PURE__ */ u3("div", { class: "sp-rest-actions", children: [
+        /* @__PURE__ */ u3("button", { type: "button", class: "sp-ghost-btn", onClick: () => {
+          restUntil.current += 3e4;
+          setRestTotal((t3) => t3 + 30);
+        }, children: "+30s" }),
+        /* @__PURE__ */ u3("button", { type: "button", class: "sp-log sp-log-sm", onClick: () => {
+          setPhase("lift");
+        }, children: "Skip rest" })
+      ] })
+    ] }) : null,
+    phase === "done" ? /* @__PURE__ */ u3("div", { class: "sp-main sp-done", children: [
+      /* @__PURE__ */ u3("div", { class: "sp-done-check", "aria-hidden": "true", children: "\u2713" }),
+      /* @__PURE__ */ u3("div", { class: "sp-exname", children: "Session complete" }),
+      /* @__PURE__ */ u3("p", { class: "sp-done-stats", children: [
+        doneTotal,
+        " set",
+        doneTotal !== 1 ? "s" : "",
+        " logged \xB7 ",
+        elapsed,
+        " elapsed"
+      ] }),
+      /* @__PURE__ */ u3("p", { class: "sp-cue", children: p3.coached ? "Great work. Finishing updates tomorrow's targets from what you just did." : "Finalize to run day adaptation on today's log." }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "sp-log", onClick: () => a3.finish(), children: "Finish session" }),
+      /* @__PURE__ */ u3("div", { class: "sp-secondary-row", children: /* @__PURE__ */ u3("button", { type: "button", class: "sp-ghost-btn", onClick: () => a3.exit(), children: "Back to Today" }) })
+    ] }) : null
+  ] });
+}
+function mountSessionPlayer(container, props) {
+  R(/* @__PURE__ */ u3(SessionPlayer, { ...props }), container);
+}
+function unmountSessionPlayer(container) {
+  R(null, container);
+}
+
 // src/ui/session-summary.tsx
 function SessionSummary(p3) {
   return /* @__PURE__ */ u3("div", { class: "ss-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "ss-title", onClick: (e3) => {
@@ -2878,6 +3081,7 @@ export {
   ReadinessCard,
   SchedulePlanner,
   SessionFeelCard,
+  SessionPlayer,
   SessionSummary,
   SharedBlockProposal,
   SocialView,
@@ -2900,11 +3104,13 @@ export {
   mountReadinessCard,
   mountSchedulePlanner,
   mountSessionFeelCard,
+  mountSessionPlayer,
   mountSessionSummary,
   mountSharedBlockProposal,
   mountSocial,
   mountStrengthProgress,
   mountTrainingHeatmap,
   mountWarmupChecklist,
-  mountWorkoutToolsCard
+  mountWorkoutToolsCard,
+  unmountSessionPlayer
 };

@@ -84,9 +84,13 @@ never inferred from gender, age, or anything else.
    `variant` flag; sculpt emphasis now follows chosen goals (scorer's sex
    check is only a back-compat tiebreak). Today screen got its hero card +
    quick-action chips + extras drawer (pulled forward from phase 3).
-3. **Today + session player.** Hero card ✅ (phase 2). Remaining:
-   full-screen exercise-at-a-time player polish; Coached/Pro logging
-   (tap-to-confirm vs set-by-set grid); rest timer integration.
+3. **Today + session player.** ✅ SHIPPED 2026-07-02. Hero card (phase 2) +
+   full-screen Session Player (`src/ui/session-player.tsx`): one exercise at
+   a time in display type, ± steppers, feel chips (coached wording vs pro),
+   one-tap "Log set" through the event-sourced `playerLogSet` core, animated
+   rest countdown ring with +30s/skip, auto-advance, finish screen →
+   `finalizeSession` (extracted) → day adaptation + session summary. Old
+   focus-mode carousel kept as fallback behind the Focus chip.
 4. **Coach layer.** Unified adaptation engine surface: pre-session readiness,
    post-session review, weekly recap, goal forecasting, "why" everywhere.
 5. **Progress + Plan.** Progress tab (streak/level for motivation; e1RM,

@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h305f0e6648ef";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hd39d78f44468";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h305f0e6648ef";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=h305f0e6648ef";
+} from "./programming.js?v=hd39d78f44468";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer} from "./ui-components.js?v=hd39d78f44468";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4788,6 +4788,81 @@ function toolsOpenEase(){document.getElementById("train-ease-panel")?.scrollInto
 function toolsCaffeineToggle(btn){if(caffeineTimerId){stopCaffeineTimer();const lbl=document.getElementById("caffeine-time");if(lbl){lbl.textContent="";lbl.style.color=""}btn.textContent="☕ Pre-workout (45 min)";toast("Caffeine timer cancelled")}else{startCaffeineTimer();btn.textContent="Cancel timer";toast("Pre-workout timer started — 45 min to peak caffeine")}}
 const workoutToolsActions={eqToggle:toolsEqToggle,quickToggle:toolsQuickToggle,openPlates:toolsOpenPlates,openHealth:toolsOpenHealth,openEase:toolsOpenEase,caffeineToggle:toolsCaffeineToggle};
 function mountWorkoutTools(){const c=document.getElementById("train-tools-mount");if(!c)return;const eqHome=((S.profile.prefs||{}).equipment||"gym")==="home";const qmOn=(Number((S.profile.prefs||{}).quickSessionMin)||0)>0;mountWorkoutToolsCard(c,{eqHome,qmOn,actions:workoutToolsActions});if(caffeineTimerId&&caffeineEndMs>Date.now()){const lbl=document.getElementById("caffeine-time");if(lbl){const left=caffeineEndMs-Date.now();const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);lbl.textContent=`☕ Peak in ${m}:${String(s).padStart(2,"0")}`;lbl.style.color="var(--gold)"}const b=document.getElementById("caffeine-start");if(b)b.textContent="Cancel timer";}}
+async function finalizeSession(day){
+  if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};
+  if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return false}
+  const snapAdapt=JSON.parse(JSON.stringify(S.adapt));const snapProfile=JSON.parse(JSON.stringify(S.profile));const snapAdapted=JSON.parse(JSON.stringify(S.sessionAdaptedByDate));
+  triggerHaptic("success");
+  const n=applyDayAdaptation(day);
+  S.sessionAdaptedByDate[day]=true;
+  celebrateFinish();save();render();showSessionSummary(day);
+  toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.",{undo:async()=>{S.adapt=snapAdapt;S.profile=snapProfile;S.sessionAdaptedByDate=snapAdapted;await persist();render()},duration:5000});
+  await persist();
+  return true;
+}
+// ── Session Player (overhaul phase 3): full-screen one-exercise-at-a-time flow ──
+let sessionPlayerHost=null;
+/** Event-sourced single-set log with explicit values (no DOM reads) — the
+    player's logging path. Mirrors logSingleSetForExercise semantics. */
+async function playerLogSet(i,data){
+  const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return{ok:false};
+  const e=exById(ex.eid);const name=e?e.name:ex.eid;const dayIso=activeTrainIso();
+  const existing=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===name).length;
+  const maxSets=Math.max(1,Number(ex.sets)||1);
+  if(existing>=maxSets)return{ok:false};
+  const aR=Number(data.reps)||0;const aW=Math.max(0,Number(data.weightLb)||0);
+  if(aR<=0)return{ok:false};
+  const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));
+  const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);
+  const out=data.outcome==="easy"||data.outcome==="hard"?data.outcome:"ok";
+  const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:1,aR,aW,outcome:out,score:1};
+  log.score=calcLogScore(log);
+  const prev=S.logs.slice();
+  recordLoggedSet(log);
+  S.lastLiftByEid[ex.eid]=aW;
+  if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];
+  resolveCatchUpQueueAfterLog(dayIso);
+  await persist();
+  const isPR=!isRunExerciseName(name)&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);
+  triggerHaptic(isPR?"pr":"tick");
+  return{ok:true,isPR};
+}
+function buildSessionPlayerProps(){
+  const plan=todayPlanFiltered();const dayIso=activeTrainIso();
+  const exercises=plan.exs.map(ex=>{
+    const e=exById(ex.eid);const name=e?e.name:ex.eid;
+    const run=isRunExerciseName(name);
+    const doneSets=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===name).length;
+    const lastW=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?Number(S.lastLiftByEid[ex.eid]):(Number(ex.target)||0);
+    return{eid:ex.eid,name,sets:Math.max(1,Number(ex.sets)||1),reps:Number(ex.reps)||(run?20:8),weightLb:lastW,stepLb:run?5:Math.max(1,Number(e&&e.increment)||5),restSec:e&&e.rest?parseRestSec(e.rest):90,isRun:run,runTempo:run&&isRunTempoStyle(ex),doneSets,cue:(e&&e.howTo&&e.howTo[0])?String(e.howTo[0]).slice(0,120):"",rx:formatPrescribedRx(ex)};
+  });
+  return{
+    title:(plan.focus||"Session").replace(" (DELOAD)",""),
+    coached:coachedModeOn(),
+    exercises,
+    formatW:(lb,isRun)=>isRun?(paceSecPerMiDisplay(lb)+"/mi"):formatLoadLbText(lb),
+    actions:{logSet:playerLogSet,finish:playerFinish,exit:()=>closeSessionPlayer(true)}
+  };
+}
+function openSessionPlayer(){
+  const plan=todayPlanFiltered();
+  if(!plan.exs.length){toast("Nothing scheduled today — recovery counts.");return}
+  ensureWorkoutWakeLock();
+  stopRestTimer();
+  if(!sessionPlayerHost){sessionPlayerHost=document.createElement("div");sessionPlayerHost.id="session-player-host";document.body.appendChild(sessionPlayerHost)}
+  document.body.classList.add("player-open");
+  mountSessionPlayer(sessionPlayerHost,buildSessionPlayerProps());
+}
+function closeSessionPlayer(rerender){
+  if(sessionPlayerHost){try{unmountSessionPlayer(sessionPlayerHost)}catch(e){}sessionPlayerHost.remove();sessionPlayerHost=null}
+  document.body.classList.remove("player-open");
+  if(rerender)render();
+}
+async function playerFinish(){
+  const day=activeTrainIso();
+  closeSessionPlayer(false);
+  await finalizeSession(day);
+}
 // ── Focus-mode shell (UI rebuild #4e): actions + mount with host-unwrap ──
 function focusExit(){trainFocusIdx=null;render();}
 function focusPrev(){if(trainFocusIdx>0){trainFocusIdx--;render();}}
@@ -5301,7 +5376,7 @@ function bindToday(){
   const gmb=document.getElementById("ghost-mode-btn");
   if(gmb)gmb.onclick=()=>{ghostModeOn=!ghostModeOn;gmb.classList.toggle("on",ghostModeOn);gmb.innerHTML=`👻 ${ghostModeOn?"Ghost On":"Ghost"}`;triggerHaptic("light");render()}
   const tbs=document.getElementById("train-begin-session");
-  if(tbs)tbs.onclick=()=>{trainFocusIdx=0;render()};
+  if(tbs)tbs.onclick=()=>openSessionPlayer();
   const wt=document.getElementById("why-toggle"),wb=document.getElementById("why-body");
   if(wt&&wb)wt.onclick=()=>{wb.classList.toggle("open");wt.textContent=wb.classList.contains("open")?"Why this session? (hide)":"Why this session? (coaching notes)"};
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
@@ -5338,7 +5413,7 @@ function bindToday(){
     S.schedule.sessionMin=Math.min(75,(Number(S.schedule.sessionMin)||45)+5);
     await persist();render();toast("Program eased — check updated targets on your next session.",{undo:()=>{S.adapt=snapA;S.schedule.sessionMin=snapM;persist();render()}});
   };
-  document.querySelectorAll(".session-finalize-sync").forEach(sfz=>{sfz.onclick=async()=>{const day=activeTrainIso();if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return}const snapAdapt=JSON.parse(JSON.stringify(S.adapt));const snapProfile=JSON.parse(JSON.stringify(S.profile));const snapAdapted=JSON.parse(JSON.stringify(S.sessionAdaptedByDate));triggerHaptic("success");const n=applyDayAdaptation(day);S.sessionAdaptedByDate[day]=true;celebrateFinish();save();render();showSessionSummary(day);toast(n?"Session finalized — tomorrow's loads are updated.":"Session finalized.",{undo:async()=>{S.adapt=snapAdapt;S.profile=snapProfile;S.sessionAdaptedByDate=snapAdapted;await persist();render()},duration:5000});await persist()}});
+  document.querySelectorAll(".session-finalize-sync").forEach(sfz=>{sfz.onclick=()=>finalizeSession(activeTrainIso())});
   const sr=document.getElementById("skip-restore");if(sr)sr.onclick=async()=>{const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate||{})),day=activeTrainIso();if(S.skippedEidsByDate)delete S.skippedEidsByDate[day];await persist();toast("Restored today's lifts",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()};
   document.querySelectorAll(".ex-quick-video-toggle").forEach(btn=>{btn.onclick=()=>{const i=btn.dataset.i;const p=document.getElementById("exq-"+i);if(!p)return;const show=p.hidden;p.hidden=!show;btn.setAttribute("aria-expanded",show?"true":"false");btn.textContent=show?"Hide quick video":"Show quick video"}});
   document.querySelectorAll(".lite-video").forEach(wrap=>{
