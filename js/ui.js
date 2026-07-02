@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=ha58e505e1107";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h79f7d82d9f41";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=ha58e505e1107";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard} from "./ui-components.js?v=ha58e505e1107";
+} from "./programming.js?v=h79f7d82d9f41";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h79f7d82d9f41";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4790,6 +4790,21 @@ function toolsOpenEase(){document.getElementById("train-ease-panel")?.scrollInto
 function toolsCaffeineToggle(btn){if(caffeineTimerId){stopCaffeineTimer();const lbl=document.getElementById("caffeine-time");if(lbl){lbl.textContent="";lbl.style.color=""}btn.textContent="☕ Pre-workout (45 min)";toast("Caffeine timer cancelled")}else{startCaffeineTimer();btn.textContent="Cancel timer";toast("Pre-workout timer started — 45 min to peak caffeine")}}
 const workoutToolsActions={eqToggle:toolsEqToggle,quickToggle:toolsQuickToggle,openPlates:toolsOpenPlates,openHealth:toolsOpenHealth,openEase:toolsOpenEase,caffeineToggle:toolsCaffeineToggle};
 function mountWorkoutTools(){const c=document.getElementById("train-tools-mount");if(!c)return;const eqHome=((S.profile.prefs||{}).equipment||"gym")==="home";const qmOn=(Number((S.profile.prefs||{}).quickSessionMin)||0)>0;mountWorkoutToolsCard(c,{eqHome,qmOn,actions:workoutToolsActions});if(caffeineTimerId&&caffeineEndMs>Date.now()){const lbl=document.getElementById("caffeine-time");if(lbl){const left=caffeineEndMs-Date.now();const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);lbl.textContent=`☕ Peak in ${m}:${String(s).padStart(2,"0")}`;lbl.style.color="var(--gold)"}const b=document.getElementById("caffeine-start");if(b)b.textContent="Cancel timer";}}
+// ── Max calibration (post-phase-6): one submax set replaces a bodyweight estimate ──
+function openMaxCalibration(liftId){
+  const map={bench:"bench1RM",squat:"squat1RM",deadlift:"dead1RM"};
+  const key=map[liftId];if(!key)return;
+  const e=exById(liftId);const name=e?e.name:liftId;
+  const host=document.createElement("div");host.className="sp-host";document.body.appendChild(host);
+  const close=()=>{try{host.remove()}catch(e2){}};
+  mountCalibrationSheet(host,{liftName:name,unit:massUnitLabel(),onCancel:close,
+    onSubmit:async(max)=>{
+      const lb=Math.round(massFieldToLb(String(max)))||0;
+      if(lb>0)S.profile[key]=lb;
+      await persist();close();render();
+      toast(`${name} max set to ${formatLoadLbText(lb)} — targets recalculated.`);
+    }});
+}
 // ── Coach layer (overhaul phase 4): engine signals → one visible voice ──
 function coachInsights(){
   const ins=[];
@@ -4798,6 +4813,24 @@ function coachInsights(){
   const loggedToday=(S.logs||[]).some(l=>l.date===dayIso);
   if(trainsToday&&!loggedToday&&plan.exs.length)ins.push({k:"today",tone:"push",title:`Today: ${(plan.focus||"session").replace(" (DELOAD)","")}`,body:`${plan.exs.length} exercise${plan.exs.length!==1?"s":""} · ~${S.schedule.sessionMin||45} min. One tap to start.`,why:"It's a scheduled training day and nothing is logged yet.",action:{label:"Start now",hash:"#"+TAB_TRAIN}});
   else if(trainsToday&&loggedToday)ins.push({k:"done",tone:"win",title:"Today's session is in the books",body:"Logged and counted toward your streak.",why:"At least one set is logged for today."});
+  try{
+    const dAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return isoFromDate(d)};
+    const seg=(a,b)=>(S.logs||[]).filter(l=>l.date>=a&&l.date<=b);
+    const cur=seg(dAgo(6),iso()),prev=seg(dAgo(13),dAgo(7));
+    const volOf=ls=>ls.reduce((t,l)=>isRunExerciseName(l.exercise)?t:t+(Number(l.aS)||1)*(Number(l.aR)||0)*(Number(l.aW)||0),0);
+    const cs=new Set(cur.map(l=>l.date)).size,ps=new Set(prev.map(l=>l.date)).size;
+    const cv=volOf(cur),pv=volOf(prev);
+    if(ps>0&&cs>0&&pv>0){
+      const dpct=Math.round((cv-pv)/pv*100);
+      ins.push({k:"recap",tone:dpct>=0?"win":"info",title:`Week in review: ${cs} session${cs!==1?"s":""} · volume ${dpct>=0?"up":"down"} ${Math.abs(dpct)}%`,body:coachedModeOn()?(dpct>=0?"More total work than the week before — that's how progress compounds.":"A lighter week — sometimes that's exactly right. The plan adjusts either way."):`${Math.round(loadInputDisplayFromLb(cv)).toLocaleString()} ${massUnitLabel()} vs ${Math.round(loadInputDisplayFromLb(pv)).toLocaleString()} prior · ${cs} vs ${ps} sessions.`,why:"Total lift volume (sets × reps × load) over the last 7 days, compared with the 7 days before that."});
+    }
+  }catch(eR){}
+  for(const [cid,clbl] of [["bench","bench"],["squat","squat"],["deadlift","deadlift"]]){
+    const ce=exById(cid);if(!ce)continue;
+    if((S.logs||[]).some(l=>l.exercise===ce.name))continue;
+    ins.push({k:"cal-"+cid,tone:"info",title:`Dial in your ${clbl} starting weight`,body:coachedModeOn()?"One comfortable set — no maxing out needed. Takes 30 seconds.":"No logged sets for this lift, so its 1RM is a bodyweight estimate. One submax set calibrates it (Epley).",why:"You haven't logged this lift yet — its target weights come from a bodyweight estimate, not your actual strength.",action:{label:"Calibrate",hash:"cal:"+cid}});
+    break;
+  }
   const w=S.program.week;
   if(isDeloadWeek(w))ins.push({k:"deload",tone:"info",title:`Deload week ${w} — lighter on purpose`,body:coachedModeOn()?"Easy weeks are where the strength actually shows up.":"Volume cut this week so adaptations consolidate before the next build.",why:"Weeks 4 and 8 of the block reduce volume deliberately."});
   for(const [id,label] of [["bench","Bench"],["squat","Squat"],["deadlift","Deadlift"]]){
@@ -4841,7 +4874,7 @@ function buildCoachProps(){
     sub:coachedModeOn()?`Week ${w} of 13 · ${days.size} of ${sched} sessions this week`:`Week ${w}/13 · ${phaseName(w)} · ${days.size}/${sched} sessions (7d)`,
     insights:coachInsights(),
     coached:coachedModeOn(),
-    onAction:h=>{location.hash=h}
+    onAction:h=>{if(h.indexOf("cal:")===0){openMaxCalibration(h.slice(4));return}location.hash=h}
   };
 }
 // ── Progress tab (overhaul phase 4): Coach + clean analytics; legacy dash = Classic ──
