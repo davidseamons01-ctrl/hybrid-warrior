@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Hybrid Training PWA — typed @core engine + vanilla PWA shell (overhaul in progress).",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
