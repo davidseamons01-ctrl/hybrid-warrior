@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h3192390fd83f";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hca3c8eec25c1";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h3192390fd83f";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard} from "./ui-components.js?v=h3192390fd83f";
+} from "./programming.js?v=hca3c8eec25c1";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard} from "./ui-components.js?v=hca3c8eec25c1";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -5690,6 +5690,43 @@ function planAnchorSummaryHtml(short){
 }
 // ── Plan tab (13-week block): Preact component (UI rebuild #3) ──
 function renderProgram(){return`<div id="plan-mount"></div>`;}
+// ── Plan tab (overhaul phase 5): this-week-first; 13-week block one tap away ──
+let planSub="week";
+function wk7DaysHtml(){
+  const rows=[];const today=iso();
+  for(let d=0;d<7;d++){
+    const dt=new Date();dt.setDate(dt.getDate()+d);const dIso=isoFromDate(dt);
+    let p=null;try{p=rollingPlanForDate(dIso)}catch(e){}
+    const has=!!(p&&p.exs&&p.exs.length);
+    const logged=(S.logs||[]).some(l=>l.date===dIso);
+    const focus=has?(p.focus||"Session").replace(" (DELOAD)","").split("·")[0].trim():"Rest day";
+    const isToday=dIso===today;
+    rows.push(`<div class="wk7-day ${isToday?"wk7-today":""} ${has?"":"wk7-rest"}">
+      <div class="wk7-left"><span class="wk7-dow">${DAYS[dt.getDay()].slice(0,3)}</span><span class="wk7-date">${dt.getDate()}</span></div>
+      <div class="wk7-main"><span class="wk7-focus">${focus}</span><span class="wk7-meta">${[isToday?"Today":"",has&&!coachedModeOn()?`${p.exs.length} exercises · ~${S.schedule.sessionMin||45} min`:"",p&&p._rescheduled?"moved by you":""].filter(Boolean).join(" · ")}</span></div>
+      <div class="wk7-right">${logged?`<span class="wk7-check" title="Logged">✓</span>`:isToday&&has?`<button type="button" class="wk7-go">Start</button>`:""}</div>
+    </div>`);
+  }
+  return rows.join("");
+}
+function renderPlanTab(){
+  if((sessionStorage.getItem("hw-plan-scroll-wk")||"")!=="")planSub="block";
+  const inner=planSub==="block"?`<div id="plan-mount"></div>`:`
+  <div class="card section wk7-card">
+    <div class="wk7-head"><div><div class="today-hero-kicker">This week</div><div class="wk7-title">Week ${S.program.week} of 13${coachedModeOn()?"":" · "+phaseName(S.program.week)}</div></div>
+    <button type="button" class="btn btn-secondary-solid btn-sm" id="plan-adjust-week">Adjust week</button></div>
+    <div class="wk7-days">${wk7DaysHtml()}</div>
+    <p class="wk7-note">${coachedModeOn()?"Life happens — move or skip any day with Adjust week. The program bends, it never breaks.":"Days follow your real calendar (overrides + standing template honored). Adjust week edits per-date slots and equipment."}</p>
+  </div>`;
+  return`<div class="subtab-row" role="tablist" aria-label="Plan views"><button type="button" class="subtab ${planSub==="week"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="week"}" data-s="week">This week</button><button type="button" class="subtab ${planSub==="block"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="block"}" data-s="block">13-week block</button></div><div id="plan-inner">${inner}</div>`;
+}
+function bindPlanTab(){
+  releaseWorkoutWakeLock();
+  document.querySelectorAll(".plan-sub").forEach(b=>b.onclick=()=>{planSub=b.dataset.s;render()});
+  if(planSub==="block"){mountPlanTab();return}
+  const aw=document.getElementById("plan-adjust-week");if(aw)aw.onclick=()=>openSchedulePlanner();
+  document.querySelectorAll(".wk7-go").forEach(b=>b.onclick=()=>{tab=TAB_TRAIN;if(location.hash!=="#"+TAB_TRAIN)location.hash=TAB_TRAIN;render();requestAnimationFrame(()=>openSessionPlayer());});
+}
 function buildPlanProps(){
   autoWeek();const cur=S.program.week;if(expandedWeek===null)expandedWeek=cur;
   const compact=planCompactOn(),wSimple=useWomenSoftUi(),slots=planSlotsN();
@@ -6060,8 +6097,8 @@ function render(){
     if(tab===TAB_TRAIN){html=`<div class="pane show" id="p-train">${renderTrain()}</div>`;bindFn=bindTrain}
     else if(tab===TAB_PLAN){
       const planClass=[coachedModeOn()?"plan-simple":"",planCompactOn()?"plan-compact":""].filter(Boolean).join(" ");
-      html=`<div class="pane show ${planClass}" id="p-plan">${renderProgram()}</div>`;
-      bindFn=bindProgram;
+      html=`<div class="pane show ${planClass}" id="p-plan">${renderPlanTab()}</div>`;
+      bindFn=bindPlanTab;
     }
     else if(tab===TAB_PROGRESS){html=`<div class="pane show" id="p-progress">${renderProgressTab()}</div>`;bindFn=bindProgressTab}
     else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}

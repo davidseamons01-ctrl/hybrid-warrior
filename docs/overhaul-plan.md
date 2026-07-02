@@ -100,9 +100,13 @@ never inferred from gender, age, or anything else.
    the existing strength/heatmap/PR/achievements/body components; the old
    dashboard survives unchanged behind a "Classic" subtab (deep links to
    #dash-* auto-route there).
-5. **Progress + Plan.** Progress tab (streak/level for motivation; e1RM,
-   volume, pace, heatmap for data lovers). Plan tab absorbs the schedule
-   planner with the same block/override logic.
+5. **Progress + Plan.** ✅ SHIPPED 2026-07-02. Progress rebuilt in phase 4.
+   Plan tab is now this-week-first: 7 real calendar days via
+   `rollingPlanForDate` (override/template-aware), today highlighted with a
+   Start shortcut into the session player, logged days checked, "moved by
+   you" badges, and Adjust week opening the schedule planner in place. The
+   13-week block view lives behind a subtab (auto-selected for week deep
+   links).
 6. **Cleanup + hardening.** Delete dead legacy paths from `js/ui.js`,
    accessibility pass, performance pass, PWA polish.
 
