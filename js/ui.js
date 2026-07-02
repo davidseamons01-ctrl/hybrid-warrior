@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hd39d78f44468";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h3192390fd83f";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=hd39d78f44468";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer} from "./ui-components.js?v=hd39d78f44468";
+} from "./programming.js?v=h3192390fd83f";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard} from "./ui-components.js?v=h3192390fd83f";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4788,6 +4788,99 @@ function toolsOpenEase(){document.getElementById("train-ease-panel")?.scrollInto
 function toolsCaffeineToggle(btn){if(caffeineTimerId){stopCaffeineTimer();const lbl=document.getElementById("caffeine-time");if(lbl){lbl.textContent="";lbl.style.color=""}btn.textContent="☕ Pre-workout (45 min)";toast("Caffeine timer cancelled")}else{startCaffeineTimer();btn.textContent="Cancel timer";toast("Pre-workout timer started — 45 min to peak caffeine")}}
 const workoutToolsActions={eqToggle:toolsEqToggle,quickToggle:toolsQuickToggle,openPlates:toolsOpenPlates,openHealth:toolsOpenHealth,openEase:toolsOpenEase,caffeineToggle:toolsCaffeineToggle};
 function mountWorkoutTools(){const c=document.getElementById("train-tools-mount");if(!c)return;const eqHome=((S.profile.prefs||{}).equipment||"gym")==="home";const qmOn=(Number((S.profile.prefs||{}).quickSessionMin)||0)>0;mountWorkoutToolsCard(c,{eqHome,qmOn,actions:workoutToolsActions});if(caffeineTimerId&&caffeineEndMs>Date.now()){const lbl=document.getElementById("caffeine-time");if(lbl){const left=caffeineEndMs-Date.now();const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);lbl.textContent=`☕ Peak in ${m}:${String(s).padStart(2,"0")}`;lbl.style.color="var(--gold)"}const b=document.getElementById("caffeine-start");if(b)b.textContent="Cancel timer";}}
+// ── Coach layer (overhaul phase 4): engine signals → one visible voice ──
+function coachInsights(){
+  const ins=[];
+  const dayIso=iso();const plan=todayPlanFiltered();
+  const trainsToday=globalSessionIndexForDate(dayIso)!==null;
+  const loggedToday=(S.logs||[]).some(l=>l.date===dayIso);
+  if(trainsToday&&!loggedToday&&plan.exs.length)ins.push({k:"today",tone:"push",title:`Today: ${(plan.focus||"session").replace(" (DELOAD)","")}`,body:`${plan.exs.length} exercise${plan.exs.length!==1?"s":""} · ~${S.schedule.sessionMin||45} min. One tap to start.`,why:"It's a scheduled training day and nothing is logged yet.",action:{label:"Start now",hash:"#"+TAB_TRAIN}});
+  else if(trainsToday&&loggedToday)ins.push({k:"done",tone:"win",title:"Today's session is in the books",body:"Logged and counted toward your streak.",why:"At least one set is logged for today."});
+  const w=S.program.week;
+  if(isDeloadWeek(w))ins.push({k:"deload",tone:"info",title:`Deload week ${w} — lighter on purpose`,body:coachedModeOn()?"Easy weeks are where the strength actually shows up.":"Volume cut this week so adaptations consolidate before the next build.",why:"Weeks 4 and 8 of the block reduce volume deliberately."});
+  for(const [id,label] of [["bench","Bench"],["squat","Squat"],["deadlift","Deadlift"]]){
+    const e=exById(id);if(!e)continue;
+    try{
+      const res=detectPlateau(e1rmSeries(S.logs||[],e.name));
+      if(res&&res.plateaued){ins.push({k:"plateau-"+id,tone:"warn",title:`${label} has gone flat`,body:coachedModeOn()?"Totally normal. The plan will change the stimulus before pushing weight again.":"e1RM flat across recent sessions — expect a rep-range or volume change rather than more load.",why:"Your estimated 1RM hasn't improved across recent logged sessions of this lift."});break;}
+    }catch(e2){}
+  }
+  for(const [id,label,max,goal] of [["bench","bench",S.profile.bench1RM,S.goals.bench],["squat","squat",S.profile.squat1RM,S.goals.squat],["deadlift","deadlift",S.profile.dead1RM,S.goals.deadlift]]){
+    const e=exById(id);if(!e)continue;
+    const cur=Number(max)||0,tgt=Number(goal)||0;
+    if(!tgt||tgt<=cur)continue;
+    let rate=null;try{rate=liftRatePerWeek(e.name)}catch(e3){}
+    if(rate==null||rate<=0)continue;
+    const proj=projectWeeksToGoal(cur,tgt,rate);
+    if(!proj||proj.weeks<=0)continue;
+    ins.push({k:"eta-"+id,tone:"win",title:`On pace: ${tgt} lb ${label} in ~${proj.weeks} week${proj.weeks!==1?"s":""}`,body:coachedModeOn()?"Keep logging — you're climbing steadily.":`${cur}→${tgt} lb at +${rate.toFixed(1)} lb/wk from your e1RM trend.`,why:"Projected from the slope of your recent estimated-1RM history for this lift."});
+    break;
+  }
+  try{
+    const drift=[["bench",S.adapt.bench],["squat",S.adapt.squat],["deadlift",S.adapt.dead],["run pace",S.adapt.run]].filter(([,v])=>Math.abs(Number(v)-1)>=0.02);
+    if(drift.length){
+      const [nm,v]=drift.sort((a,b)=>Math.abs(Number(b[1])-1)-Math.abs(Number(a[1])-1))[0];
+      const pct=Math.round((Number(v)-1)*100);
+      ins.push({k:"adapt",tone:"info",title:`Your ${nm} targets auto-adjusted ${pct>0?"+":""}${pct}%`,body:coachedModeOn()?"The plan follows what you actually lift — not the other way around.":"Cumulative adaptation multiplier applied to prescriptions, driven by your set outcomes.",why:"Every finalized session nudges future targets toward your demonstrated capacity."});
+    }
+  }catch(e4){}
+  return ins.slice(0,4);
+}
+function buildCoachProps(){
+  const hr=new Date().getHours();
+  const greet=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";
+  const nm=((S.profile.name||"").trim().split(/\s+/)[0])||"athlete";
+  const today=new Date();const start=new Date(today);start.setDate(today.getDate()-6);
+  const days=new Set((S.logs||[]).filter(l=>l.date>=isoFromDate(start)&&l.date<=iso()).map(l=>l.date));
+  const sched=Math.max(1,(S.schedule.days||[]).length);
+  const w=S.program.week;
+  return{
+    headline:`${greet}, ${nm}`,
+    sub:coachedModeOn()?`Week ${w} of 13 · ${days.size} of ${sched} sessions this week`:`Week ${w}/13 · ${phaseName(w)} · ${days.size}/${sched} sessions (7d)`,
+    insights:coachInsights(),
+    coached:coachedModeOn(),
+    onAction:h=>{location.hash=h}
+  };
+}
+// ── Progress tab (overhaul phase 4): Coach + clean analytics; legacy dash = Classic ──
+let progressSub="overview";
+function progressMetricsHtml(){
+  const streak=getStreak();
+  const today=new Date();const start=new Date(today);start.setDate(today.getDate()-6);
+  const recent=(S.logs||[]).filter(l=>l.date>=isoFromDate(start)&&l.date<=iso());
+  const sessions=new Set(recent.map(l=>l.date)).size;
+  let vol=0;for(const l of recent){if(isRunExerciseName(l.exercise))continue;vol+=(Number(l.aS)||1)*(Number(l.aR)||0)*(Number(l.aW)||0);}
+  const lvl=calcWarriorLevel(calcTotalXP());
+  const volTxt=vol>0?Math.round(loadInputDisplayFromLb(vol)).toLocaleString():"0";
+  return`<div class="prog-metric"><span class="prog-metric-num">${streak}</span><span class="prog-metric-lbl">day streak</span></div>
+  <div class="prog-metric"><span class="prog-metric-num">${sessions}</span><span class="prog-metric-lbl">sessions · 7d</span></div>
+  <div class="prog-metric"><span class="prog-metric-num">${volTxt}</span><span class="prog-metric-lbl">${massUnitLabel()} volume · 7d</span></div>
+  <div class="prog-metric"><span class="prog-metric-num">${lvl}</span><span class="prog-metric-lbl">level</span></div>`;
+}
+function renderProgressTab(){
+  const hs=sessionStorage.getItem("hw-scroll")||"";
+  if(hs.indexOf("#dash")===0)progressSub="classic";
+  const inner=progressSub==="classic"?renderDash():`
+  <div id="coach-mount"></div>
+  <div class="prog-metrics">${progressMetricsHtml()}</div>
+  <section class="prog-section"><h2 class="prog-h">Strength trend</h2><div id="prog-strength"></div></section>
+  <section class="prog-section"><h2 class="prog-h">Consistency</h2><div id="prog-heat"></div></section>
+  <section class="prog-section"><h2 class="prog-h">Personal records</h2><div id="prog-pr"></div></section>
+  <section class="prog-section"><h2 class="prog-h">Achievements</h2><div id="prog-ach"></div></section>
+  <section class="prog-section"><h2 class="prog-h">Body</h2><div id="prog-body"></div></section>`;
+  return`<div class="subtab-row" role="tablist" aria-label="Progress views"><button type="button" class="subtab ${progressSub==="overview"?"on":""} prog-sub" role="tab" aria-selected="${progressSub==="overview"}" data-s="overview">Overview</button><button type="button" class="subtab ${progressSub==="classic"?"on":""} prog-sub" role="tab" aria-selected="${progressSub==="classic"}" data-s="classic">Classic</button></div><div id="progress-inner">${inner}</div>`;
+}
+function bindProgressTab(){
+  releaseWorkoutWakeLock();
+  document.querySelectorAll(".prog-sub").forEach(b=>b.onclick=()=>{progressSub=b.dataset.s;render()});
+  if(progressSub==="classic"){bindDash();return}
+  const cm=document.getElementById("coach-mount");if(cm)mountCoachCard(cm,buildCoachProps());
+  const ps=document.getElementById("prog-strength");if(ps)mountStrengthProgress(ps,buildStrengthProgressProps());
+  const ph=document.getElementById("prog-heat");if(ph)mountTrainingHeatmap(ph,buildTrainingHeatmapProps());
+  const pp=document.getElementById("prog-pr");if(pp)mountPersonalRecords(pp,buildPersonalRecordsProps());
+  const pa=document.getElementById("prog-ach");if(pa)mountAchievements(pa,buildAchievementsProps());
+  const pb=document.getElementById("prog-body");if(pb)mountBodyMetrics(pb,buildBodyMetricsProps());
+}
 async function finalizeSession(day){
   if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};
   if(S.sessionAdaptedByDate[day]){toast("Already finalized for today. Logging new sets will re-open it.");return false}
@@ -5970,7 +6063,7 @@ function render(){
       html=`<div class="pane show ${planClass}" id="p-plan">${renderProgram()}</div>`;
       bindFn=bindProgram;
     }
-    else if(tab===TAB_PROGRESS){html=`<div class="pane show" id="p-progress">${renderDash()}</div>`;bindFn=bindDash}
+    else if(tab===TAB_PROGRESS){html=`<div class="pane show" id="p-progress">${renderProgressTab()}</div>`;bindFn=bindProgressTab}
     else{html=`<div class="pane show" id="p-you">${renderYou()}</div>`;bindFn=bindYou}
     if(tabChanged){
       const old=app.firstElementChild;

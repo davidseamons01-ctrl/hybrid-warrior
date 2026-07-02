@@ -1674,6 +1674,34 @@ function unmountSessionPlayer(container) {
   R(null, container);
 }
 
+// src/ui/coach-card.tsx
+function Insight({ ins, onAction }) {
+  const [openWhy, setOpenWhy] = d2(false);
+  return /* @__PURE__ */ u3("div", { class: `coach-ins coach-${ins.tone}`, children: [
+    /* @__PURE__ */ u3("span", { class: "coach-dot", "aria-hidden": "true" }),
+    /* @__PURE__ */ u3("div", { class: "coach-ins-main", children: [
+      /* @__PURE__ */ u3("div", { class: "coach-ins-title", children: ins.title }),
+      /* @__PURE__ */ u3("div", { class: "coach-ins-body", children: ins.body }),
+      openWhy && ins.why ? /* @__PURE__ */ u3("div", { class: "coach-why", children: ins.why }) : null,
+      /* @__PURE__ */ u3("div", { class: "coach-ins-row", children: [
+        ins.action ? /* @__PURE__ */ u3("button", { type: "button", class: "coach-action", onClick: () => onAction(ins.action.hash), children: ins.action.label }) : null,
+        ins.why ? /* @__PURE__ */ u3("button", { type: "button", class: "coach-whybtn", "aria-expanded": openWhy, onClick: () => setOpenWhy(!openWhy), children: openWhy ? "Hide why" : "Why?" }) : null
+      ] })
+    ] })
+  ] });
+}
+function CoachCard(p3) {
+  return /* @__PURE__ */ u3("div", { class: "card coach-card section", children: [
+    /* @__PURE__ */ u3("div", { class: "coach-kicker", children: "Coach" }),
+    /* @__PURE__ */ u3("div", { class: "coach-headline", children: p3.headline }),
+    /* @__PURE__ */ u3("div", { class: "coach-sub", children: p3.sub }),
+    p3.insights.length ? /* @__PURE__ */ u3("div", { class: "coach-list", children: p3.insights.map((ins) => /* @__PURE__ */ u3(Insight, { ins, onAction: p3.onAction }, ins.k)) }) : /* @__PURE__ */ u3("p", { class: "coach-empty", children: "Log a few sessions and I'll start spotting trends \u2014 plateaus, pace, and what to change." })
+  ] });
+}
+function mountCoachCard(container, props) {
+  R(/* @__PURE__ */ u3(CoachCard, { ...props }), container);
+}
+
 // src/ui/session-summary.tsx
 function SessionSummary(p3) {
   return /* @__PURE__ */ u3("div", { class: "ss-overlay", role: "dialog", "aria-modal": "true", "aria-labelledby": "ss-title", onClick: (e3) => {
@@ -3069,6 +3097,7 @@ export {
   AchievementsWall,
   BodyMetrics,
   CalibrationSheet,
+  CoachCard,
   ExerciseCard,
   FocusShell,
   MatchBoard,
@@ -3092,6 +3121,7 @@ export {
   mountAchievements,
   mountBodyMetrics,
   mountCalibrationSheet,
+  mountCoachCard,
   mountExerciseCard,
   mountFocusShell,
   mountMatchBoard,

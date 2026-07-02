@@ -91,8 +91,15 @@ never inferred from gender, age, or anything else.
    rest countdown ring with +30s/skip, auto-advance, finish screen →
    `finalizeSession` (extracted) → day adaptation + session summary. Old
    focus-mode carousel kept as fallback behind the Focus chip.
-4. **Coach layer.** Unified adaptation engine surface: pre-session readiness,
-   post-session review, weekly recap, goal forecasting, "why" everywhere.
+4. **Coach layer.** ✅ SHIPPED 2026-07-02. `src/ui/coach-card.tsx` at the top
+   of a rebuilt Progress tab: one voice speaking from real engine signals —
+   today's-session nudge (with Start action), deload context, plateau
+   detection (big-3 e1RM), goal pace forecast (`projectWeeksToGoal` over the
+   e1RM trend), adaptation-drift transparency — every insight with a "Why?"
+   disclosure. Progress = Coach + 4-metric grid + clean sections mounting
+   the existing strength/heatmap/PR/achievements/body components; the old
+   dashboard survives unchanged behind a "Classic" subtab (deep links to
+   #dash-* auto-route there).
 5. **Progress + Plan.** Progress tab (streak/level for motivation; e1RM,
    volume, pace, heatmap for data lovers). Plan tab absorbs the schedule
    planner with the same block/override logic.
