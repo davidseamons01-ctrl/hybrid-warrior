@@ -73,14 +73,20 @@ never inferred from gender, age, or anything else.
 
 ## Phases
 
-1. **Design system + app shell.** Tokens, core components (button, card,
-   sheet, nav, form controls), new 4-tab shell, light/dark, neutral themes.
-   Retire gendered forks.
-2. **Onboarding rebuild.** Three questions to first workout; progressive
-   profiling; calibration path for unknown maxes; mode selection.
-3. **Today + session player.** Home screen with one clear next action;
-   full-screen exercise-at-a-time player; Coached/Pro logging (tap-to-confirm
-   vs set-by-set grid); rest timer integrated.
+1. **Design system + app shell.** ✅ SHIPPED 2026-07-01. Tokens, accent
+   themes (ember/ocean/forest/violet), bottom tab bar + slim header,
+   Today/Plan/Progress/You routing, Coached/Pro mode plumbing, gendered
+   forks retired.
+2. **Onboarding rebuild.** ✅ SHIPPED 2026-07-01. Goals → experience+mode →
+   schedule (→ optional Pro numbers step) → plan match. Everything else is
+   estimated and self-corrects from logs. Sex is optional ("prefer not to
+   say"); plan library renamed Men's/Women's → Classic/Sculpt with a
+   `variant` flag; sculpt emphasis now follows chosen goals (scorer's sex
+   check is only a back-compat tiebreak). Today screen got its hero card +
+   quick-action chips + extras drawer (pulled forward from phase 3).
+3. **Today + session player.** Hero card ✅ (phase 2). Remaining:
+   full-screen exercise-at-a-time player polish; Coached/Pro logging
+   (tap-to-confirm vs set-by-set grid); rest timer integration.
 4. **Coach layer.** Unified adaptation engine surface: pre-session readiness,
    post-session review, weekly recap, goal forecasting, "why" everywhere.
 5. **Progress + Plan.** Progress tab (streak/level for motivation; e1RM,

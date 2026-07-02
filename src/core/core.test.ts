@@ -162,7 +162,7 @@ describe("accessories", () => {
 const PLANS: PlanLite[] = (() => {
   const G: Goal[] = ["strength", "hybrid", "fat_loss", "muscle", "beginner", "powerlifting", "endurance"];
   const gN = ["Strength", "Hybrid Athlete", "Fat Loss", "Hypertrophy", "Beginner Foundations", "Powerlifting", "Endurance"];
-  const fN = ["3-4 Day", "5-6 Day"], dN = ["Express", "Full"], sN = ["Men's", "Women's"], eN = ["Foundation", "Advanced"];
+  const fN = ["3-4 Day", "5-6 Day"], dN = ["Express", "Full"], vN = ["Classic", "Sculpt"], eN = ["Foundation", "Advanced"];
   const slots = ["A", "B", "C", "D"];
   const out: PlanLite[] = [];
   for (let g = 0; g < G.length; g++)
@@ -170,7 +170,7 @@ const PLANS: PlanLite[] = (() => {
       for (let d = 0; d < 2; d++)
         for (let s = 0; s < 2; s++)
           for (let e = 0; e < 2; e++)
-            out.push({ id: g * 16 + f * 8 + d * 4 + s * 2 + e, name: `${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`, goal: G[g], slots });
+            out.push({ id: g * 16 + f * 8 + d * 4 + s * 2 + e, name: `${gN[g]} · ${vN[s]} · ${fN[f]} ${dN[d]} (${eN[e]})`, goal: G[g], slots, variant: s ? "sculpt" : ("classic" as const) });
   return out;
 })();
 
@@ -179,11 +179,11 @@ describe("plan scoring", () => {
     expect(PLANS.length).toBe(112);
     expect(PLANS[0].id).toBe(0);
   });
-  it("postpartum woman/home/glute → women's muscle plan", () => {
+  it("glute-focused goals → sculpt muscle plan", () => {
     const ctx = { goal: goalFromFocus(["Glute Shelf", "Postpartum Recovery", "Home-Friendly Workouts"]).goal, sex: "female", trainingDays: [1, 3, 5], sessionMin: 45, experienceMonths: 2 };
     const best = PLANS.find((p) => p.id === bestPlanId(PLANS, ctx))!;
     expect(best.goal).toBe("muscle");
-    expect(best.name).toMatch(/Women/);
+    expect(best.name).toMatch(/Sculpt/);
   });
   it("powerlifter routes to powerlifting", () => {
     const ctx = { goal: "powerlifting" as Goal, sex: "male", trainingDays: [1, 2, 4, 5], sessionMin: 90, experienceMonths: 36 };

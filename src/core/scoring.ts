@@ -9,10 +9,12 @@ export function scorePlan(plan: PlanLite, ctx: PlanCtx): number {
   else if ((goal === "hybrid" && plan.goal === "strength") || (goal === "strength" && plan.goal === "hybrid")) s += 40;
   else if ((goal === "fat_loss" && plan.goal === "hybrid") || (goal === "muscle" && plan.goal === "strength")) s += 30;
 
-  // Sex match (women's vs men's template).
-  const wantWomen = sex === "female";
-  const isWomen = /Women/i.test(plan.name);
-  if (wantWomen === isWomen) s += 30;
+  // Structure emphasis: sculpt (glute/curve/circuit slots) vs classic barbell.
+  // Chosen goals decide; sex is only the tiebreak default for profiles whose
+  // goals don't say (pre-overhaul back-compat).
+  const wantSculpt = ctx.sculptGoals != null ? ctx.sculptGoals : sex === "female";
+  const isSculpt = plan.variant ? plan.variant === "sculpt" : /Women/i.test(plan.name);
+  if (wantSculpt === isSculpt) s += 30;
 
   // Frequency: plan slot count vs available training days.
   const days = Math.max(1, (trainingDays || []).length || 5);
@@ -70,5 +72,8 @@ export function whyPlan(plan: PlanLite, ctx: PlanCtx): string {
   if (((ctx.experienceMonths || 0) >= 18) === /Advanced/i.test(plan.name)) {
     bits.push(/Advanced/i.test(plan.name) ? "advanced progression" : "beginner-friendly ramp");
   }
+  const wantSculpt = ctx.sculptGoals != null ? ctx.sculptGoals : ctx.sex === "female";
+  const isSculpt = plan.variant ? plan.variant === "sculpt" : /Women/i.test(plan.name);
+  if (wantSculpt && isSculpt) bits.push("glute & curve emphasis");
   return bits.length ? bits.join(" · ") : "balanced general fit";
 }

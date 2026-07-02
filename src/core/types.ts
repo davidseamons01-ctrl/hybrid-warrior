@@ -55,6 +55,10 @@ export interface PlanLite {
   name: string;
   goal: Goal;
   slots: string[];
+  /** Slot-structure emphasis: "classic" barbell layout vs "sculpt"
+      (glute/curve/circuit remap). Optional for back-compat — scorers fall
+      back to legacy name matching when absent. */
+  variant?: "classic" | "sculpt";
 }
 
 /** Everything the scorer compares a plan against. */
@@ -64,6 +68,10 @@ export interface PlanCtx {
   trainingDays?: number[];
   sessionMin?: number;
   experienceMonths?: number;
+  /** True when the user's chosen focus areas ask for sculpt emphasis
+      (glutes, hourglass, posture, pilates). Overrides the sex fallback —
+      emphasis follows goals, not identity. */
+  sculptGoals?: boolean;
 }
 
 export interface RankedPlan {

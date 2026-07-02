@@ -150,7 +150,7 @@ t("workingMax raises for a genuine recent PR", () => {
 const PLANS = (function () {
   const G = ["strength", "hybrid", "fat_loss", "muscle"];
   const gN = ["Strength", "Hybrid Athlete", "Fat Loss", "Hypertrophy"];
-  const fN = ["3-4 Day", "5-6 Day"], dN = ["Express", "Full"], sN = ["Men's", "Women's"], eN = ["Foundation", "Advanced"];
+  const fN = ["3-4 Day", "5-6 Day"], dN = ["Express", "Full"], vN = ["Classic", "Sculpt"], eN = ["Foundation", "Advanced"];
   const base = {
     strength: { "00": ["FB", "SR", "FB"], "01": ["HP", "SR", "HL", "TR"], "10": ["HP", "SR", "HL", "TR", "HB"], "11": ["HP", "HPL", "HL", "SR", "PW"] },
     hybrid: { "00": ["FB", "SR", "FB"], "01": ["HP", "SR", "HL", "TR"], "10": ["HP", "SR", "HL", "TR", "HB"], "11": ["HP", "SR", "HL", "TR", "HB"] },
@@ -160,7 +160,7 @@ const PLANS = (function () {
   const plans = [];
   for (let g = 0; g < 4; g++) for (let f = 0; f < 2; f++) for (let d = 0; d < 2; d++) for (let s = 0; s < 2; s++) for (let e = 0; e < 2; e++) {
     let sl = [...base[G[g]]["" + f + d]];
-    plans.push({ id: g * 16 + f * 8 + d * 4 + s * 2 + e, name: `${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`, goal: G[g], slots: sl });
+    plans.push({ id: g * 16 + f * 8 + d * 4 + s * 2 + e, name: `${gN[g]} · ${vN[s]} · ${fN[f]} ${dN[d]} (${eN[e]})`, goal: G[g], slots: sl, variant: s ? "sculpt" : "classic" });
   }
   return plans;
 })();
@@ -169,25 +169,25 @@ t("64 plans generated, stable ids", () => {
   assert.equal(PLANS.length, 64);
   assert.equal(PLANS[0].id, 0);
 });
-t("postpartum woman, home, glute → women's muscle plan", () => {
-  const ctx = { goal: goalFromFocus(["Glute Shelf", "Postpartum Recovery", "Home-Friendly Workouts"]).goal, sex: "female", trainingDays: [1, 3, 5], sessionMin: 45, experienceMonths: 2 };
+t("glute-focused goals → sculpt muscle plan (any profile)", () => {
+  const ctx = { goal: goalFromFocus(["Glute Shelf", "Postpartum Recovery", "Home-Friendly Workouts"]).goal, sculptGoals: true, sex: "unspecified", trainingDays: [1, 3, 5], sessionMin: 45, experienceMonths: 2 };
   const best = PLANS.find((p) => p.id === bestPlanId(PLANS, ctx));
   assert.equal(best.goal, "muscle");
-  assert.match(best.name, /Women/);
+  assert.match(best.name, /Sculpt/);
   assert.match(best.name, /Foundation/);
 });
-t("experienced male powerlifter → men's strength advanced", () => {
+t("experienced male powerlifter → classic strength advanced", () => {
   const ctx = { goal: "strength", sex: "male", trainingDays: [1, 2, 4, 5], sessionMin: 75, experienceMonths: 36 };
   const best = PLANS.find((p) => p.id === bestPlanId(PLANS, ctx));
   assert.equal(best.goal, "strength");
-  assert.match(best.name, /Men's/);
+  assert.match(best.name, /Classic/);
   assert.match(best.name, /Advanced/);
 });
-t("fat-loss woman 5 days short sessions → women's fat loss 5-6 express", () => {
+t("fat-loss woman, no emphasis goals → sex fallback keeps sculpt default", () => {
   const ctx = { goal: "fat_loss", sex: "female", trainingDays: [1, 2, 3, 4, 5], sessionMin: 30, experienceMonths: 6 };
   const best = PLANS.find((p) => p.id === bestPlanId(PLANS, ctx));
   assert.equal(best.goal, "fat_loss");
-  assert.match(best.name, /Women/);
+  assert.match(best.name, /Sculpt/);
   assert.match(best.name, /5-6 Day/);
   assert.match(best.name, /Express/);
 });
@@ -233,7 +233,7 @@ t("powerlifting uses low reps, beginner higher", () => {
 const PLANS2 = (function () {
   const G = ["strength", "hybrid", "fat_loss", "muscle", "beginner", "powerlifting", "endurance"];
   const gN = ["Strength", "Hybrid Athlete", "Fat Loss", "Hypertrophy", "Beginner Foundations", "Powerlifting", "Endurance"];
-  const fN = ["3-4 Day", "5-6 Day"], dN = ["Express", "Full"], sN = ["Men's", "Women's"], eN = ["Foundation", "Advanced"];
+  const fN = ["3-4 Day", "5-6 Day"], dN = ["Express", "Full"], vN = ["Classic", "Sculpt"], eN = ["Foundation", "Advanced"];
   const base = {
     strength: { "00": ["FB", "SR", "FB"], "01": ["HP", "SR", "HL", "TR"], "10": ["HP", "SR", "HL", "TR", "HB"], "11": ["HP", "HPL", "HL", "SR", "PW"] },
     hybrid: { "00": ["FB", "SR", "FB"], "01": ["HP", "SR", "HL", "TR"], "10": ["HP", "SR", "HL", "TR", "HB"], "11": ["HP", "SR", "HL", "TR", "HB"] },
@@ -246,7 +246,7 @@ const PLANS2 = (function () {
   const plans = [];
   for (let g = 0; g < G.length; g++) for (let f = 0; f < 2; f++) for (let d = 0; d < 2; d++) for (let s = 0; s < 2; s++) for (let e = 0; e < 2; e++) {
     let sl = [...base[G[g]]["" + f + d]];
-    plans.push({ id: g * 16 + f * 8 + d * 4 + s * 2 + e, name: `${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`, goal: G[g], slots: sl });
+    plans.push({ id: g * 16 + f * 8 + d * 4 + s * 2 + e, name: `${gN[g]} · ${vN[s]} · ${fN[f]} ${dN[d]} (${eN[e]})`, goal: G[g], slots: sl, variant: s ? "sculpt" : "classic" });
   }
   return plans;
 })();

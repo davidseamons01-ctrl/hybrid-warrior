@@ -1882,3 +1882,44 @@ body.power-focus .tabbar{display:none!important}
   .voice-preview{bottom:calc(184px + env(safe-area-inset-bottom))}
 }
 @media(min-width:861px){.tabbar{display:none!important}}
+
+/* ═══ Phase-2: onboarding v2 (choice cards, goal chips) ═══ */
+.ob-group{margin:16px 0 6px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)}
+.ob-goal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ob-goal{display:flex;flex-direction:column;gap:2px;border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:12.5px;font-weight:700;color:var(--text2);cursor:pointer;transition:border-color .15s,background .15s,color .15s;background:var(--surface);min-height:44px;justify-content:center}
+.ob-goal-hint{font-size:10.5px;font-weight:500;color:var(--text3)}
+.ob-goal.selected{border-color:var(--accent);color:var(--text);background:color-mix(in srgb,var(--accent) 12%,var(--surface))}
+.ob-goal.selected .ob-goal-hint{color:color-mix(in srgb,var(--accent) 60%,var(--text3))}
+.ob-choice{border:1px solid var(--border);border-radius:14px;padding:13px 14px;cursor:pointer;background:var(--surface);transition:border-color .15s,background .15s;margin-bottom:8px}
+.ob-choice.selected{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.ob-choice-title{font-size:13.5px;font-weight:700;color:var(--text)}
+.ob-choice-sub{font-size:11.5px;color:var(--text3);margin-top:2px;line-height:1.45}
+.ob-mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ob-mode-grid .ob-choice{margin-bottom:0}
+.ob-skip-note{font-size:11px;color:var(--text3);text-align:center;margin-top:14px;line-height:1.5}
+
+/* ═══ Phase-2: Today hero + quick actions ═══ */
+.today-hero{padding:18px 18px 16px}
+.today-hero-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
+.today-hero-title{font-family:var(--font-display);font-size:26px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin:3px 0 2px;color:var(--text)}
+.today-hero-sub{font-size:12px;color:var(--text3);margin-bottom:2px}
+.today-hero-meta{font-size:12.5px;color:var(--text2);font-weight:600;margin:4px 0 12px}
+.today-next{border-top:1px solid var(--border);padding-top:10px;margin-bottom:12px}
+.today-next-label{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;margin-bottom:4px}
+.today-next-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:13px}
+.today-next-num{width:18px;height:18px;border-radius:50%;background:color-mix(in srgb,var(--accent) 18%,var(--surface));color:var(--accent);font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.today-next-name{font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.today-next-rx{font-size:12px;color:var(--text3);font-variant-numeric:tabular-nums;flex:none}
+.today-next-more{font-size:11px;color:var(--text3);padding:4px 0 0 28px}
+.today-hero-note{font-size:12px;color:var(--gold);background:color-mix(in srgb,var(--gold) 10%,transparent);border:1px solid color-mix(in srgb,var(--gold) 30%,var(--border));border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.45}
+.today-start{margin-top:2px}
+.today-hero-hint{font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45}
+.today-quick-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.chip-action{display:inline-flex;align-items:center;gap:6px;padding:9px 13px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font:600 12px/1 var(--font-body);cursor:pointer;transition:color .15s,border-color .15s,background .15s;min-height:40px}
+.chip-action:hover{color:var(--text);border-color:var(--border-lit)}
+.chip-action.on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 50%,var(--border));background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
+.train-extras summary{font-size:13px;font-weight:600;cursor:pointer;list-style:none;color:var(--text)}
+.train-extras summary::after{content:"▸";float:right;color:var(--text3);transition:transform .15s}
+.train-extras[open] summary::after{transform:rotate(90deg)}
+.train-extras .train-extras-body{margin-top:10px}
+.train-extras .train-extras-body:empty{display:none}

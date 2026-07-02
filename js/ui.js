@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h4551a5ec5f74";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h305f0e6648ef";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h4551a5ec5f74";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=h4551a5ec5f74";
+} from "./programming.js?v=h305f0e6648ef";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner } from "./ui-components.js?v=h305f0e6648ef";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -24,7 +24,7 @@ const PLANS=(function(){
   const gN=["Strength","Hybrid Athlete","Fat Loss","Hypertrophy","Beginner Foundations","Powerlifting","Endurance","Hybrid Runner"];
   const fN=["3-4 Day","5-6 Day"];
   const dN=["Express","Full"];
-  const sN=["Men's","Women's"];
+  const vN=["Classic","Sculpt"]; // slot-structure emphasis — user- and goal-driven, never assigned by identity
   const eN=["Foundation","Advanced"];
   const base={
     strength:{"00":["FB","SR","FB"],"01":["HP","SR","HL","TR"],"10":["HP","SR","HL","TR","HB"],"11":["HP","HPL","HL","SR","PW"]},
@@ -41,7 +41,7 @@ const PLANS=(function(){
     // Day1 endurance · Day2 functional strength · Day3 speed · Day4 recovery/mind-body · Day5 long run.
     hybrid_runner:{"00":["TR","SR","LR"],"01":["TR","FB","SR","LR"],"10":["TR","FB","SR","MB","LR"],"11":["TR","FB","SR","MB","LR"]}
   };
-  function feminizeSlots(goal,slots,isExpress){
+  function sculptSlots(goal,slots,isExpress){
     let out=slots.map(sl=>{
       const map={
         HP:"HYL",
@@ -66,9 +66,9 @@ const PLANS=(function(){
   const plans=[];
   for(let g=0;g<G.length;g++)for(let f=0;f<2;f++)for(let d=0;d<2;d++)for(let s=0;s<2;s++)for(let e=0;e<2;e++){
     let sl=[...base[G[g]][""+f+d]];
-    if(s===1&&g<4)sl=feminizeSlots(G[g],sl,d===0); // only the original 4 goals get the women's slot remap; archetypes keep their structure (e.g. endurance runs)
+    if(s===1&&g<4)sl=sculptSlots(G[g],sl,d===0); // only the original 4 goals get the sculpt slot remap; archetypes keep their structure (e.g. endurance runs)
     if(e===0)sl=sl.map(x=>x==="PW"?"FB":x==="HPL"?"FB":x);
-    plans.push({id:g*16+f*8+d*4+s*2+e,name:`${sN[s]} ${gN[g]} · ${fN[f]} ${dN[d]} (${eN[e]})`,goal:G[g],slots:sl});
+    plans.push({id:g*16+f*8+d*4+s*2+e,name:`${gN[g]} · ${vN[s]} · ${fN[f]} ${dN[d]} (${eN[e]})`,goal:G[g],slots:sl,variant:s?"sculpt":"classic"});
   }
   return plans;
 })();
@@ -1068,12 +1068,14 @@ function planCtx(){
   const fa=S.goals.focusAreas||[];
   const pr=S.profile.prefs||{};
   const det=goalFromFocus(fa,pr.primaryGoal);
+  const SCULPT_AREAS=["Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone"];
   return {
     goal:det.goal,
     sex:S.profile.sex,
     trainingDays:S.schedule.days||[1,2,3,4,5],
     sessionMin:S.schedule.sessionMin||45,
-    experienceMonths:Number(pr.experienceMonths)||0
+    experienceMonths:Number(pr.experienceMonths)||0,
+    sculptGoals:fa.some(a=>SCULPT_AREAS.includes(a))?true:(fa.length?false:undefined)
   };
 }
 // Top-N recommended plans with one-line rationale (for onboarding choice UI).
@@ -2362,146 +2364,179 @@ function bodyMapSVG(grow=[],burn=[]){
 function showOnboarding(){applyVisualTheme(true);document.getElementById("obScreen").classList.add("show");obStep=0;renderOB()}
 function hideOnboarding(){document.getElementById("obScreen").classList.remove("show");document.getElementById("mainNav").style.display="";document.getElementById("app").style.display="";applyVisualTheme(false);startSync();render()}
 
+const OB_BRAND_NEW="Brand New to Training";
+const OB_GOAL_GROUPS=[
+  ["Get stronger",[["Bench Press","Push power"],["Squat","Leg strength"],["Deadlift","Total-body pull"],["Powerlifting Total","All three lifts"]]],
+  ["Run faster",[["5K Running","Speed & endurance"],["Run a Race (5K/10K/Half)","Train for a race"]]],
+  ["Look & feel",[["Lose Weight","Burn fat, keep muscle"],["Build Muscle","Add size"],["Hourglass Shape","Waist & curves"],["Glute Shelf","Glute focus"],["Posture & Back Tone","Stand taller"],["Pilates Plus Tone","Low-impact tone"]]],
+  ["Fit your life",[["General Fitness","Balanced all-around"],["Improve Conditioning","Work capacity"],["Home-Friendly Workouts","Minimal equipment"],["Pregnancy Safe","Gentle & safe"],["Postpartum Recovery","Rebuild gently"]]]
+];
+function obWantsNumbers(){
+  const fa=S.goals.focusAreas||[];
+  return["Bench Press","Squat","Deadlift","Powerlifting Total","5K Running","Run a Race (5K/10K/Half)"].some(g=>fa.includes(g));
+}
+function obStepList(){
+  const steps=["goals","experience","schedule"];
+  if(((S.profile.prefs||{}).uiMode||"")==="pro"&&obWantsNumbers())steps.push("numbers");
+  steps.push("plan");
+  return steps;
+}
+/** Everything the old wizard demanded up front (weight, maxes, times) now
+    falls back to sane estimates that self-correct as the user logs. */
+function obEnsureEstimates(){
+  if(!S.profile.weight)S.profile.weight=180;
+  if(!S.profile.startWt)S.profile.startWt=S.profile.weight;
+  const fa=S.goals.focusAreas||[];const isPL=fa.includes("Powerlifting Total");
+  if(!S.profile.bench1RM)S.profile.bench1RM=Math.round(S.profile.weight*.65);
+  if(!S.profile.squat1RM)S.profile.squat1RM=Math.round(S.profile.weight*.85);
+  if(!S.profile.dead1RM)S.profile.dead1RM=Math.round(S.profile.weight*1.2);
+  if(!S.profile.run4mi)S.profile.run4mi=2400;
+  if((fa.includes("Bench Press")||isPL)&&!S.goals.bench)S.goals.bench=S.profile.bench1RM+20;
+  if((fa.includes("Squat")||isPL)&&!S.goals.squat)S.goals.squat=S.profile.squat1RM+30;
+  if((fa.includes("Deadlift")||isPL)&&!S.goals.deadlift)S.goals.deadlift=S.profile.dead1RM+30;
+  if((fa.includes("5K Running")||fa.includes("Run a Race (5K/10K/Half)"))&&!S.goals.fiveK)S.goals.fiveK=1200;
+}
 function renderOB(){
-  const steps=5;const card=document.getElementById("obCard");
-  const dots=Array.from({length:steps},(_,i)=>`<div class="ob-dot ${i<obStep?"done":""} ${i===obStep?"active":""}"></div>`).join("");
+  const steps=obStepList();
+  if(obStep>=steps.length)obStep=steps.length-1;
+  const step=steps[obStep];
+  const card=document.getElementById("obCard");
+  const dots=steps.map((_,i)=>`<div class="ob-dot ${i<obStep?"done":""} ${i===obStep?"active":""}"></div>`).join("");
+  const head=(title,sub)=>`<div class="ob-progress">${dots}</div><div class="ob-title">${title}</div><div class="ob-sub">${sub}</div>`;
+  const navRow=(nextLabel="Continue")=>`<div class="row" style="margin-top:18px">${obStep>0?`<button class="btn btn-ghost" id="ob-back">Back</button>`:""}<button class="btn btn-fire" id="ob-next" style="flex:1">${nextLabel}</button></div>`;
+  const bindNav=(onNext)=>{const b=document.getElementById("ob-back");if(b)b.onclick=()=>{obStep=Math.max(0,obStep-1);renderOB()};const n=document.getElementById("ob-next");if(n)n.onclick=onNext;};
 
-  if(obStep===0){
-    card.innerHTML=`<div class="ob-progress">${dots}</div>
-      <div class="ob-title">About You</div><div class="ob-sub">Basic info to personalize your program.</div>
-      <div class="grid2">
-        <div><label>Name</label><input id="ob-name" value="${S.profile.name}" placeholder="David"></div>
-        <div><label>Profile Type</label><select id="ob-sex"><option value="male" ${S.profile.sex==="male"?"selected":""}>Man</option><option value="female" ${S.profile.sex==="female"?"selected":""}>Woman</option></select></div>
-      </div>
-      <div class="grid3" style="margin-top:10px">
-        <div><label>Age</label><input id="ob-age" type="number" value="${S.profile.age||24}"></div>
-        <div><label>Height (inches)</label><input id="ob-ht" type="number" value="${S.profile.height||70}"></div>
-        <div><label>Current Weight (lb)</label><input id="ob-wt" type="number" value="${S.profile.weight||""}"></div>
-      </div>
-      <div class="grid3" style="margin-top:10px">
-        <div><label>Waist (in)</label><input id="ob-waist" type="number" step="0.1" value="${S.profile.waist||""}" placeholder="e.g. 34"></div>
-        <div><label>Hips (in)</label><input id="ob-hips" type="number" step="0.1" value="${S.profile.hips||""}" placeholder="e.g. 40"></div>
-        <div><label>Shoulders (in)</label><input id="ob-shoulders" type="number" step="0.1" value="${S.profile.shoulders||""}" placeholder="e.g. 46"></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div><label>Goal Weight (lb)</label><input id="ob-gw" type="number" value="${S.profile.goalWt||""}"></div>
-        <div><label>Body Fat % (optional)</label><input id="ob-bf" type="number" step="0.1" value="${S.profile.bodyFat||""}" placeholder="e.g. 22"></div>
-      </div>
-      <div class="grid2" style="margin-top:10px"><div><label>Program Start Date</label><input id="ob-start" type="date" value="${S.program.start}"></div>
-        <div><label>Training Experience</label><select id="ob-exp"><option value="0" ${(((S.profile.prefs||{}).experienceMonths)||0)<6?"selected":""}>New (0-6 months)</option><option value="12" ${(((S.profile.prefs||{}).experienceMonths)||0)>=6&&(((S.profile.prefs||{}).experienceMonths)||0)<18?"selected":""}>Intermediate (6-18 mo)</option><option value="36" ${(((S.profile.prefs||{}).experienceMonths)||0)>=18?"selected":""}>Advanced (18+ months)</option></select></div></div>
-      <button class="btn btn-fire btn-block" style="margin-top:16px" id="ob-next">Continue</button>`;
-    document.getElementById("ob-next").onclick=()=>{
-      S.profile.name=document.getElementById("ob-name").value||"Athlete";
-      S.profile.sex=document.getElementById("ob-sex").value;
-      S.profile.age=Number(document.getElementById("ob-age").value)||24;
-      S.profile.height=Number(document.getElementById("ob-ht").value)||70;
-      S.profile.weight=Number(document.getElementById("ob-wt").value)||180;
-      S.profile.waist=Number(document.getElementById("ob-waist").value)||0;
-      S.profile.hips=Number(document.getElementById("ob-hips").value)||0;
-      S.profile.shoulders=Number(document.getElementById("ob-shoulders").value)||0;
-      S.profile.bodyFat=Number(document.getElementById("ob-bf").value)||0;
-      S.profile.startWt=S.profile.weight;
-      S.profile.goalWt=Number(document.getElementById("ob-gw").value)||S.profile.weight-20;
-      S.program.start=document.getElementById("ob-start").value||iso();
-      S.profile.prefs={...(S.profile.prefs||{}),experienceMonths:Number(document.getElementById("ob-exp").value)||0};
-      S.goals.fatLoss=Math.max(0,S.profile.startWt-S.profile.goalWt);
-      obStep=1;renderOB();
-    };
-  } else if(obStep===1){
-    const areas=["Brand New to Training","Bench Press","Squat","Deadlift","Powerlifting Total","5K Running","Run a Race (5K/10K/Half)","Lose Weight","Build Muscle","Improve Conditioning","General Fitness","Hourglass Shape","Glute Shelf","Posture & Back Tone","Pilates Plus Tone","Home-Friendly Workouts","Pregnancy Safe","Postpartum Recovery"];
+  if(step==="goals"){
     const sel=S.goals.focusAreas||[];
-    card.innerHTML=`<div class="ob-progress">${dots}</div>
-      <div class="ob-title">Your Goals</div><div class="ob-sub">Select everything you want to work on. We'll build your program around these.</div>
-      ${areas.map((a,i)=>`<div class="goal-option ${sel.includes(a)?"selected":""}" data-g="${a}">
-        <input type="checkbox" ${sel.includes(a)?"checked":""}><div><div style="font-weight:600;font-size:13px">${a}</div></div>
-      </div>`).join("")}
-      <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Continue</button></div>`;
-    document.querySelectorAll(".goal-option").forEach(el=>{el.onclick=()=>{el.classList.toggle("selected");el.querySelector("input").checked=el.classList.contains("selected")}});
-    document.getElementById("ob-back").onclick=()=>{obStep=0;renderOB()};
-    document.getElementById("ob-next").onclick=()=>{S.goals.focusAreas=[...document.querySelectorAll(".goal-option.selected")].map(e=>e.dataset.g);obStep=2;renderOB()};
-  } else if(obStep===2){
+    card.innerHTML=`${head("What are you training for?","Tap everything that matters. You can change this anytime — the program follows you.")}
+      <div class="ob-choice ${sel.includes(OB_BRAND_NEW)?"selected":""}" id="ob-brand-new">
+        <div class="ob-choice-title">I'm brand new — coach me from zero</div>
+        <div class="ob-choice-sub">No experience needed. We start light, explain every movement, and build up as you log.</div>
+      </div>
+      ${OB_GOAL_GROUPS.map(([g,items])=>`<div class="ob-group">${g}</div><div class="ob-goal-grid">${items.map(([a,hint])=>`<div class="ob-goal ${sel.includes(a)?"selected":""}" data-g="${a}">${a}<span class="ob-goal-hint">${hint}</span></div>`).join("")}</div>`).join("")}
+      ${navRow()}`;
+    const bn=document.getElementById("ob-brand-new");bn.onclick=()=>bn.classList.toggle("selected");
+    document.querySelectorAll(".ob-goal").forEach(el=>el.onclick=()=>el.classList.toggle("selected"));
+    bindNav(()=>{
+      const picked=[...document.querySelectorAll(".ob-goal.selected")].map(e=>e.dataset.g);
+      if(document.getElementById("ob-brand-new").classList.contains("selected"))picked.unshift(OB_BRAND_NEW);
+      S.goals.focusAreas=picked.length?picked:["General Fitness"];
+      obStep++;renderOB();
+    });
+  } else if(step==="experience"){
+    const em=Number((S.profile.prefs||{}).experienceMonths)||0;
+    const brandNew=(S.goals.focusAreas||[]).includes(OB_BRAND_NEW);
+    const curMode=(S.profile.prefs||{}).uiMode||((brandNew||em<6)?"coached":"pro");
+    card.innerHTML=`${head("How experienced are you?","Sets your starting intensity — and how much detail the app shows.")}
+      ${[[0,"New to training","Under 6 months of consistent training — or coming back from a long break."],[12,"Trained before","6–18 months — you know the main lifts."],[36,"Advanced","18+ months of structured training — you track your numbers."]].map(([v,t,s])=>`<div class="ob-choice ob-exp ${(v===0&&em<6)||(v===12&&em>=6&&em<18)||(v===36&&em>=18)?"selected":""}" data-v="${v}"><div class="ob-choice-title">${t}</div><div class="ob-choice-sub">${s}</div></div>`).join("")}
+      <div class="ob-group">Your app style — switch anytime in Settings</div>
+      <div class="ob-mode-grid">
+        <div class="ob-choice ob-mode ${curMode==="coached"?"selected":""}" data-m="coached"><div class="ob-choice-title">Coached</div><div class="ob-choice-sub">Simple screens, plain language, one clear next step.</div></div>
+        <div class="ob-choice ob-mode ${curMode==="pro"?"selected":""}" data-m="pro"><div class="ob-choice-title">Pro</div><div class="ob-choice-sub">Every number — percentages, e1RM trends, full data.</div></div>
+      </div>
+      <div style="margin-top:14px"><label>Bodyweight (optional)</label><input id="ob-wt" type="number" inputmode="decimal" value="${S.profile.weight||""}" placeholder="Estimates your starting weights until you log"></div>
+      ${navRow()}`;
+    let modeTouched=false;
+    const expEls=[...document.querySelectorAll(".ob-exp")];
+    const modeEls=[...document.querySelectorAll(".ob-mode")];
+    const selectMode=m=>modeEls.forEach(x=>x.classList.toggle("selected",x.dataset.m===m));
+    expEls.forEach(el=>el.onclick=()=>{expEls.forEach(x=>x.classList.remove("selected"));el.classList.add("selected");if(!modeTouched)selectMode(el.dataset.v==="0"?"coached":"pro");});
+    modeEls.forEach(el=>el.onclick=()=>{modeTouched=true;selectMode(el.dataset.m);});
+    bindNav(()=>{
+      const exp=Number((expEls.find(x=>x.classList.contains("selected"))||{dataset:{v:"0"}}).dataset.v)||0;
+      const mode=(modeEls.find(x=>x.classList.contains("selected"))||{dataset:{m:"coached"}}).dataset.m;
+      const wt=Number(document.getElementById("ob-wt").value)||0;
+      if(wt>0){S.profile.weight=wt;if(!S.profile.startWt)S.profile.startWt=wt;}
+      S.profile.prefs={...(S.profile.prefs||{}),experienceMonths:exp,uiMode:mode};
+      obStep++;renderOB();
+    });
+  } else if(step==="schedule"){
+    const selDays=S.schedule.days||[1,2,3,4,5];
+    const curSex=S.profile.onboarded?(S.profile.sex||"unspecified"):"unspecified";
+    card.innerHTML=`${head("When can you train?","Real life wins — the program bends around your week, not the other way round.")}
+      <label>Training days (tap to toggle)</label>
+      <div class="row" style="gap:8px;margin-bottom:14px">${[1,2,3,4,5,6].map(d=>`<div class="day-toggle ${selDays.includes(d)?"on":""}" data-d="${d}">${DAYS[d].slice(0,3)}</div>`).join("")}</div>
+      <div class="grid2">
+        <div><label>Minutes per session</label><select id="ob-mins">${[30,45,60,75,90].map(m=>`<option value="${m}" ${S.schedule.sessionMin===m?"selected":""}>${m} min${m===30?" (quick)":""}</option>`).join("")}</select></div>
+        <div><label>Session style</label><select id="ob-style"><option value="balanced" ${(S.profile.prefs||{}).style!=="burner"?"selected":""}>Balanced strength + cardio</option><option value="burner" ${(S.profile.prefs||{}).style==="burner"?"selected":""}>10–20 min burners</option></select></div>
+      </div>
+      <div style="margin-top:12px"><label>Equipment you have (optional — we auto-swap what you lack)</label>
+        <div class="row" id="ob-eq-inv" style="gap:8px;flex-wrap:wrap;margin-top:6px">${[["barbell","Barbell"],["dumbbell","Dumbbells"],["kettlebell","Kettlebell"],["machine","Machines"],["bands","Bands"],["pullup_bar","Pull-up bar"],["bench","Bench"]].map(([k,l])=>{const inv=(S.profile.prefs||{}).equipmentInv;const on=Array.isArray(inv)?inv.includes(k):((S.profile.prefs||{}).equipment!=="home");return`<span class="eq-toggle" data-eq="${k}" data-on="${on?1:0}" style="padding:6px 11px;border-radius:8px;border:1px solid ${on?"var(--ice)":"var(--border)"};font-size:12px;cursor:pointer;${on?"background:var(--ice);color:#06202b":"color:var(--text2)"}">${l}</span>`}).join("")}</div></div>
+      <div class="ob-group">Optional details</div>
+      <div class="grid2">
+        <div><label>Profile type</label><select id="ob-sex"><option value="unspecified" ${curSex==="unspecified"?"selected":""}>Prefer not to say</option><option value="female" ${curSex==="female"?"selected":""}>Woman</option><option value="male" ${curSex==="male"?"selected":""}>Man</option></select></div>
+        <div><label>Life stage</label><select id="ob-life"><option value="general" ${((S.profile.prefs||{}).lifeStage||"general")==="general"?"selected":""}>General</option><option value="pregnancy" ${(S.profile.prefs||{}).lifeStage==="pregnancy"?"selected":""}>Pregnancy safe</option><option value="postpartum" ${(S.profile.prefs||{}).lifeStage==="postpartum"?"selected":""}>Postpartum (gentle core)</option></select></div>
+      </div>
+      <p class="ob-skip-note">That's it — no measurements, no max-testing. Anything else we need, we'll ask when it actually matters.</p>
+      ${navRow()}`;
+    document.querySelectorAll(".day-toggle").forEach(t=>t.onclick=()=>t.classList.toggle("on"));
+    document.querySelectorAll(".eq-toggle").forEach(t=>t.onclick=()=>{const on=t.dataset.on==="1";t.dataset.on=on?"0":"1";t.style.background=on?"":"var(--ice)";t.style.color=on?"var(--text2)":"#06202b";t.style.borderColor=on?"var(--border)":"var(--ice)";});
+    bindNav(()=>{
+      const days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);
+      S.schedule.days=days.length?days:[1,3,5];
+      S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;
+      const inv=[...document.querySelectorAll(".eq-toggle")].filter(t=>t.dataset.on==="1").map(t=>t.dataset.eq);
+      const eqStr=(inv.includes("barbell")||inv.includes("machine"))?"gym":"home";
+      S.profile.sex=document.getElementById("ob-sex").value;
+      S.profile.prefs={...(S.profile.prefs||{}),equipment:eqStr,equipmentInv:inv,style:document.getElementById("ob-style").value,lifeStage:document.getElementById("ob-life").value};
+      obChosenPlan=null;obStep++;renderOB();
+    });
+  } else if(step==="numbers"){
     const fa=S.goals.focusAreas||[];
-    const curPrimary=(S.profile.prefs||{}).primaryGoal||"";
     const isPL=fa.includes("Powerlifting Total");
     const wantsBench=fa.includes("Bench Press")||isPL;
     const wantsSquat=fa.includes("Squat")||isPL;
     const wantsDead=fa.includes("Deadlift")||isPL;
     const wantsRun=fa.includes("5K Running")||fa.includes("Run a Race (5K/10K/Half)");
-    card.innerHTML=`<div class="ob-progress">${dots}</div>
-      <div class="ob-title">Current Fitness</div><div class="ob-sub">Enter your current maxes / times. Leave blank if unknown — we'll estimate.</div>
-      ${fa.length>1?`<div style="margin-bottom:14px"><label>Your #1 priority</label><select id="ob-primary"><option value="">Auto (balance all goals)</option>${fa.map(a=>`<option value="${a}" ${curPrimary===a?"selected":""}>${a}</option>`).join("")}</select><p style="font-size:11px;color:var(--text3);margin-top:4px">We'll bias your program toward this when goals compete.</p></div>`:""}
-      ${wantsBench?`<div style="margin-bottom:10px"><label>Bench Press 1RM (lb)</label><input id="ob-b" type="number" value="${S.profile.bench1RM||""}" placeholder="e.g. 215"></div>
-        <div style="margin-bottom:10px"><label>Bench Goal (lb)</label><input id="ob-bg" type="number" value="${S.goals.bench||""}" placeholder="e.g. 225"></div>`:""}
-      ${wantsSquat?`<div style="margin-bottom:10px"><label>Squat 1RM (lb)</label><input id="ob-sq" type="number" value="${S.profile.squat1RM||""}" placeholder="e.g. 265"></div>
-        <div style="margin-bottom:10px"><label>Squat Goal (lb)</label><input id="ob-sqg" type="number" value="${S.goals.squat||""}" placeholder="e.g. 315"></div>`:""}
-      ${wantsDead?`<div style="margin-bottom:10px"><label>Deadlift 1RM (lb)</label><input id="ob-dl" type="number" value="${S.profile.dead1RM||""}" placeholder="e.g. 386"></div>
-        <div style="margin-bottom:10px"><label>Deadlift Goal (lb)</label><input id="ob-dlg" type="number" value="${S.goals.deadlift||""}" placeholder="e.g. 405"></div>`:""}
-      ${wantsRun?`<div style="margin-bottom:10px"><label>Current 4-Mile Time (mm:ss)</label><input id="ob-run" value="${S.profile.run4mi?mmss(S.profile.run4mi):""}" placeholder="e.g. 35:57"></div>
-        <div style="margin-bottom:10px"><label>5K Goal Time (mm:ss)</label><input id="ob-5kg" value="${S.goals.fiveK?mmss(S.goals.fiveK):""}" placeholder="e.g. 20:00"></div>`:""}
-      ${!wantsBench&&!wantsSquat&&!wantsDead&&!wantsRun?`<p style="color:var(--text3);font-size:13px">No specific targets needed for your selected goals. We'll build a balanced program.</p>`:""}
-      <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Continue</button></div>`;
-    document.getElementById("ob-back").onclick=()=>{obStep=1;renderOB()};
-    document.getElementById("ob-next").onclick=()=>{
-      const fa=S.goals.focusAreas;const g=v=>Number((document.getElementById(v)||{}).value)||0;const gm=v=>parseMM((document.getElementById(v)||{}).value);
-      const isPL=fa.includes("Powerlifting Total");
-      const primEl=document.getElementById("ob-primary");if(primEl)S.profile.prefs={...(S.profile.prefs||{}),primaryGoal:primEl.value||""};
-      if(fa.includes("Bench Press")||isPL){S.profile.bench1RM=g("ob-b")||135;S.goals.bench=g("ob-bg")||S.profile.bench1RM+20}
-      if(fa.includes("Squat")||isPL){S.profile.squat1RM=g("ob-sq")||185;S.goals.squat=g("ob-sqg")||S.profile.squat1RM+30}
-      if(fa.includes("Deadlift")||isPL){S.profile.dead1RM=g("ob-dl")||225;S.goals.deadlift=g("ob-dlg")||S.profile.dead1RM+30}
-      if(fa.includes("5K Running")||fa.includes("Run a Race (5K/10K/Half)")){S.profile.run4mi=gm("ob-run")||2400;S.goals.fiveK=gm("ob-5kg")||1200}
-      if(!S.profile.bench1RM)S.profile.bench1RM=Math.round(S.profile.weight*.65);
-      if(!S.profile.squat1RM)S.profile.squat1RM=Math.round(S.profile.weight*.85);
-      if(!S.profile.dead1RM)S.profile.dead1RM=Math.round(S.profile.weight*1.2);
-      if(!S.profile.run4mi)S.profile.run4mi=2400;
-      obStep=3;renderOB();
-    };
-  } else if(obStep===3){
-    const selDays=S.schedule.days||[1,2,3,4,5];
-    card.innerHTML=`<div class="ob-progress">${dots}</div>
-      <div class="ob-title">Your Schedule</div><div class="ob-sub">Which days can you train? How much time per session?</div>
-      <label>Training Days (tap to toggle)</label>
-      <div class="row" style="gap:8px;margin-bottom:14px">${[1,2,3,4,5,6].map(d=>`<div class="day-toggle ${selDays.includes(d)?"on":""}" data-d="${d}">${DAYS[d].slice(0,3)}</div>`).join("")}</div>
-      <div><label>Minutes per Session</label><select id="ob-mins"><option value="30" ${S.schedule.sessionMin===30?"selected":""}>30 min (quick)</option><option value="45" ${S.schedule.sessionMin===45?"selected":""}>45 min</option><option value="60" ${S.schedule.sessionMin===60?"selected":""}>60 min</option><option value="75" ${S.schedule.sessionMin===75?"selected":""}>75 min</option><option value="90" ${S.schedule.sessionMin===90?"selected":""}>90 min</option></select></div>
-      <div class="grid2" style="margin-top:10px">
-        <div><label>Session Style</label><select id="ob-style"><option value="balanced" ${(S.profile.prefs||{}).style!=="burner"?"selected":""}>Balanced Strength + Cardio</option><option value="burner" ${(S.profile.prefs||{}).style==="burner"?"selected":""}>10-20 min Burners</option></select></div>
-        <div><label>Life Stage</label><select id="ob-life"><option value="general" ${(S.profile.prefs||{}).lifeStage==="general"||!(S.profile.prefs||{}).lifeStage?"selected":""}>General</option><option value="pregnancy" ${(S.profile.prefs||{}).lifeStage==="pregnancy"?"selected":""}>Pregnancy Safe</option><option value="postpartum" ${(S.profile.prefs||{}).lifeStage==="postpartum"?"selected":""}>Postpartum (gentle core)</option></select></div>
-      </div>
-      <div style="margin-top:12px"><label>Equipment you have (optional — fine-tunes swaps)</label>
-        <div class="row" id="ob-eq-inv" style="gap:8px;flex-wrap:wrap;margin-top:6px">${[["barbell","Barbell"],["dumbbell","Dumbbells"],["kettlebell","Kettlebell"],["machine","Machines"],["bands","Bands"],["pullup_bar","Pull-up bar"],["bench","Bench"]].map(([k,l])=>{const inv=(S.profile.prefs||{}).equipmentInv;const on=Array.isArray(inv)?inv.includes(k):((S.profile.prefs||{}).equipment!=="home");return`<span class="eq-toggle" data-eq="${k}" data-on="${on?1:0}" style="padding:6px 11px;border-radius:8px;border:1px solid ${on?"var(--ice)":"var(--border)"};font-size:12px;cursor:pointer;${on?"background:var(--ice);color:#06202b":"color:var(--text2)"}">${l}</span>`}).join("")}</div>
-        <p style="font-size:11px;color:var(--text3);margin-top:4px">Any move you lack gear for is automatically swapped for one you can do.</p></div>
-      ${S.profile.sex==="female"?`<div style="margin-top:10px"><label>Women's Program Emphasis</label><select id="ob-wm"><option value="auto" ${((S.profile.prefs||{}).womenMode||"auto")==="auto"?"selected":""}>Auto (from goals)</option><option value="hourglass" ${(S.profile.prefs||{}).womenMode==="hourglass"?"selected":""}>Hourglass Sculpt</option><option value="glute_shelf" ${(S.profile.prefs||{}).womenMode==="glute_shelf"?"selected":""}>Glute Shelf Builder</option><option value="posture" ${(S.profile.prefs||{}).womenMode==="posture"?"selected":""}>Posture + Back Tone</option><option value="pilates" ${(S.profile.prefs||{}).womenMode==="pilates"?"selected":""}>Pilates Plus Tone</option><option value="home" ${(S.profile.prefs||{}).womenMode==="home"?"selected":""}>Home-Friendly Minimal Equipment</option></select></div>`:""}
-      <div class="row" style="margin-top:16px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-fire" id="ob-next" style="flex:1">Continue</button></div>`;
-    document.querySelectorAll(".day-toggle").forEach(t=>t.onclick=()=>t.classList.toggle("on"));
-    document.querySelectorAll(".eq-toggle").forEach(t=>t.onclick=()=>{const on=t.dataset.on==="1";t.dataset.on=on?"0":"1";t.style.background=on?"":"var(--ice)";t.style.color=on?"var(--text2)":"#06202b";t.style.borderColor=on?"var(--border)":"var(--ice)";});
-    document.getElementById("ob-back").onclick=()=>{obStep=2;renderOB()};
-    document.getElementById("ob-next").onclick=()=>{S.schedule.days=[...document.querySelectorAll(".day-toggle.on")].map(e=>+e.dataset.d);S.schedule.sessionMin=Number(document.getElementById("ob-mins").value)||45;const inv=[...document.querySelectorAll(".eq-toggle")].filter(t=>t.dataset.on==="1").map(t=>t.dataset.eq);const eqStr=(inv.includes("barbell")||inv.includes("machine"))?"gym":"home";S.profile.prefs={...(S.profile.prefs||{}),equipment:eqStr,equipmentInv:inv,style:document.getElementById("ob-style").value,lifeStage:document.getElementById("ob-life").value,womenMode:(document.getElementById("ob-wm")||{value:(S.profile.prefs||{}).womenMode||"auto"}).value};obChosenPlan=null;obStep=4;renderOB();};
-  } else if(obStep===4){
+    card.innerHTML=`${head("Know your numbers?","All optional. Leave anything blank and we estimate from bodyweight, then self-correct as you log.")}
+      ${wantsBench?`<div class="grid2" style="margin-bottom:10px"><div><label>Bench 1RM (lb)</label><input id="ob-b" type="number" value="${S.profile.bench1RM||""}" placeholder="e.g. 215"></div><div><label>Bench goal</label><input id="ob-bg" type="number" value="${S.goals.bench||""}" placeholder="e.g. 225"></div></div>`:""}
+      ${wantsSquat?`<div class="grid2" style="margin-bottom:10px"><div><label>Squat 1RM (lb)</label><input id="ob-sq" type="number" value="${S.profile.squat1RM||""}" placeholder="e.g. 265"></div><div><label>Squat goal</label><input id="ob-sqg" type="number" value="${S.goals.squat||""}" placeholder="e.g. 315"></div></div>`:""}
+      ${wantsDead?`<div class="grid2" style="margin-bottom:10px"><div><label>Deadlift 1RM (lb)</label><input id="ob-dl" type="number" value="${S.profile.dead1RM||""}" placeholder="e.g. 386"></div><div><label>Deadlift goal</label><input id="ob-dlg" type="number" value="${S.goals.deadlift||""}" placeholder="e.g. 405"></div></div>`:""}
+      ${wantsRun?`<div class="grid2" style="margin-bottom:10px"><div><label>4-mile time (mm:ss)</label><input id="ob-run" value="${S.profile.run4mi?mmss(S.profile.run4mi):""}" placeholder="e.g. 35:57"></div><div><label>5K goal (mm:ss)</label><input id="ob-5kg" value="${S.goals.fiveK?mmss(S.goals.fiveK):""}" placeholder="e.g. 20:00"></div></div>`:""}
+      ${navRow()}`;
+    bindNav(()=>{
+      const g=v=>Number((document.getElementById(v)||{}).value)||0;const gm=v=>parseMM((document.getElementById(v)||{}).value);
+      if(wantsBench){if(g("ob-b"))S.profile.bench1RM=g("ob-b");if(g("ob-bg"))S.goals.bench=g("ob-bg");}
+      if(wantsSquat){if(g("ob-sq"))S.profile.squat1RM=g("ob-sq");if(g("ob-sqg"))S.goals.squat=g("ob-sqg");}
+      if(wantsDead){if(g("ob-dl"))S.profile.dead1RM=g("ob-dl");if(g("ob-dlg"))S.goals.deadlift=g("ob-dlg");}
+      if(wantsRun){if(gm("ob-run"))S.profile.run4mi=gm("ob-run");if(gm("ob-5kg"))S.goals.fiveK=gm("ob-5kg");}
+      obStep++;renderOB();
+    });
+  } else {
+    obEnsureEstimates();
+    const fa=S.goals.focusAreas||[];
     const recs=recommendedPlans(3);
     if(obChosenPlan==null||!recs.some(r=>r.id===obChosenPlan))obChosenPlan=recs.length?recs[0].id:0;
     const pid=obChosenPlan;const plan=PLANS[pid];const goal=plan.goal;
     const tDays=[...new Set(S.schedule.days||[1,2,3,4,5])].sort((a,b)=>a-b);
     const dayPreview=plan.slots.map((sl,i)=>{const d=tDays[i];return d!=null?`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-weight:600;font-size:12px">${DAYS[d]} (slot ${i+1})</span><span style="font-size:12px;color:var(--text2)">${mkDay(sl,1).focus.replace(" (DELOAD)","")}</span></div>`:""}).join("");
     const phaseLine=`${goalPhaseLabel(goal,1)} (wk 1-4) → ${goalPhaseLabel(goal,5)} (5-8) → ${goalPhaseLabel(goal,9)} (9-12) → ${goalPhaseLabel(goal,13)} (13${peakIsMaxTest(goal)?", max test":""}) · Deload wk 4 & 8`;
+    const curPrimary=(S.profile.prefs||{}).primaryGoal||"";
     const recCards=recs.map(r=>`<div class="ob-rec" data-pid="${r.id}" style="border:1px solid ${r.id===pid?"var(--mint)":"var(--border)"};border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;${r.id===pid?"background:rgba(80,220,160,.07)":""}">
       <div style="display:flex;align-items:center;gap:8px"><span style="width:16px;height:16px;border-radius:50%;border:2px solid ${r.id===pid?"var(--mint)":"var(--border-lit)"};flex:none;${r.id===pid?"background:var(--mint)":""}"></span><span style="font-weight:600;font-size:13px;color:var(--text)">${r.plan.name}</span></div>
       <div style="font-size:11px;color:var(--text3);margin:5px 0 0 24px">Why this fits: ${r.why}</div></div>`).join("");
-    card.innerHTML=`<div class="ob-progress">${dots}</div>
-      <div class="ob-title">Your Top Matches</div><div class="ob-sub">Scored against your goals, schedule, equipment, and experience. Pick the one that feels right.</div>
+    card.innerHTML=`${head("Your program, matched","Scored against your goals, schedule, equipment, and experience. Pick the one that feels right.")}
+      ${fa.length>1?`<div style="margin-bottom:12px"><label>Your #1 priority (when goals compete)</label><select id="ob-primary"><option value="">Auto — balance all goals</option>${fa.map(a=>`<option value="${a}" ${curPrimary===a?"selected":""}>${a}</option>`).join("")}</select></div>`:""}
       ${recCards}
       <div class="card" style="border-color:var(--border-lit);margin:6px 0 14px"><div style="font-size:11px;color:var(--text3);margin-bottom:8px">Week-1 preview · ${plan.slots.length} session${plan.slots.length!==1?"s":""}/week</div>
         ${dayPreview}
         <div style="margin-top:8px;font-size:10px;color:var(--text3)">${phaseLine}</div>
       </div>
-      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Loads auto-calculate from your maxes and get smarter as you log. Change plans anytime in Settings.</p>
-      <div class="row" style="margin-top:8px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-mint" id="ob-generate" style="flex:1">Begin this program</button></div>`;
+      <div style="margin-bottom:12px"><label>What should we call you? (optional)</label><input id="ob-name" value="${S.profile.name||""}" placeholder="Your name" autocomplete="given-name"></div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Weights auto-calculate and get smarter every time you log. Change plans anytime in Settings.</p>
+      <div class="row" style="margin-top:8px"><button class="btn btn-ghost" id="ob-back">Back</button><button class="btn btn-mint" id="ob-generate" style="flex:1">Start my program</button></div>`;
+    const prim=document.getElementById("ob-primary");
+    if(prim)prim.onchange=()=>{S.profile.prefs={...(S.profile.prefs||{}),primaryGoal:prim.value||""};obChosenPlan=null;renderOB();};
     document.querySelectorAll(".ob-rec").forEach(el=>el.onclick=()=>{obChosenPlan=Number(el.dataset.pid);renderOB();});
-    document.getElementById("ob-back").onclick=()=>{obStep=3;renderOB()};
+    document.getElementById("ob-back").onclick=()=>{obStep=Math.max(0,obStep-1);renderOB()};
     document.getElementById("ob-generate").onclick=async()=>{
+      const nm=(document.getElementById("ob-name").value||"").trim();
+      if(nm)S.profile.name=nm;else if(!S.profile.name)S.profile.name="Athlete";
       S.planId=pid;
       S.profile.onboarded=true;
       await persist();
       hideOnboarding();
-      toast(`You're set. The 13-week block “${plan.name}” is active.`);
+      toast(`You're set${nm?", "+nm:""}. "${plan.name}" starts now — first session is on your Today tab.`);
     };
   }
 }
@@ -2545,7 +2580,7 @@ function renderTabBar(){
   const nav=document.getElementById("mainNav");
   bar.hidden=!nav||nav.style.display==="none";
   bar.innerHTML=navTabs().map(([id,lb,hint,ic])=>`<button class="tabbar-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""}><span class="tabbar-ic" aria-hidden="true">${ic}</span>${lb}${id===TAB_TRAIN?trainStatusBadge("tabbar-badge"):""}</button>`).join("");
-  bar.querySelectorAll(".tabbar-btn").forEach(b=>b.onclick=()=>{triggerHaptic("light");location.hash=b.dataset.t;});
+  bar.querySelectorAll(".tabbar-btn").forEach(b=>b.onclick=()=>{triggerHaptic("light");const t=b.dataset.t;if(location.hash==="#"+t){tab=t;render();}else location.hash=t;});
 }
 function renderNav(){
   renderNavBanners();
@@ -2553,7 +2588,7 @@ function renderNav(){
   el.innerHTML=`<div class="logo">Hybrid<span class="logo-tag">Training</span></div><button type="button" class="nav-search-btn" id="nav-global-search" aria-label="Open search" title="Search"><svg class="nav-search-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></button>`+navTabs().map(([id,lb,hint,ic])=>`<button class="nav-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""} style="position:relative"><span class="nav-ic" aria-hidden="true">${ic}</span><span class="nav-lb">${lb}</span>${id===TAB_TRAIN?trainStatusBadge("nav-train-status"):""}</button>`).join("")+
     `<div class="nav-pill" id="navPill">Week ${w}/13 · ${phaseName(w)}</div>`+
     `<span class="nav-sync-indicator ${typeof navigator!=="undefined"&&navigator.onLine?"online":"offline"}" id="navSyncInd" title="${typeof navigator!=="undefined"&&navigator.onLine?"Synced":"Offline"}">${typeof navigator!=="undefined"&&navigator.onLine?"●":"○"}</span>`;
-  el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{location.hash=b.dataset.t;});
+  el.querySelectorAll(".nav-btn[data-t]").forEach(b=>b.onclick=()=>{const t=b.dataset.t;if(location.hash==="#"+t){tab=t;render();}else location.hash=t;});
   const gs=document.getElementById("nav-global-search");if(gs)gs.onclick=()=>openGlobalSearch();
   renderTabBar();
 }
@@ -4488,19 +4523,24 @@ function renderToday(){
   }
   return`<div id="p-today" class="${plan.exs.length?"train-session-active":""}">
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
-  <div class="hero-title" style="font-size:20px;margin-bottom:4px">${DAYS[d.getDay()]}</div>
-  <div class="breadcrumb">${bc}</div>
-  ${bpos?`<div style="font-size:11px;color:var(--text3);margin-bottom:6px">${bpos}</div>`:""}
   ${deloadBannerHtml(w)}
   ${isTaperWeek(w)&&!isDeloadWeek(w)?`<div class="card section taper-banner"><div class="taper-banner-icon">📉</div><div class="taper-banner-body"><div class="taper-banner-title">Taper Week ${w}</div><div class="taper-banner-text">Volume reduced by 40% while intensity stays high. This primes your nervous system for ${w===12?"next week's Test":"the Peak phase"}.</div></div></div>`:""}
+  <div class="card today-hero section">
+    <div class="today-hero-kicker">${DAYS[d.getDay()]}${dayIso===iso()?"":" · "+dayIso}</div>
+    <div class="today-hero-title">${(plan.focus||(plan.exs.length?"Training day":"Recovery day")).replace(" (DELOAD)","")}</div>
+    <div class="today-hero-sub">${coachedModeOn()?`Week ${w} of 13`:bc}</div>
+    ${plan.exs.length?`<div class="today-hero-meta">~${qm>0?qm:(S.schedule.sessionMin||45)} min · ${plan.exs.length} exercise${plan.exs.length!==1?"s":""}${bpos&&!coachedModeOn()?` · ${bpos}`:""}</div>
+    <div class="today-next"><div class="today-next-label">Up next</div>${plan.exs.slice(0,3).map((ex,i)=>{const e=exById(ex.eid);return`<div class="today-next-row"><span class="today-next-num">${i+1}</span><span class="today-next-name">${e?e.name:ex.eid}</span>${coachedModeOn()?"":`<span class="today-next-rx">${formatPrescribedRx(ex)}</span>`}</div>`}).join("")}${plan.exs.length>3?`<div class="today-next-more">+ ${plan.exs.length-3} more below</div>`:""}</div>`
+    :`<div class="today-hero-meta">Nothing scheduled — recovery is part of the program.</div>`}
+    ${plan.exs.length&&trainFocusIdx===null?`${plan.deloadHint?`<div class="today-hero-note">${escPlanChip(plan.deloadHint)}</div>`:""}<div id="readiness-mount"></div><button type="button" class="btn btn-cta btn-block today-start" id="train-begin-session">Start session</button><p class="today-hero-hint">One exercise at a time — fewer distractions while you train.</p>`:""}
+  </div>
+  <div class="today-quick-row">
+    <button type="button" class="chip-action" id="train-bring-friend">👥 Bring a friend</button>
+    <button type="button" class="chip-action" id="train-reschedule">📅 Reschedule</button>
+    ${plan.exs.length?`<button type="button" class="chip-action ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit focus":"Focus mode"}</button><button type="button" class="chip-action ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost on":"Ghost"}</button>`:""}
+  </div>
   ${nextTrainingDotsHtml(6)}
-  <div id="weather-slot"></div>
-  ${planHasRun(plan)?runZonesPanelHtml():""}
-  <button type="button" class="btn btn-secondary-solid btn-block" id="train-bring-friend" style="margin:2px 0 8px">👥 Bring a friend — lift together</button>
-  <button type="button" class="btn btn-secondary-solid btn-block" id="train-reschedule" style="margin:2px 0 8px">📅 Plan / reschedule this week</button>
-  ${fuelingAdviceHtml(plan)}
-  ${plan.exs.length?`<div class="power-focus-bar"><span class="power-focus-label">${powerFocusOn?"Focus Mode":"Session"}</span><button type="button" class="power-focus-toggle ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit Focus":"Focus Mode"}</button><button type="button" class="ghost-mode-toggle ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost On":"Ghost"}</button></div>`:""}
-  ${plan.exs.length&&trainFocusIdx===null?`${plan.deloadHint?`<div class="card section" style="border-color:var(--gold);background:rgba(212,175,55,.06)"><div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:2px">⚠️ Progress check</div><p style="font-size:12px;color:var(--text2);line-height:1.45;margin:0">${escPlanChip(plan.deloadHint)}</p></div>`:""}<div id="readiness-mount"></div><div class="section" style="margin-bottom:2px"><button type="button" class="btn btn-cta btn-block" id="train-begin-session">Begin session</button><p style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center;line-height:1.45">One exercise at a time — fewer distractions while you train.</p></div>`:""}
+  <details class="card section train-extras"><summary>Conditions, fueling${planHasRun(plan)?" & run zones":""}</summary><div class="train-extras-body"><div id="weather-slot"></div>${planHasRun(plan)?runZonesPanelHtml():""}${fuelingAdviceHtml(plan)}</div></details>
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does catch-up work?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p></details><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">Why am I seeing this?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p></details><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today" style="margin-top:8px">Add to today</button></div>`:""}
@@ -5903,7 +5943,14 @@ function tryThemePreviewBoot(){
   if(!t)return false;
   const coached=t==="coached"||t==="female"||t==="feminine"||t==="woman"||t==="simple";
   const pro=t==="pro"||t==="male"||t==="masculine"||t==="man";
-  if(!coached&&!pro)return false;
+  const onboard=t==="onboarding"||t==="ob";
+  if(!coached&&!pro&&!onboard)return false;
+  if(onboard){
+    S.profile.onboarded=false;
+    const auth=document.getElementById("authScreen");if(auth)auth.style.display="none";
+    showOnboarding();
+    return true;
+  }
   S.profile.onboarded=true;
   const acc=(q.get("accent")||"").toLowerCase();
   S.profile.prefs={...(S.profile.prefs||{}),uiMode:coached?"coached":"pro",accentTheme:ACCENT_THEMES.includes(acc)?acc:"ember"};

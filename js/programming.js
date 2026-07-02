@@ -356,9 +356,9 @@ function scorePlan(plan, ctx) {
   if (plan.goal === goal) s += 100;
   else if (goal === "hybrid" && plan.goal === "strength" || goal === "strength" && plan.goal === "hybrid") s += 40;
   else if (goal === "fat_loss" && plan.goal === "hybrid" || goal === "muscle" && plan.goal === "strength") s += 30;
-  const wantWomen = sex === "female";
-  const isWomen = /Women/i.test(plan.name);
-  if (wantWomen === isWomen) s += 30;
+  const wantSculpt = ctx.sculptGoals != null ? ctx.sculptGoals : sex === "female";
+  const isSculpt = plan.variant ? plan.variant === "sculpt" : /Women/i.test(plan.name);
+  if (wantSculpt === isSculpt) s += 30;
   const days = Math.max(1, (trainingDays || []).length || 5);
   const slots = (plan.slots || []).length || 3;
   s -= Math.abs(slots - days) * 8;
@@ -403,6 +403,9 @@ function whyPlan(plan, ctx) {
   if ((ctx.experienceMonths || 0) >= 18 === /Advanced/i.test(plan.name)) {
     bits.push(/Advanced/i.test(plan.name) ? "advanced progression" : "beginner-friendly ramp");
   }
+  const wantSculpt = ctx.sculptGoals != null ? ctx.sculptGoals : ctx.sex === "female";
+  const isSculpt = plan.variant ? plan.variant === "sculpt" : /Women/i.test(plan.name);
+  if (wantSculpt && isSculpt) bits.push("glute & curve emphasis");
   return bits.length ? bits.join(" \xB7 ") : "balanced general fit";
 }
 
