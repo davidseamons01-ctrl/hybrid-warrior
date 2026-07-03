@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h5f97f2014da7";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h4c678e8a1e8c";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h5f97f2014da7";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h5f97f2014da7";
+} from "./programming.js?v=h4c678e8a1e8c";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h4c678e8a1e8c";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -5789,6 +5789,34 @@ async function planReorderExercise(dateIso,fromEid,toEid){
 // ═══════════════════════════════════════════════════════════
 //  RENDER — SETTINGS
 // ═══════════════════════════════════════════════════════════
+// At-a-glance preview of any of the 128 programs: session types this week +
+// the 13-week phase arc + quick tags. Updates live as the plan dropdown changes.
+function planPreviewHtml(pid){
+  const plan=PLANS[pid];if(!plan)return"";
+  const goal=plan.goal;
+  const nSess=plan.slots.length;
+  const isExpress=/Express/i.test(plan.name);
+  const isAdv=/Advanced/i.test(plan.name);
+  const isSculpt=plan.variant==="sculpt";
+  const tags=[`${nSess}×/week`,isExpress?"~30-min sessions":"full sessions",isAdv?"advanced":"foundation",isSculpt?"glute/curve emphasis":"barbell classic"];
+  let sessionRows="";
+  try{
+    sessionRows=plan.slots.map((sl,i)=>{
+      const day=mkDay(sl,1);
+      const focus=(day.focus||"Session").replace(" (DELOAD)","").split("·")[0].trim();
+      const nEx=(day.exs||[]).length;
+      return`<div class="pp-sess"><span class="pp-sess-num">${i+1}</span><span class="pp-sess-focus">${focus}</span>${nEx?`<span class="pp-sess-ex">${nEx} ex</span>`:""}</div>`;
+    }).join("");
+  }catch(e){sessionRows="";}
+  let phases="";
+  try{phases=`${goalPhaseLabel(goal,1)} → ${goalPhaseLabel(goal,5)} → ${goalPhaseLabel(goal,9)} → ${goalPhaseLabel(goal,13)}${peakIsMaxTest(goal)?" (max test)":""}`;}catch(e){phases="";}
+  return`<div class="plan-preview">
+    <div class="pp-tags">${tags.map(t=>`<span class="pp-tag">${t}</span>`).join("")}</div>
+    <div class="pp-label">A week in this program</div>
+    <div class="pp-sessions">${sessionRows}</div>
+    ${phases?`<div class="pp-label" style="margin-top:12px">13-week arc · deloads wk 4 &amp; 8</div><div class="pp-phases">${phases}</div>`:""}
+  </div>`;
+}
 function renderSettings(){
   const isFemale=S.profile.sex==="female";
   const run4Disp=S.profile.run4mi>0?mmss(S.profile.run4mi):"";
@@ -5808,9 +5836,11 @@ function renderSettings(){
       ${currentUser?`<div style="font-size:13px;font-weight:700;margin-bottom:4px">${currentUser.email}</div><div style="font-size:10px;color:var(--mint);margin-bottom:10px">Syncing to cloud</div><button class="btn btn-ghost btn-block" id="s-signout">Sign Out</button>`:`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">${offlineMode?"Offline mode":"Not connected"}</div>`}
       <div style="margin-top:12px"><label>Program start date</label><input type="date" id="s-pstart" value="${(S.program&&S.program.start)||iso()}"></div>
       <details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does the start date work?</summary><p style="font-size:10px;color:var(--text3);margin:6px 0 0;line-height:1.45">Session 1 = first allowed train day on or after this date (then your template continues in weekday order).</p></details>
-      <div style="margin-top:12px"><label>Current Plan (#${(S.planId||0)+1}/${PLANS.length})</label>
-        <select id="s-plan" class="settings-plan-select">${PLANS.map(p=>`<option value="${p.id}" ${p.id===S.planId?"selected":""}>${p.name}</option>`).join("")}</select></div>
-      <button class="btn btn-ice btn-block" id="s-plan-save" style="margin-top:6px">Switch Plan</button>
+      <div style="margin-top:12px"><label>Browse plans (#${(S.planId||0)+1}/${PLANS.length})</label>
+        <select id="s-plan" class="settings-plan-select">${PLANS.map(p=>`<option value="${p.id}" ${p.id===S.planId?"selected":""}>${p.name}</option>`).join("")}</select>
+        <p style="font-size:10px;color:var(--text3);margin-top:4px">Preview any of the ${PLANS.length} programs below — then Switch Plan to make it yours.</p></div>
+      <div id="plan-preview-mount">${planPreviewHtml(S.planId||0)}</div>
+      <button class="btn btn-ice btn-block" id="s-plan-save" style="margin-top:10px">Switch Plan</button>
       <div class="program-mgmt-card">
         <div class="program-mgmt-header"><div class="program-mgmt-icon">▶</div><div><div class="program-mgmt-title">Active Program</div><div class="program-mgmt-meta">${PLANS[S.planId||0].name} · Week ${S.program.week}/13 · ${(S.logs||[]).length} total logs</div></div></div>
         <div class="program-mgmt-actions">
@@ -5988,6 +6018,7 @@ function bindSettings(){
   const plBtn=document.getElementById("pl-calc"),plOut=document.getElementById("pl-out");
   if(plBtn&&plOut)plBtn.onclick=()=>{const total=Number(document.getElementById("pl-total").value)||0,bar=Number(document.getElementById("pl-bar").value)||(useMetric()?20:45);const o=runPlateCalc(total,bar);if(o.err){plOut.textContent=o.err;return}plOut.textContent=o.text};
   const so=document.getElementById("s-signout");if(so)so.onclick=async()=>{const ok=await showCustomModal("Sign out?","You can sign back in later. Local data on this device stays until you clear it.",{confirmLabel:"Sign out"});if(ok)doSignOut()};
+       {const sp=document.getElementById("s-plan"),ppm=document.getElementById("plan-preview-mount");if(sp&&ppm)sp.onchange=()=>{ppm.innerHTML=planPreviewHtml(Number(sp.value)||0);};}
        document.getElementById("s-plan-save").onclick=async()=>{const next=Number(document.getElementById("s-plan").value);const nm=PLANS[next].name;const ok=await showCustomModal("Switch plan?",`Change to <b>${nm}</b>? Week alignment stays the same; review Plan when ready.`,{confirmLabel:"Switch"});if(!ok)return;S.planId=next;const ps=document.getElementById("s-pstart");if(ps){const v=(ps.value||"").trim();if(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(parseIsoNoon(v).getTime()))S.program.start=v}await persist();render();toast("Switched to: "+nm)};
   const sTrial=document.getElementById("s-trial-plan");
   if(sTrial)sTrial.onclick=async()=>{const next=Number(document.getElementById("s-plan").value);const nm=PLANS[next].name;const ok=await showCustomModal("Start 1-week trial?",`Your current program (Week ${S.program.week}) will be parked and can be resumed anytime. You'll start <b>${nm}</b> from Week 1.`,{confirmLabel:"Start trial"});if(!ok)return;startTrialProgram(next);await persist();render();toast("Trial started — previous program parked.")};

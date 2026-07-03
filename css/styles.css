@@ -2042,3 +2042,27 @@ body.player-open{overflow:hidden}
 .pause-banner-text{font-size:12px;color:var(--text2);line-height:1.45}
 #today-impact-fold summary::after,.train-extras summary::after{content:"▸";float:right;color:var(--text3)}
 #today-impact-fold[open] summary::after{transform:none}
+
+/* ═══ Phase-7b: mobile overflow fix — long <select> options (esp. the 128-plan
+   picker) forced grid/flex tracks wider than the viewport on iOS Safari, which
+   dragged the whole card left and clipped the right edge. Let tracks + the
+   select shrink, and truncate the shown option. ═══ */
+.grid2>*,.grid3>*{min-width:0}
+.grid2,.grid3,.settings-fold-body,.settings-section,.card{min-width:0}
+select{max-width:100%}
+.settings-plan-select{width:100%;max-width:100%;min-width:0;text-overflow:ellipsis}
+.program-mgmt-meta,.parked-program-detail,.parked-program-name{overflow-wrap:anywhere}
+.program-mgmt-card,.program-mgmt-header{min-width:0}
+.program-mgmt-header>div{min-width:0}
+
+/* ═══ Phase-7b: plan preview card (browse the 128 programs at a glance) ═══ */
+.plan-preview{margin-top:12px;border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface)}
+.pp-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.pp-tag{font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:4px 9px;border-radius:999px;background:color-mix(in srgb,var(--accent) 14%,var(--surface));color:var(--accent);white-space:nowrap}
+.pp-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.pp-sessions{display:flex;flex-direction:column;gap:5px}
+.pp-sess{display:flex;align-items:center;gap:10px;font-size:13px;min-width:0}
+.pp-sess-num{width:18px;height:18px;border-radius:50%;background:color-mix(in srgb,var(--accent) 18%,var(--surface));color:var(--accent);font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.pp-sess-focus{font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pp-sess-ex{font-size:11px;color:var(--text3);flex:none}
+.pp-phases{font-size:12px;color:var(--text2);line-height:1.5;font-weight:600}
