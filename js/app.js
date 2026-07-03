@@ -1,10 +1,10 @@
-import "./exercises.js?v=h79f7d82d9f41";
-import { S, initFB } from "./state.js?v=h79f7d82d9f41";
-import { rollingPlanForDate } from "./engine.js?v=h79f7d82d9f41";
-import { bootstrapApp, render } from "./ui.js?v=h79f7d82d9f41";
+import "./exercises.js?v=h8d86b063d748";
+import { S, initFB } from "./state.js?v=h8d86b063d748";
+import { rollingPlanForDate } from "./engine.js?v=h8d86b063d748";
+import { bootstrapApp, render } from "./ui.js?v=h8d86b063d748";
 
 function ensurePremiumStylesheet() {
-  const href = "./css/styles.css?v=h79f7d82d9f41";
+  const href = "./css/styles.css?v=h8d86b063d748";
   if ([...document.querySelectorAll('link[rel="stylesheet"]')].some((l) => (l.getAttribute("href") || "").indexOf("css/styles.css") !== -1)) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";

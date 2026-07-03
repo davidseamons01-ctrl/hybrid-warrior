@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h79f7d82d9f41";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h8d86b063d748";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h79f7d82d9f41";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h79f7d82d9f41";
+} from "./programming.js?v=h8d86b063d748";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h8d86b063d748";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -910,19 +910,12 @@ function formatLoadLbText(lb){
   return`${Math.round((n/LB_PER_KG)*10)/10} kg`;
 }
 function updateGlobalFabVisibility(){
-  const fab=document.getElementById("fabQuickLog");if(!fab)return;
+  // Overhaul phase 7: the floating quick-log (+) and voice (mic) FABs are
+  // retired — logging lives inside the session player. Keep them hidden.
+  const fab=document.getElementById("fabQuickLog");
   const mic=document.getElementById("fabVoiceLog");
-  const app=document.getElementById("app"),auth=document.getElementById("authScreen"),ob=document.getElementById("obScreen");
-  const appOn=app&&getComputedStyle(app).display!=="none";
-  const authOn=auth&&getComputedStyle(auth).display!=="none";
-  const obOn=ob&&ob.classList.contains("show");
-  // Hide the quick-log FAB during an active Focus session — logging is already
-  // front-and-center there, and the FAB was overlapping the Save/Complete CTAs.
-  const inFocus=(typeof trainFocusIdx!=="undefined"&&trainFocusIdx!==null&&tab===TAB_TRAIN);
-  const visible=appOn&&!authOn&&!obOn&&!inFocus;
-  fab.hidden=!visible;fab.setAttribute("aria-hidden",visible?"false":"true");
-  const micVisible=visible&&speechRecognitionAvailable();
-  if(mic){mic.hidden=!micVisible;mic.setAttribute("aria-hidden",micVisible?"false":"true")}
+  if(fab){fab.hidden=true;fab.setAttribute("aria-hidden","true")}
+  if(mic){mic.hidden=true;mic.setAttribute("aria-hidden","true")}
 }
 function bindGlobalFab(){
   const fab=document.getElementById("fabQuickLog");if(!fab||fab.dataset.bound==="1")return;
@@ -1287,13 +1280,19 @@ function rollingPlanForDate(dateIso){
   // off, or equipment changed) for one week. Honored before the default rolling map.
   const ov=(S.scheduleOverrides||{})[dateIso];
   if(ov){
-    if(ov.slot===null||ov.slot==="rest")return{focus:"Rest day · you moved this",exs:[],finisher:"Light walk or mobility — optional.",slot:null,blockWeek:null,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN(),_rescheduled:true};
-    const bw=programWeekForDate(dateIso);
-    const prevEq=_dayEquipOverride;if(ov.equip)_dayEquipOverride=ov.equip;
-    let p;try{p=mkDay(ov.slot,bw);}finally{_dayEquipOverride=prevEq;}
-    p.slot=ov.slot;p.blockWeek=bw;p.globalIdx=null;p.sessionInWeek=null;p.sessionsPerWeek=planSlotsN();p._rescheduled=true;if(ov.equip)p._equipOverride=ov.equip;
-    p.exs=applyExerciseOrderForDate(dateIso,p.exs||[]);
-    return p;
+    try{
+      if(ov.slot===null||ov.slot==="rest")return{focus:"Rest day · you moved this",exs:[],finisher:"Light walk or mobility — optional.",slot:null,blockWeek:null,globalIdx:null,sessionInWeek:null,sessionsPerWeek:planSlotsN(),_rescheduled:true};
+      const bw=programWeekForDate(dateIso);
+      const prevEq=_dayEquipOverride;if(ov.equip)_dayEquipOverride=ov.equip;
+      let p;try{p=mkDay(ov.slot,bw);}finally{_dayEquipOverride=prevEq;}
+      p.slot=ov.slot;p.blockWeek=bw;p.globalIdx=null;p.sessionInWeek=null;p.sessionsPerWeek=planSlotsN();p._rescheduled=true;if(ov.equip)p._equipOverride=ov.equip;
+      p.exs=applyExerciseOrderForDate(dateIso,p.exs||[]);
+      return p;
+    }catch(err){
+      // A malformed override must never blank the screen — fall through to the
+      // default rolling placement for this date instead of throwing.
+      console.warn("rollingPlanForDate override failed for",dateIso,err&&err.message);
+    }
   }
   const dow=parseIsoNoon(dateIso).getDay();
   // Standing weekly template (opt-in): if the user saved a custom weekly pattern,
@@ -1368,7 +1367,40 @@ function resolveCatchUpQueueAfterLog(logDate){
     if(!adj.catchUpQueue.length){adj.extraTrainingIso=null;adj.catchUpClearedDate=null}
   }
 }
+// ── Program pause (vacation): shift the whole schedule forward so nothing is
+//    "missed" while you're away; resume early reclaims the unused days. ──
+function shiftIso(dateIso,days){const d=parseIsoNoon(dateIso);d.setDate(d.getDate()+days);return isoFromDate(d);}
+function daysBetweenIso(aIso,bIso){return Math.round((parseIsoNoon(bIso).getTime()-parseIsoNoon(aIso).getTime())/86400000);}
+function isProgramPaused(){const p=S.program&&S.program.pause;return!!(p&&p.until&&iso()<p.until);}
+async function pauseProgram(days){
+  const n=Math.max(1,Math.min(60,Number(days)||0));if(!n)return;
+  const prevStart=(S.program&&S.program.start)||iso();
+  S.program.start=shiftIso(prevStart,n);
+  S.program.pause={from:iso(),until:shiftIso(iso(),n),days:n,prevStart};
+  await persist();render();
+  toast(`Program paused for ${n} day${n!==1?"s":""} — back on ${parseIsoNoon(S.program.pause.until).toLocaleDateString(undefined,{month:"short",day:"numeric"})}. Enjoy the break.`);
+}
+async function resumeProgramNow(){
+  const p=S.program&&S.program.pause;if(!p)return;
+  const elapsed=Math.max(0,Math.min(p.days,daysBetweenIso(p.from,iso())));
+  const unused=p.days-elapsed;
+  if(unused>0)S.program.start=shiftIso(S.program.start,-unused);
+  delete S.program.pause;
+  await persist();render();
+  toast("Welcome back — program resumed.");
+}
+function programPausedBannerHtml(){
+  if(!isProgramPaused())return"";
+  const p=S.program.pause;
+  const backLabel=parseIsoNoon(p.until).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+  return`<div class="card section pause-banner"><div class="pause-banner-body"><div class="pause-banner-title">🌴 Program paused</div><div class="pause-banner-text">You're on a break until <b style="color:var(--text)">${backLabel}</b>. Nothing counts as missed, and your block picks up right where you left off.</div></div><button type="button" class="btn btn-cta btn-sm" id="program-resume-now">Resume now</button></div>`;
+}
+function bindProgramPauseControls(){
+  const r=document.getElementById("program-resume-now");
+  if(r)r.onclick=()=>resumeProgramNow();
+}
 function oldestUnresolvedMiss(){
+  if(isProgramPaused())return null;
   const todayIso=iso();
   const anchor=firstTrainingIsoOnOrAfter(S.program.start);
   if(!anchor||todayIso<=anchor)return null;
@@ -4511,77 +4543,49 @@ function renderToday(){
   const showOffDayCatch=!isTrainDay&&!!q0&&(!q0.dueIso||q0.dueIso>todayIso)&&adj.extraTrainingIso!==todayIso;
   const catchLabel=q0?((()=>{const cp=mkDay(q0.slot,q0.blockWeek);return(cp.focus||"Session").split("·")[0].trim().slice(0,42)})()):"";
   const catchBanner=plan._catchUpDue||plan._catchUpExtra;
-  const wuBlock=!plan.warmup?"":`<div id="warmup-mount"></div>`;
-  const sfSavedLbl=sf==="easy"?"Light (~RPE 6)":sf==="hard"?"Hard (~RPE 9+)":sf==="ok"?"Solid (~RPE 7–8)":"";
-  if(trainFocusIdx!==null){
-    if(!plan.exs.length)trainFocusIdx=null;
-    else trainFocusIdx=clamp(trainFocusIdx,0,plan.exs.length-1);
+  trainFocusIdx=null;
+  if(isProgramPaused()){
+    const backLabel=parseIsoNoon(S.program.pause.until).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
+    return`<div id="p-today">
+      ${programPausedBannerHtml()}
+      <div class="card today-hero section" style="text-align:center;padding:32px 20px">
+        <div style="font-size:40px;margin-bottom:10px">🌴</div>
+        <div class="today-hero-title" style="font-size:24px">On a break</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.55;margin:10px auto 0;max-width:340px">Your program is paused until <b style="color:var(--text)">${backLabel}</b>. Rest up — nothing counts as missed. Feel like moving anyway? Resume and your block picks right back up.</p>
+      </div>
+    </div>`;
   }
-  if(trainFocusIdx!==null&&plan.exs.length){
-    plan.exs.forEach((ex,i)=>cardHost(ex,i));
-    return`<div id="focus-shell-mount"></div>`;
-  }
+  const doneCount=plan.exs.filter(ex=>{const e=exById(ex.eid);const nm=e?e.name:ex.eid;return(S.logs||[]).some(l=>l.date===dayIso&&l.exercise===nm)}).length;
+  const allDone=plan.exs.length>0&&doneCount>=plan.exs.length;
+  const startedSome=doneCount>0&&!allDone;
+  const startLabel=allDone?(finalized?"Review session":"Wrap up session"):startedSome?"Resume session":"Start session";
   return`<div id="p-today" class="${plan.exs.length?"train-session-active":""}">
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
+  ${programPausedBannerHtml()}
   ${deloadBannerHtml(w)}
   ${isTaperWeek(w)&&!isDeloadWeek(w)?`<div class="card section taper-banner"><div class="taper-banner-icon">📉</div><div class="taper-banner-body"><div class="taper-banner-title">Taper Week ${w}</div><div class="taper-banner-text">Volume reduced by 40% while intensity stays high. This primes your nervous system for ${w===12?"next week's Test":"the Peak phase"}.</div></div></div>`:""}
   <div class="card today-hero section">
     <div class="today-hero-kicker">${DAYS[d.getDay()]}${dayIso===iso()?"":" · "+dayIso}</div>
     <div class="today-hero-title">${(plan.focus||(plan.exs.length?"Training day":"Recovery day")).replace(" (DELOAD)","")}</div>
     <div class="today-hero-sub">${coachedModeOn()?`Week ${w} of 13`:bc}</div>
-    ${plan.exs.length?`<div class="today-hero-meta">~${qm>0?qm:(S.schedule.sessionMin||45)} min · ${plan.exs.length} exercise${plan.exs.length!==1?"s":""}${bpos&&!coachedModeOn()?` · ${bpos}`:""}</div>
-    <div class="today-next"><div class="today-next-label">Up next</div>${plan.exs.slice(0,3).map((ex,i)=>{const e=exById(ex.eid);return`<div class="today-next-row"><span class="today-next-num">${i+1}</span><span class="today-next-name">${e?e.name:ex.eid}</span>${coachedModeOn()?"":`<span class="today-next-rx">${formatPrescribedRx(ex)}</span>`}</div>`}).join("")}${plan.exs.length>3?`<div class="today-next-more">+ ${plan.exs.length-3} more below</div>`:""}</div>`
+    ${plan.exs.length?`<div class="today-hero-meta">~${qm>0?qm:(S.schedule.sessionMin||45)} min · ${plan.exs.length} exercise${plan.exs.length!==1?"s":""}${startedSome?` · ${doneCount} done`:""}${bpos&&!coachedModeOn()?` · ${bpos}`:""}</div>
+    <div class="today-next"><div class="today-next-label">The session</div>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);const nm=e?e.name:ex.eid;const exDone=(S.logs||[]).some(l=>l.date===dayIso&&l.exercise===nm);return`<div class="today-next-row${exDone?" done":""}"><span class="today-next-num">${exDone?"✓":i+1}</span><span class="today-next-name">${nm}</span>${coachedModeOn()?"":`<span class="today-next-rx">${formatPrescribedRx(ex)}</span>`}</div>`}).join("")}</div>`
     :`<div class="today-hero-meta">Nothing scheduled — recovery is part of the program.</div>`}
-    ${plan.exs.length&&trainFocusIdx===null?`${plan.deloadHint?`<div class="today-hero-note">${escPlanChip(plan.deloadHint)}</div>`:""}<div id="readiness-mount"></div><button type="button" class="btn btn-cta btn-block today-start" id="train-begin-session">Start session</button><p class="today-hero-hint">One exercise at a time — fewer distractions while you train.</p>`:""}
+    ${plan.exs.length?`${plan.deloadHint?`<div class="today-hero-note">${escPlanChip(plan.deloadHint)}</div>`:""}<div id="readiness-mount"></div><button type="button" class="btn btn-cta btn-block today-start" id="train-begin-session">${startLabel}</button><p class="today-hero-hint">Everything happens here — warm-up, sets, rest, and finish, one screen at a time.</p>`:""}
   </div>
   <div class="today-quick-row">
-    <button type="button" class="chip-action" id="train-bring-friend">👥 Bring a friend</button>
-    <button type="button" class="chip-action" id="train-reschedule">📅 Reschedule</button>
-    ${plan.exs.length?`<button type="button" class="chip-action ${powerFocusOn?"on":""}" id="power-focus-btn">${powerFocusOn?"Exit focus":"Focus mode"}</button><button type="button" class="chip-action ${ghostModeOn?"on":""}" id="ghost-mode-btn" title="Compare with 4 weeks ago">👻 ${ghostModeOn?"Ghost on":"Ghost"}</button>`:""}
+    <button type="button" class="chip-action" id="train-reschedule">📅 Reschedule week</button>
+    <button type="button" class="chip-action" id="train-bring-friend">👥 Train with a friend</button>
+    ${plan.exs.length?`<button type="button" class="chip-action" id="today-preview-map">🎯 Muscles worked</button>`:""}
   </div>
   ${nextTrainingDotsHtml(6)}
-  <details class="card section train-extras"><summary>Conditions, fueling${planHasRun(plan)?" & run zones":""}</summary><div class="train-extras-body"><div id="weather-slot"></div>${planHasRun(plan)?runZonesPanelHtml():""}${fuelingAdviceHtml(plan)}</div></details>
+  ${plan.exs.length?`<details class="card section" id="today-impact-fold"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">What today works <span style="font-size:11px;color:var(--text3);font-weight:400">· muscle map${meta?" & coaching notes":""}</span></summary><div class="fig-wrap" style="margin-top:10px"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div>${meta?`<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div>`:""}${planHasRun(plan)?`<div style="margin-top:12px">${runZonesPanelHtml()}</div>`:""}</div></details>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does catch-up work?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p></details><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">Why am I seeing this?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p></details><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today" style="margin-top:8px">Add to today</button></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">Posture / prehab add-on</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
-  ${wuBlock}
-  ${plan.quickNote?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Minimum session:</b> first two lifts keep your streak honest. Finisher below is optional — add it if you have bandwidth.</div></div>`:""}
-  <div class="stack">${plan.exs.length?(()=>{const wuSets=generateWarmupSets(plan);const wuHtml=wuSets.length?`<div class="warmup-sets-group"><div class="warmup-sets-label">Warm-up ramp</div>${wuSets.map((wu,wi)=>cardHost(wu,900+wi)).join("")}</div>`:"";return wuHtml+renderExerciseStack(plan.exs)})():`<div class="card" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>${activeRecoveryCardHtml()}`}</div>
-  <details class="card section" id="train-toolbox"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Toolbox <span style="font-size:11px;color:var(--text3);font-weight:400">· tools, music &amp; session info</span></summary><div style="margin-top:10px">
-  <div id="train-tools-mount"></div>
-  <details class="train-music-player section" id="train-music-player">
-    <summary class="train-music-summary"><span class="train-music-icon">♫</span> Workout Music</summary>
-    <div class="train-music-body">
-      <div class="train-music-tabs">
-        <button type="button" class="btn btn-sm btn-ghost music-tab active" data-src="spotify">Spotify</button>
-        <button type="button" class="btn btn-sm btn-ghost music-tab" data-src="apple">Apple Music</button>
-      </div>
-      <div class="train-music-embed" id="music-embed-spotify">
-        <iframe style="border-radius:12px" src="https://open.spotify.com/embed/playlist/37i9dQZF1DX76Wlfdnj7AP?utm_source=generator&theme=0" width="100%" height="152" frameBorder="0" allow="autoplay;clipboard-write;encrypted-media;fullscreen;picture-in-picture" loading="lazy" title="Spotify workout playlist"></iframe>
-      </div>
-      <div class="train-music-embed" id="music-embed-apple" hidden>
-        <iframe allow="autoplay *;encrypted-media *;fullscreen *;clipboard-write" frameborder="0" height="175" style="width:100%;overflow:hidden;border-radius:12px" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="https://embed.music.apple.com/us/playlist/workout-motivation/pl.b0b39c3a31054a8e94e7d24627afe398" loading="lazy" title="Apple Music workout playlist"></iframe>
-      </div>
-      <p style="font-size:10px;color:var(--text3);margin-top:8px">Tap the player to control music without leaving the app. Requires a Spotify or Apple Music account.</p>
-    </div>
-  </details>
-  <div class="card section" id="train-plates-card">
-    <button type="button" class="details-toggle" id="train-plates-toggle" style="width:100%;text-align:left">Bar load helper (in-workout)</button>
-    <div class="details-panel" id="train-plates-body">
-      ${trainPlateHelperBlockHtml()}
-      <div id="tw-pl-out" style="font-size:13px;color:var(--text);margin-top:12px;line-height:1.45;font-weight:500"></div>
-    </div>
-  </div>
-  ${plan.exs.length?`<details class="card section"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Today's impact map <span style="font-size:11px;color:var(--text3);font-weight:400">· tap to view muscles worked</span></summary><div class="fig-wrap" style="margin-top:10px"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div></details>`:""}
-  ${meta?`<div class="card section"><button type="button" class="details-toggle" id="why-toggle" style="width:100%;text-align:left">Why this session? (coaching notes)</button><div class="details-panel" id="why-body"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div></div>`:""}
-  </div></details>
-  ${skipped.length?`<div class="card section" style="font-size:12px;color:var(--text2)">Skipped today: <b style="color:var(--text)">${skippedLbl||"—"}</b> · <button type="button" class="details-toggle" id="skip-restore">Restore skipped lifts</button></div>`:""}
-  ${plan.exs.length?`<div id="session-feel-mount"></div>`:""}
-  ${plan.exs.length?`<div class="card section" id="train-ease-panel"><div style="font-size:13px;font-weight:600;margin-bottom:4px">Program feels too heavy?</div><p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.45">Nudge all lift/run adaptation down ~5% and add 5 minutes to your session budget (max 75 min) — right from here, no Settings detour.</p><button type="button" class="btn btn-secondary-solid btn-sm" id="train-ease-toggle">Show ease options</button><div class="ease-wizard" id="train-ease-wiz"><p style="font-size:12px;color:var(--text2);margin-bottom:8px">Targets ease until your logs show you're ahead of prescription again.</p><button type="button" class="btn btn-cta btn-sm" id="train-ease-go">Ease my program</button></div></div>`:""}
-  ${plan.exs.length?abFinisherControlHtml():""}
-  ${plan.finisher?`<div class="finisher finisher-block"><h3>Finisher${plan.quickNote?" (optional)":""}</h3><p>${plan.finisher}</p></div>`:""}
-  ${plan.exs.length?`<div class="train-session-footer"><button type="button" class="btn btn-mint btn-block session-finalize-sync">${finalized?"Session complete":"Complete session"}</button></div>${setLoadOverlayHtml()}`:""}
+  ${!plan.exs.length?`<div class="card section" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>${activeRecoveryCardHtml()}`:""}
+  ${plan.exs.length?`<details class="card section" id="train-ease-panel"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Program feels too heavy? <span style="font-size:11px;color:var(--text3);font-weight:400">· ease it</span></summary><p style="font-size:12px;color:var(--text2);margin:10px 0;line-height:1.45">Nudge all lift/run adaptation down ~5% and add 5 minutes to your session budget (max 75 min).</p><button type="button" class="btn btn-cta btn-sm" id="train-ease-go">Ease my program</button></details>`:""}
   </div>`;
 }
 async function loadExercisePdfPreview(i){
@@ -4892,29 +4896,56 @@ function progressMetricsHtml(){
   <div class="prog-metric"><span class="prog-metric-num">${volTxt}</span><span class="prog-metric-lbl">${massUnitLabel()} volume · 7d</span></div>
   <div class="prog-metric"><span class="prog-metric-num">${lvl}</span><span class="prog-metric-lbl">level</span></div>`;
 }
+function bodyLogInputsHtml(){
+  const p=S.profile||{};const u=massUnitLabel();
+  return`<div class="grid2" style="gap:8px">
+    <div><label>Weight (${u})</label><input type="number" id="plog-wt" inputmode="decimal" step="any" value="${p.weight?massLbToField(p.weight):""}" placeholder="e.g. ${useMetric()?"82":"180"}"></div>
+    <div><label>Waist (in)</label><input type="number" id="plog-waist" inputmode="decimal" step="0.1" value="${p.waist||""}" placeholder="e.g. 34"></div>
+    <div><label>Hips (in)</label><input type="number" id="plog-hips" inputmode="decimal" step="0.1" value="${p.hips||""}" placeholder="e.g. 40"></div>
+    <div><label>Shoulders (in)</label><input type="number" id="plog-sh" inputmode="decimal" step="0.1" value="${p.shoulders||""}" placeholder="e.g. 46"></div>
+  </div>
+  <button type="button" class="btn btn-cta btn-block" id="plog-save" style="margin-top:10px">Save measurements</button>`;
+}
+function bindBodyLogInputs(root){
+  const host=root||document;
+  const btn=host.querySelector?host.querySelector("#plog-save"):document.getElementById("plog-save");
+  if(!btn)return;
+  enhanceNumericInputs(host);
+  btn.onclick=async()=>{
+    const g=id=>{const el=document.getElementById(id);return el?Number(el.value)||0:0;};
+    const wn=massFieldToLb(g("plog-wt"));
+    if(wn>0){S.profile.weight=wn;if(!S.profile.startWt)S.profile.startWt=wn;S.weightLog.push({date:iso(),wt:wn});S.weightLog=S.weightLog.slice(-90);}
+    const waist=g("plog-waist"),hips=g("plog-hips"),sh=g("plog-sh");
+    if(waist>0)S.profile.waist=waist;if(hips>0)S.profile.hips=hips;if(sh>0)S.profile.shoulders=sh;
+    await persist();render();toast("Measurements saved.");
+  };
+}
 function renderProgressTab(){
-  const hs=sessionStorage.getItem("hw-scroll")||"";
-  if(hs.indexOf("#dash")===0)progressSub="classic";
-  const inner=progressSub==="classic"?renderDash():`
+  const goals=goalEtaCardHtml();
+  return`<div id="progress-inner">
   <div id="coach-mount"></div>
   <div class="prog-metrics">${progressMetricsHtml()}</div>
+  ${goals?`<section class="prog-section"><h2 class="prog-h">Goals &amp; forecast</h2>${goals}</section>`:""}
   <section class="prog-section"><h2 class="prog-h">Strength trend</h2><div id="prog-strength"></div></section>
   <section class="prog-section"><h2 class="prog-h">Consistency</h2><div id="prog-heat"></div></section>
   <section class="prog-section"><h2 class="prog-h">Personal records</h2><div id="prog-pr"></div></section>
   <section class="prog-section"><h2 class="prog-h">Achievements</h2><div id="prog-ach"></div></section>
-  <section class="prog-section"><h2 class="prog-h">Body</h2><div id="prog-body"></div></section>`;
-  return`<div class="subtab-row" role="tablist" aria-label="Progress views"><button type="button" class="subtab ${progressSub==="overview"?"on":""} prog-sub" role="tab" aria-selected="${progressSub==="overview"}" data-s="overview">Overview</button><button type="button" class="subtab ${progressSub==="classic"?"on":""} prog-sub" role="tab" aria-selected="${progressSub==="classic"}" data-s="classic">Classic</button></div><div id="progress-inner">${inner}</div>`;
+  <section class="prog-section"><h2 class="prog-h">Body &amp; measurements</h2><div id="prog-body"></div><details class="card section" id="prog-log-body" style="margin-top:10px"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Log weight &amp; measurements <span style="font-size:11px;color:var(--text3);font-weight:400">· update your numbers</span></summary><div id="prog-body-log" style="margin-top:12px"></div></details></section>
+  <section class="prog-section"><button type="button" class="btn btn-secondary-solid btn-block" id="prog-export-pdf">Export progress report (PDF)</button></section>
+  </div>`;
 }
 function bindProgressTab(){
   releaseWorkoutWakeLock();
-  document.querySelectorAll(".prog-sub").forEach(b=>b.onclick=()=>{progressSub=b.dataset.s;render()});
-  if(progressSub==="classic"){bindDash();return}
   const cm=document.getElementById("coach-mount");if(cm)mountCoachCard(cm,buildCoachProps());
   const ps=document.getElementById("prog-strength");if(ps)mountStrengthProgress(ps,buildStrengthProgressProps());
   const ph=document.getElementById("prog-heat");if(ph)mountTrainingHeatmap(ph,buildTrainingHeatmapProps());
   const pp=document.getElementById("prog-pr");if(pp)mountPersonalRecords(pp,buildPersonalRecordsProps());
   const pa=document.getElementById("prog-ach");if(pa)mountAchievements(pa,buildAchievementsProps());
   const pb=document.getElementById("prog-body");if(pb)mountBodyMetrics(pb,buildBodyMetricsProps());
+  const pbl=document.getElementById("prog-body-log");if(pbl)pbl.innerHTML=bodyLogInputsHtml();
+  bindBodyLogInputs(document.getElementById("prog-log-body")||document);
+  hydrateAnatomyTargets(document.getElementById("progress-inner")||document);
+  const pe=document.getElementById("prog-export-pdf");if(pe)pe.onclick=()=>generateProgressPdf();
 }
 async function finalizeSession(day){
   if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};
@@ -4932,22 +4963,22 @@ async function finalizeSession(day){
 let sessionPlayerHost=null;
 /** Event-sourced single-set log with explicit values (no DOM reads) — the
     player's logging path. Mirrors logSingleSetForExercise semantics. */
-async function playerLogSet(i,data){
-  const plan=todayPlanFiltered();const ex=plan.exs[i];if(!ex)return{ok:false};
-  const e=exById(ex.eid);const name=e?e.name:ex.eid;const dayIso=activeTrainIso();
+async function playerLogSet(exd,data){
+  if(!exd||!exd.name)return{ok:false};
+  const name=exd.name;const dayIso=activeTrainIso();
   const existing=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===name).length;
-  const maxSets=Math.max(1,Number(ex.sets)||1);
+  const maxSets=Math.max(1,Number(exd.sets)||1);
   if(existing>=maxSets)return{ok:false};
   const aR=Number(data.reps)||0;const aW=Math.max(0,Number(data.weightLb)||0);
   if(aR<=0)return{ok:false};
   const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));
-  const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);
+  const logWk=getWkForDate(dayIso);
   const out=data.outcome==="easy"||data.outcome==="hard"?data.outcome:"ok";
-  const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS:1,aR,aW,outcome:out,score:1};
+  const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:exd.sets,tR:Number(exd.tReps)||aR,tW:Number(exd.target)||0,aS:1,aR,aW,outcome:out,score:1};
   log.score=calcLogScore(log);
   const prev=S.logs.slice();
   recordLoggedSet(log);
-  S.lastLiftByEid[ex.eid]=aW;
+  S.lastLiftByEid[exd.eid]=aW;
   if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];
   resolveCatchUpQueueAfterLog(dayIso);
   await persist();
@@ -4962,15 +4993,27 @@ function buildSessionPlayerProps(){
     const run=isRunExerciseName(name);
     const doneSets=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===name).length;
     const lastW=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?Number(S.lastLiftByEid[ex.eid]):(Number(ex.target)||0);
-    return{eid:ex.eid,name,sets:Math.max(1,Number(ex.sets)||1),reps:Number(ex.reps)||(run?20:8),weightLb:lastW,stepLb:run?5:Math.max(1,Number(e&&e.increment)||5),restSec:e&&e.rest?parseRestSec(e.rest):90,isRun:run,runTempo:run&&isRunTempoStyle(ex),doneSets,cue:(e&&e.howTo&&e.howTo[0])?String(e.howTo[0]).slice(0,120):"",rx:formatPrescribedRx(ex)};
+    let m={};try{m=exMedia(ex.eid)||{};}catch(e2){}
+    let plateHtml="";try{plateHtml=run?"":(inlinePlateMathHtml(ex)||"");}catch(e3){}
+    return{eid:ex.eid,name,sets:Math.max(1,Number(ex.sets)||1),reps:Number(ex.reps)||(run?20:8),tReps:Number(ex.reps)||0,target:Number(ex.target)||0,weightLb:lastW,stepLb:run?5:Math.max(1,Number(e&&e.increment)||5),restSec:e&&e.rest?parseRestSec(e.rest):90,isRun:run,runTempo:run&&isRunTempoStyle(ex),doneSets,cue:(e&&e.howTo&&e.howTo[0])?String(e.howTo[0]).slice(0,120):"",rx:formatPrescribedRx(ex),howTo:(e&&e.howTo)?e.howTo.slice(0,6).map(String):[],videoUrl:m.video?openVideoUrl(m.video):"",plateHtml,group:ex._abFinisher?"finisher":"main"};
   });
+  const wuSteps=plan.warmup?warmupStepsFromPlan(plan.warmup):[];
+  const wuState=(S.warmupDoneByDate&&S.warmupDoneByDate[dayIso])||{};
+  const warmup=(wuSteps||[]).map((line,wi)=>({idx:wi,line:String(line),checked:!!wuState[String(wi)]}));
+  const abAvail=!((S.abFinisherByDate||{})[dayIso])&&!plan.exs.some(x=>x._abFinisher);
   return{
     title:(plan.focus||"Session").replace(" (DELOAD)",""),
     coached:coachedModeOn(),
-    exercises,
+    exercises,warmup,
+    finisherOffer:abAvail?"Add 5-min core finisher":"",
+    finisherText:String(plan.finisher||""),
     formatW:(lb,isRun)=>isRun?(paceSecPerMiDisplay(lb)+"/mi"):formatLoadLbText(lb),
-    actions:{logSet:playerLogSet,finish:playerFinish,exit:()=>closeSessionPlayer(true)}
+    actions:{logSet:playerLogSet,toggleWarmup:warmupToggle,addFinisher:playerAddFinisher,finish:playerFinish,exit:()=>closeSessionPlayer(true)}
   };
+}
+async function playerAddFinisher(){
+  try{applyAbFinisher();await persist();}catch(e){}
+  return buildSessionPlayerProps().exercises;
 }
 function openSessionPlayer(){
   const plan=todayPlanFiltered();
@@ -5025,7 +5068,13 @@ function buildSessionSummaryProps(dayIso){
   const sf=(S.sessionFeelByDate||{})[dayIso];
   const feelLabel=sf==="easy"?"Light · ~RPE 6":sf==="ok"?"Solid · ~RPE 7–8":sf==="hard"?"Hard · ~RPE 9+":"";
   let anatomyHtml="";
-  try{anatomyHtml=anatomyContainer(mergeZones(rollingPlanForDate(dayIso)));}catch(e){anatomyHtml="";}
+  // Muscles worked = what was actually LOGGED that day, not what the plan intended.
+  try{
+    const names=new Set(logs.map(l=>l.exercise));
+    const loggedExs=[];
+    for(const nm of names){const e=EX.find(x=>x.name===nm);if(e)loggedExs.push({eid:e.id});}
+    anatomyHtml=loggedExs.length?anatomyContainer(mergeZones({exs:loggedExs})):"";
+  }catch(e){anatomyHtml="";}
   const dateLabel=parseIsoNoon(dayIso).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"});
   return{dateLabel,volume:volStr,volumeUnit:massUnitLabel(),stats,prs,feelLabel,runLabel,anatomyHtml,adaptationApplied:!!((S.sessionAdaptedByDate||{})[dayIso])};
 }
@@ -5413,9 +5462,11 @@ function openSchedulePlanner(weekStartIso){
     days,sessionOptions,canReset:tplActive,
     equipOptions:[{value:"gym",label:"Gym / full"},{value:"home",label:"Home / limited"}],
     actions:{
-      apply:(board)=>{applyWeekOverrides(board,baseline);close();render();toast("This week's schedule updated.");},
-      saveDefault:(board)=>{saveScheduleTemplate(board);close();render();toast("Saved as your default weekly schedule.");},
-      reset:()=>{close();clearScheduleTemplate();},
+      // Hardened: any failure closes the sheet cleanly and re-renders a valid
+      // Plan rather than leaving the app wedged behind a broken planner.
+      apply:(board)=>{try{applyWeekOverrides(board,baseline);close();render();toast("This week's schedule updated.");}catch(err){console.warn("reschedule apply failed",err&&err.message);close();render();toast("Couldn't apply that change — nothing was altered.");}},
+      saveDefault:(board)=>{try{saveScheduleTemplate(board);close();render();toast("Saved as your default weekly schedule.");}catch(err){console.warn("reschedule saveDefault failed",err&&err.message);close();render();toast("Couldn't save that schedule — nothing was altered.");}},
+      reset:()=>{try{close();clearScheduleTemplate();}catch(err){console.warn("reschedule reset failed",err&&err.message);close();render();}},
       cancel:close
     }
   });
@@ -5469,71 +5520,16 @@ function openPartnerSession(initialCode){
 }
 function bindToday(){
   if(!S.lastLiftByEid)S.lastLiftByEid={};
-  mountFocusShellTab();
-  mountTrainCards();
   {const bf=document.getElementById("train-bring-friend");if(bf)bf.onclick=()=>openPartnerSession();}
   {const rs=document.getElementById("train-reschedule");if(rs)rs.onclick=()=>openSchedulePlanner();}
-  {const rt=document.getElementById("run-test-btn");if(rt)rt.onclick=openRunTestModal;}
-  {const a=document.getElementById("ab-fin-add");if(a)a.onclick=()=>{applyAbFinisher();render();toast("Core finisher added — scroll to the bottom of your session.");};}
-  {const s=document.getElementById("ab-fin-swap");if(s)s.onclick=()=>{cycleAbFinisher();render();};}
-  {const r=document.getElementById("ab-fin-remove");if(r)r.onclick=()=>{clearAbFinisher();render();toast("Core finisher removed.");};}
-  mountReadiness();mountSessionFeel();mountWarmup();mountWorkoutTools();
+  mountReadiness();
   ensureWorkoutWakeLock();
-  enhanceNumericInputs(document.getElementById("p-today")||document);
-  const wSlot=document.getElementById("weather-slot");
-  if(wSlot&&isOutdoorCardioToday()){
-    fetchLocalWeather().then(w=>{if(w&&wSlot)wSlot.innerHTML=weatherSummaryHtml(w)}).catch(()=>{});
-  }
-  document.querySelectorAll(".music-tab").forEach(btn=>{btn.onclick=()=>{
-    document.querySelectorAll(".music-tab").forEach(b=>b.classList.toggle("active",b===btn));
-    const sp=document.getElementById("music-embed-spotify"),ap=document.getElementById("music-embed-apple");
-    if(sp)sp.hidden=btn.dataset.src!=="spotify";
-    if(ap)ap.hidden=btn.dataset.src!=="apple";
-  }});
-  document.querySelectorAll(".transition-start-btn").forEach(btn=>btn.onclick=()=>{
-    startRestTimer(300,"Transition");
-    btn.textContent="Timer running…";
-    btn.disabled=true;
-    triggerHaptic("light");
-  });
   const tcd=document.getElementById("train-clear-date");
   if(tcd)tcd.onclick=()=>{trainSessionDate=null;render()};
-  const pfb=document.getElementById("power-focus-btn");
-  if(pfb)pfb.onclick=()=>{powerFocusOn=!powerFocusOn;document.body.classList.toggle("power-focus",powerFocusOn);applyPowerFocusActive();pfb.classList.toggle("on",powerFocusOn);pfb.textContent=powerFocusOn?"Exit Focus":"Focus Mode";const lbl=pfb.parentElement?.querySelector(".power-focus-label");if(lbl)lbl.textContent=powerFocusOn?"Focus Mode":"Session";triggerHaptic("light")};
-  if(powerFocusOn){document.body.classList.add("power-focus");applyPowerFocusActive()}
-  const gmb=document.getElementById("ghost-mode-btn");
-  if(gmb)gmb.onclick=()=>{ghostModeOn=!ghostModeOn;gmb.classList.toggle("on",ghostModeOn);gmb.innerHTML=`👻 ${ghostModeOn?"Ghost On":"Ghost"}`;triggerHaptic("light");render()}
   const tbs=document.getElementById("train-begin-session");
   if(tbs)tbs.onclick=()=>openSessionPlayer();
-  const wt=document.getElementById("why-toggle"),wb=document.getElementById("why-body");
-  if(wt&&wb)wt.onclick=()=>{wb.classList.toggle("open");wt.textContent=wb.classList.contains("open")?"Why this session? (hide)":"Why this session? (coaching notes)"};
+  {const pm=document.getElementById("today-preview-map");if(pm)pm.onclick=()=>{const f=document.getElementById("today-impact-fold");if(f){f.open=true;f.scrollIntoView({behavior:"smooth",block:"start"})}};}
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
-  const tpt=document.getElementById("train-plates-toggle"),tpb=document.getElementById("train-plates-body");
-  if(tpt&&tpb)tpt.onclick=()=>{tpb.classList.toggle("open");tpt.textContent=tpb.classList.contains("open")?"Bar load helper (hide)":"Bar load helper (in-workout)"};
-  if(sessionStorage.getItem("hw-open-plates")==="1"){sessionStorage.removeItem("hw-open-plates");if(tpb)tpb.classList.add("open");requestAnimationFrame(()=>document.getElementById("train-plates-card")?.scrollIntoView({behavior:"smooth",block:"start"}))}
-  const tpCalc=document.getElementById("tw-pl-calc"),tpOut=document.getElementById("tw-pl-out");
-  if(tpCalc&&tpOut)tpCalc.onclick=()=>{const total=Number(document.getElementById("tw-pl-total").value)||0,bar=Number(document.getElementById("tw-pl-bar").value)||(useMetric()?20:45);const o=runPlateCalc(total,bar);if(o.err){tpOut.textContent=o.err;return}tpOut.textContent=o.text};
-  const slo=document.getElementById("set-load-overlay"),slt=document.getElementById("set-load-total"),slb=document.getElementById("set-load-bar"),sloTxt=document.getElementById("set-load-out"),slCalc=document.getElementById("set-load-calc"),slUse=document.getElementById("set-load-use"),slClose=document.getElementById("set-load-close");
-  let slTargetIdx=null;
-  const closeSetLoad=()=>{if(!slo)return;slo.classList.remove("open");slo.setAttribute("aria-hidden","true")};
-  const openSetLoad=idx=>{
-    if(!slo)return;
-    const plan0=todayPlanFiltered();const ex0=plan0.exs[idx];const e0=exById(ex0?.eid);const nm0=e0?e0.name:ex0?.eid;
-    if(nm0&&isRunExerciseName(nm0)){toast("Bar load helper is for barbell lifts — runs use pace (mm:ss/mi).");return}
-    slTargetIdx=idx;
-    const currDisp=Number(document.getElementById("tq-w"+idx)?.value)||Number(document.getElementById("t-w"+idx)?.value)||0;
-    if(slt)slt.value=currDisp>0?String(currDisp):"";
-    if(sloTxt)sloTxt.textContent="";
-    slo.classList.add("open");
-    slo.setAttribute("aria-hidden","false");
-  };
-  document.querySelectorAll(".q-load-helper").forEach(b=>b.onclick=()=>openSetLoad(+b.dataset.i));
-  if(slCalc&&slt&&slb&&sloTxt)slCalc.onclick=()=>{const total=Number(slt.value)||0,bar=Number(slb.value)||(useMetric()?20:45);const o=runPlateCalc(total,bar);if(o.err){sloTxt.textContent=o.err;return}sloTxt.textContent=o.text};
-  if(slUse&&slt)slUse.onclick=()=>{if(slTargetIdx===null)return;const totalIn=Number(slt.value)||0;if(totalIn<=0){toast("Enter a target load first.");return}const totalLb=useMetric()?totalIn*LB_PER_KG:totalIn;const disp=loadInputDisplayFromLb(totalLb);const w=document.getElementById("tq-w"+slTargetIdx),w2=document.getElementById("t-w"+slTargetIdx);if(w)w.value=String(disp);if(w2)w2.value=String(disp);closeSetLoad();toast("Load applied to current set.")};
-  if(slClose)slClose.onclick=closeSetLoad;
-  if(slo)slo.onclick=e=>{if(e.target===slo)closeSetLoad()};
-  const tet=document.getElementById("train-ease-toggle"),tew=document.getElementById("train-ease-wiz");
-  if(tet&&tew)tet.onclick=()=>tew.classList.add("show");
   const teg=document.getElementById("train-ease-go");
   if(teg)teg.onclick=async()=>{
     const snapA={...S.adapt},snapM=Number(S.schedule.sessionMin)||45;
@@ -5541,24 +5537,7 @@ function bindToday(){
     S.schedule.sessionMin=Math.min(75,(Number(S.schedule.sessionMin)||45)+5);
     await persist();render();toast("Program eased — check updated targets on your next session.",{undo:()=>{S.adapt=snapA;S.schedule.sessionMin=snapM;persist();render()}});
   };
-  document.querySelectorAll(".session-finalize-sync").forEach(sfz=>{sfz.onclick=()=>finalizeSession(activeTrainIso())});
-  const sr=document.getElementById("skip-restore");if(sr)sr.onclick=async()=>{const snap=JSON.parse(JSON.stringify(S.skippedEidsByDate||{})),day=activeTrainIso();if(S.skippedEidsByDate)delete S.skippedEidsByDate[day];await persist();toast("Restored today's lifts",{undo:()=>{S.skippedEidsByDate=snap;persist();render()}});render()};
-  document.querySelectorAll(".ex-quick-video-toggle").forEach(btn=>{btn.onclick=()=>{const i=btn.dataset.i;const p=document.getElementById("exq-"+i);if(!p)return;const show=p.hidden;p.hidden=!show;btn.setAttribute("aria-expanded",show?"true":"false");btn.textContent=show?"Hide quick video":"Show quick video"}});
-  document.querySelectorAll(".lite-video").forEach(wrap=>{
-    const playBtn=wrap.querySelector(".lite-video-play");
-    if(!playBtn)return;
-    playBtn.onclick=()=>{
-      if(wrap.classList.contains("lite-video-native")){
-        const vid=wrap.querySelector("video");
-        if(vid){vid.play();playBtn.hidden=true;vid.controls=true}
-        return;
-      }
-      const vid=wrap.dataset.vid;
-      if(!vid)return;
-      wrap.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&playsinline=1&rel=0&modestbranding=1" title="Exercise video" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture;web-share" allowfullscreen loading="eager" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-    };
-  });
-  document.querySelectorAll("#p-today .input-mmss").forEach(el=>bindMmssPaceInput(el));
+  bindProgramPauseControls();
   const mm=document.getElementById("miss-move"),ms=document.getElementById("miss-skip"),mp=document.getElementById("miss-pick"),ml=document.getElementById("miss-later"),cu=document.getElementById("catchup-add-today"),tas=document.getElementById("train-adjust-schedule");
   if(mm)mm.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;const pl=rollingPlanForDate(m.date);const due=nextTrainingIso(m.date);if(!due){toast("Could not find a next training day.");return}const a=ensureScheduleAdjust();a.catchUpQueue.push({missedIso:m.date,slot:pl.slot,blockWeek:pl.blockWeek,globalIdx:pl.globalIdx,dueIso:due});a.missChoices[m.date]={choice:"move"};await persist();render();toast(`Queued for ${DAYS[parseIsoNoon(due).getDay()]} (${due}).`)};
   if(ms)ms.onclick=async()=>{const m=oldestUnresolvedMiss();if(!m)return;ensureScheduleAdjust().missChoices[m.date]={choice:"skip"};await persist();render();toast("Session skipped for this block week.")};
@@ -5816,18 +5795,6 @@ function renderSettings(){
   const wmOpts=[["auto","Auto"],["hourglass","Hourglass"],["glute_shelf","Glute Shelf"],["posture","Posture"],["pilates","Pilates"],["home","Home Sculpt"]];
   const wmSel=(S.profile.prefs||{}).womenMode||"auto";
   return`<label class="settings-search"><span style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">Search settings</span><input type="search" id="s-filter" placeholder="Try: bench, export, steps, bar…" autocomplete="off" aria-label="Filter settings sections"></label>
-  <details class="settings-fold settings-section settings-onboard-banner" data-k="help guide tips get started how overview train plan you log sync account cloud save ease heavy program">
-    <summary>How to get the most from this app</summary>
-    <div class="settings-fold-body">
-      <ul style="font-size:12px;color:var(--text2);margin:0;padding-left:18px;line-height:1.55">
-        <li><b style="color:var(--text)">Stay signed in</b> — your program syncs to your account; use the same login on every device.</li>
-        <li><b style="color:var(--text)">Log after you train</b> — entries tune adaptation so prescribed loads stay realistic.</li>
-        <li><b style="color:var(--text)">Train</b> — Session is your in-gym checklist; Log is for entering what you did (any date). If the block feels heavy, use <b style="color:var(--text)">Program feels too heavy?</b> on Train after your lifts (not buried in Settings).</li>
-        <li><b style="color:var(--text)">Plan</b> — 13 training weeks (sessions in order from your start date, not Mon–Sun grids). If the Plan looks like plain weekdays with no dates, update the app (reopen or clear site data) once.</li>
-        <li><b style="color:var(--text)">You</b> — Overview for streaks and goals; Settings for profile, backup, and tools. How-tos and videos are on each exercise under Train.</li>
-      </ul>
-    </div>
-  </details>
   <details class="settings-fold settings-section" data-k="profile strength bench squat deadlift weight measurement body sex women life equipment style appearance theme light dark oled units metric audio altitude biometric save adaptation reset advanced multiplier">
     <summary>Profile, body &amp; app settings</summary>
     <div class="settings-fold-body"><div class="grid2 section" style="margin-bottom:0">
@@ -5852,10 +5819,15 @@ function renderSettings(){
         </div>
       </div>
       ${(S.parkedPrograms||[]).length?`<div class="parked-programs-section"><div class="parked-programs-header"><span style="font-size:13px;font-weight:700;color:var(--text)">Parked Programs</span><span class="parked-count-badge">${(S.parkedPrograms||[]).length}/5</span></div><p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45">Your progress is fully preserved — logs, adaptation, and schedule. Resume anytime without data loss.</p>${(S.parkedPrograms||[]).map(pp=>{const vol=(pp.logs||[]).reduce((a,l)=>{if(isRunExerciseName(l.exercise))return a;return a+(Number(l.aS)||1)*(Number(l.aR)||0)*(Number(l.aW)||0)},0);const volLabel=vol>=1000?Math.round(vol/1000)+"k lb":Math.round(vol)+" lb";return`<div class="parked-program-card"><div class="parked-program-info"><div class="parked-program-name">${pp.label}</div><div class="parked-program-detail">Parked ${pp.parkedAt} · ${(pp.logs||[]).length} logs · ${volLabel} volume</div></div><div class="parked-program-btns"><button type="button" class="btn btn-sm btn-mint parked-resume" data-pid="${pp.id}">▶ Resume</button><button type="button" class="btn btn-sm btn-ghost parked-delete" data-pid="${pp.id}" title="Delete parked program">✕</button></div></div>`}).join("")}</div>`:""} 
-      <button class="btn btn-ghost btn-block" id="s-reonboard" style="margin-top:8px">Re-run Onboarding Wizard</button>
+      <div class="settings-pause-block" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <label>Going away? Pause your program</label>
+        ${isProgramPaused()?`<p style="font-size:12px;color:var(--text2);margin:4px 0 8px;line-height:1.45">Paused until <b style="color:var(--text)">${parseIsoNoon(S.program.pause.until).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</b> — nothing counts as missed.</p><button type="button" class="btn btn-cta btn-block" id="s-pause-resume">Resume now</button>`:`<p style="font-size:12px;color:var(--text3);margin:4px 0 8px;line-height:1.45">Freeze the block for a vacation. Your schedule shifts forward so you pick up exactly where you left off — no missed-day guilt.</p><div class="row" style="gap:8px"><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="7" style="flex:1">1 week</button><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="14" style="flex:1">2 weeks</button><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="21" style="flex:1">3 weeks</button></div>`}
+      </div>
+      <button class="btn btn-ghost btn-block" id="s-reonboard" style="margin-top:12px">Re-run Onboarding Wizard</button>
     </div>
         </div></div>
   </details>
+  <details class="settings-fold settings-section settings-adv-group" data-k="advanced integrations plate bar activity health shoes data backup export apple watch wearable smartwatch"><summary>Advanced &amp; integrations</summary><div class="settings-fold-body settings-adv-body">
   <details class="settings-fold settings-section" id="settings-plates" data-k="plate barbell calculator load weight gym plates per side olympic metric kg lb"><summary>Bar load helper</summary><div class="settings-fold-body">
     ${(()=>{const m=useMetric();const hint=m?"Pairs per side for a standard kg set (25, 20, 15, 10, 5, 2.5, 1.25 kg).":"Pairs per side for a standard Olympic set (45, 35, 25, 10, 5, 2.5 lb).";const tot=m?"Target total (kg)":"Target total (lb)";const ph=m?"e.g. 102.5":"e.g. 225";const bi=m?`<option value="20" selected>20 kg</option><option value="15">15 kg</option><option value="10">10 kg technique</option><option value="0">No bar</option>`:`<option value="45" selected>45 lb</option><option value="35">35 lb</option><option value="20">20 lb technique</option><option value="0">No bar</option>`;const bl=m?"Bar (kg)":"Bar weight";return`<p style="font-size:12px;color:var(--text2);margin-bottom:10px">${hint}</p><div class="grid3"><div><label>${tot}</label><input type="number" id="pl-total" step="0.5" placeholder="${ph}" min="0"></div><div><label>${bl}</label><select id="pl-bar">${bi}</select></div><div style="align-self:end"><button type="button" class="btn btn-secondary-solid btn-block" id="pl-calc">Calculate</button></div></div>`})()}
     <div id="pl-out" style="font-size:13px;color:var(--text);margin-top:12px;line-height:1.45;font-weight:500"></div>
@@ -5929,7 +5901,8 @@ function renderSettings(){
       <button type="button" class="btn btn-ghost btn-sm btn-block" id="s-watch-copy-url" style="margin-top:8px">Copy watch URL</button>
       <p style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.45">The watch page uses the same Firebase account — sign in once and log sets with two taps. Designed for ~200px screens.</p>
     </div>
-  </details>`;
+  </details>
+  </div></details>`;
 }
 // ── Profile/body/app settings: Preact component (UI rebuild #2) ──
 function buildProfileSettingsProps(){
@@ -6023,6 +5996,8 @@ function bindSettings(){
   document.querySelectorAll(".parked-resume").forEach(btn=>{btn.onclick=async()=>{const pp=(S.parkedPrograms||[]).find(p=>p.id===btn.dataset.pid);if(!pp)return;const ok=await showCustomModal("Resume program?",`Resume <b>${pp.label}</b>? Your current program will be parked automatically.`,{confirmLabel:"Resume"});if(!ok)return;resumeParkedProgram(pp.id);await persist();render();toast("Program resumed.")}});
   document.querySelectorAll(".parked-delete").forEach(btn=>{btn.onclick=async()=>{const pp=(S.parkedPrograms||[]).find(p=>p.id===btn.dataset.pid);if(!pp)return;const ok=await showCustomModal("Delete parked program?",`Permanently delete <b>${pp.label}</b>? This cannot be undone — ${(pp.logs||[]).length} logs will be lost.`,{confirmLabel:"Delete",cancelLabel:"Keep it"});if(!ok)return;S.parkedPrograms=(S.parkedPrograms||[]).filter(p=>p.id!==btn.dataset.pid);await persist();render();toast("Parked program deleted.")}});
   document.getElementById("s-reonboard").onclick=async()=>{const ok=await showCustomModal("Re-run onboarding?","Your logs stay saved, but you'll step through goals and schedule again.",{confirmLabel:"Re-run"});if(!ok)return;S.profile.onboarded=false;save();showOnboarding()};
+  document.querySelectorAll(".s-pause-go").forEach(b=>b.onclick=async()=>{const days=Number(b.dataset.days)||7;const ok=await showCustomModal("Pause program?",`Freeze your block for ${days} days. Your schedule shifts forward — nothing counts as missed, and you resume right where you are now.`,{confirmLabel:"Pause"});if(ok)pauseProgram(days);});
+  {const r=document.getElementById("s-pause-resume");if(r)r.onclick=()=>resumeProgramNow();}
   document.getElementById("s-clear").onclick=async()=>{const ok=await showCustomModal("Clear all data?","Delete all workout logs and weight history? Use undo in the toast or a backup to restore.",{confirmLabel:"Clear everything"});if(!ok)return;const logs=S.logs.slice(),ev=Array.isArray(S.events)?S.events.slice():[],wl=S.weightLog.slice(),ad={...S.adapt};S.events=[];S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Logs cleared.",{undo:()=>{S.events=ev;S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
   const shoeAdd=document.getElementById("shoe-add");
   if(shoeAdd)shoeAdd.onclick=async()=>{

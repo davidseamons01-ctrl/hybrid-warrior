@@ -1,10 +1,9 @@
-// Session Player (UI overhaul phase 3) — the full-screen, one-exercise-at-a-time
-// workout experience behind "Start session". Owns its own in-workout state
-// (current exercise, set count, rest countdown, adjustments); the data layer
-// stays in ui.js behind actions (logSet persists an event-sourced set, finish
-// runs day adaptation + summary). Coached mode speaks plain language; Pro mode
-// shows the prescription. Unmounted wholesale on exit — nothing here re-renders
-// the app behind it.
+// Session Player (overhaul phase 7) — THE single container for a workout.
+// Owns warm-up, one-exercise-at-a-time logging, rest countdown, on-demand
+// exercise education (how-to + video), the optional finisher, and finishing
+// (full or early). The data layer stays in ui.js behind actions. Coached mode
+// speaks plain language; Pro mode shows prescriptions. Unmounted wholesale on
+// exit — nothing here re-renders the app behind it.
 import { render } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 
@@ -12,19 +11,29 @@ export interface PlayerExercise {
   eid: string;
   name: string;
   sets: number;
-  reps: number;
-  weightLb: number;   // pace sec/mi for runs
-  stepLb: number;     // weight increment (pace step for runs)
+  reps: number;       // working value (player-adjustable)
+  tReps: number;      // prescribed reps (for the log's target fields)
+  target: number;     // prescribed load lb / pace sec-mi (for tW)
+  weightLb: number;   // working load (pace sec/mi for runs)
+  stepLb: number;
   restSec: number;
   isRun: boolean;
-  runTempo: boolean;  // minutes-style run (vs intervals)
-  doneSets: number;   // already logged today
+  runTempo: boolean;
+  doneSets: number;
   cue: string;
   rx: string;
+  howTo: string[];
+  videoUrl: string;   // watch URL, "" if none
+  plateHtml: string;  // trusted plate-math HTML, "" if none
+  group: "main" | "finisher";
 }
 
+export interface PlayerWarmupItem { idx: number; line: string; checked: boolean }
+
 export interface SessionPlayerActions {
-  logSet: (i: number, data: { reps: number; weightLb: number; outcome: string }) => Promise<{ ok: boolean; isPR?: boolean }>;
+  logSet: (ex: PlayerExercise, data: { reps: number; weightLb: number; outcome: string }) => Promise<{ ok: boolean; isPR?: boolean }>;
+  toggleWarmup: (idx: number, checked: boolean) => void;
+  addFinisher: () => Promise<PlayerExercise[]>; // returns the FULL new exercise list
   finish: () => void;
   exit: () => void;
 }
@@ -33,11 +42,14 @@ export interface SessionPlayerProps {
   title: string;
   coached: boolean;
   exercises: PlayerExercise[];
+  warmup: PlayerWarmupItem[];
+  finisherOffer: string;  // "" when none available / already added
+  finisherText: string;   // plan.finisher free text, "" if none
   formatW: (lb: number, isRun: boolean) => string;
   actions: SessionPlayerActions;
 }
 
-type Phase = "lift" | "rest" | "done";
+type Phase = "warmup" | "lift" | "rest" | "done";
 
 function fmtClock(sec: number): string {
   const s = Math.max(0, Math.round(sec));
@@ -52,25 +64,30 @@ const FEELS: ReadonlyArray<readonly [string, string, string]> = [
 
 function SessionPlayer(p: SessionPlayerProps) {
   const a = p.actions;
-  const exs = p.exercises;
-  const firstOpen = Math.max(0, exs.findIndex((e) => e.doneSets < e.sets));
-  const [idx, setIdx] = useState(firstOpen);
-  const [done, setDone] = useState(() => exs.map((e) => e.doneSets));
-  const [wLb, setWLb] = useState(() => exs.map((e) => e.weightLb));
-  const [reps, setReps] = useState(() => exs.map((e) => e.reps));
+  const [list, setList] = useState(p.exercises);
+  const allDoneAtStart = p.exercises.length > 0 && p.exercises.every((e) => e.doneSets >= e.sets);
+  const nothingLogged = p.exercises.every((e) => e.doneSets === 0);
+  const [idx, setIdx] = useState(Math.max(0, p.exercises.findIndex((e) => e.doneSets < e.sets)));
+  const [done, setDone] = useState(() => p.exercises.map((e) => e.doneSets));
+  const [wLb, setWLb] = useState(() => p.exercises.map((e) => e.weightLb));
+  const [reps, setReps] = useState(() => p.exercises.map((e) => e.reps));
   const [feel, setFeel] = useState("ok");
-  const [phase, setPhase] = useState<Phase>(exs.every((e) => e.doneSets >= e.sets) ? "done" : "lift");
+  const [phase, setPhase] = useState<Phase>(allDoneAtStart ? "done" : (p.warmup.length && nothingLogged ? "warmup" : "lift"));
+  const [wuChecked, setWuChecked] = useState(() => p.warmup.map((w) => w.checked));
   const [restLeft, setRestLeft] = useState(0);
   const [restTotal, setRestTotal] = useState(1);
   const [restNext, setRestNext] = useState("");
   const [prFlash, setPrFlash] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [info, setInfo] = useState(false);
+  const [exitAsk, setExitAsk] = useState(false);
+  const [finisherAdded, setFinisherAdded] = useState(false);
   const restUntil = useRef(0);
   const startTs = useRef(Date.now());
 
-  const ex = exs[idx];
-  const totalSets = exs.reduce((t, e) => t + e.sets, 0);
-  const doneTotal = done.reduce((t, d, i) => t + Math.min(d, exs[i].sets), 0);
+  const ex = list[idx];
+  const totalSets = list.reduce((t, e) => t + e.sets, 0);
+  const doneTotal = done.reduce((t, d, i) => t + Math.min(d, list[i].sets), 0);
   const pct = totalSets ? Math.round((100 * doneTotal) / totalSets) : 0;
 
   useEffect(() => {
@@ -86,10 +103,10 @@ function SessionPlayer(p: SessionPlayerProps) {
     return () => clearInterval(t);
   }, [phase]);
 
-  const nextIncomplete = (from: number, doneArr: number[]): number | null => {
-    for (let k = 0; k < exs.length; k++) {
-      const i = (from + k) % exs.length;
-      if (doneArr[i] < exs[i].sets) return i;
+  const nextIncomplete = (from: number, doneArr: number[], inList: PlayerExercise[]): number | null => {
+    for (let k = 0; k < inList.length; k++) {
+      const i = (from + k) % inList.length;
+      if (doneArr[i] < inList[i].sets) return i;
     }
     return null;
   };
@@ -110,7 +127,7 @@ function SessionPlayer(p: SessionPlayerProps) {
   const logCurrent = async () => {
     if (busy) return;
     setBusy(true);
-    const r = await a.logSet(idx, { reps: reps[idx], weightLb: wLb[idx], outcome: feel });
+    const r = await a.logSet(ex, { reps: reps[idx], weightLb: wLb[idx], outcome: feel });
     setBusy(false);
     if (!r.ok) return;
     if (r.isPR) { setPrFlash(true); setTimeout(() => setPrFlash(false), 2200); }
@@ -118,42 +135,76 @@ function SessionPlayer(p: SessionPlayerProps) {
     nd[idx] = nd[idx] + 1;
     setDone(nd);
     setFeel("ok");
+    setInfo(false);
     if (nd[idx] >= ex.sets) {
-      const n = nextIncomplete(idx + 1, nd);
+      const n = nextIncomplete(idx + 1, nd, list);
       if (n == null) { setPhase("done"); return; }
       setIdx(n);
-      startRest(ex.restSec, `Next up: ${exs[n].name}`);
+      startRest(ex.restSec, `Next up: ${list[n].name}`);
     } else {
       startRest(ex.restSec, `Next: set ${nd[idx] + 1} of ${ex.sets} — ${ex.name}`);
     }
   };
 
   const skipExercise = () => {
-    const n = nextIncomplete(idx + 1, done);
+    const n = nextIncomplete(idx + 1, done, list);
     if (n == null || n === idx) { setPhase("done"); return; }
     setIdx(n);
+    setInfo(false);
     setPhase("lift");
+  };
+
+  const addFinisher = async () => {
+    if (busy) return;
+    setBusy(true);
+    const full = await a.addFinisher();
+    setBusy(false);
+    if (!full || full.length <= list.length) return;
+    const nd = full.map((e, i) => (i < done.length ? done[i] : e.doneSets));
+    setList(full);
+    setDone(nd);
+    setWLb(full.map((e, i) => (i < wLb.length ? wLb[i] : e.weightLb)));
+    setReps(full.map((e, i) => (i < reps.length ? reps[i] : e.reps)));
+    setFinisherAdded(true);
+    const n = nextIncomplete(list.length, nd, full);
+    if (n != null) { setIdx(n); setPhase("lift"); }
   };
 
   const elapsed = fmtClock((Date.now() - startTs.current) / 1000);
   const repLab = ex ? (ex.runTempo ? "min" : ex.isRun ? "intervals" : "reps") : "reps";
   const R = 84, CIRC = 2 * Math.PI * R;
+  const wuAllChecked = wuChecked.every(Boolean);
 
   return (
     <div class="sp-overlay" role="dialog" aria-modal="true" aria-label="Workout session">
       <div class="sp-top">
-        <button type="button" class="sp-close" aria-label="Exit session" onClick={() => a.exit()}>×</button>
+        <button type="button" class="sp-close" aria-label="Exit or finish session" onClick={() => setExitAsk(true)}>×</button>
         <div class="sp-top-mid">
           <div class="sp-top-title">{p.title}</div>
-          <div class="sp-top-sub">{doneTotal} of {totalSets} sets · {exs.length} exercise{exs.length !== 1 ? "s" : ""}</div>
+          <div class="sp-top-sub">{doneTotal} of {totalSets} sets · {list.length} exercise{list.length !== 1 ? "s" : ""}</div>
         </div>
-        <div class="sp-top-count">{Math.min(idx + 1, exs.length)}/{exs.length}</div>
+        <div class="sp-top-count">{Math.min(idx + 1, list.length)}/{list.length}</div>
       </div>
       <div class="sp-progress"><div class="sp-progress-fill" style={`width:${pct}%`}></div></div>
 
+      {phase === "warmup" ? (
+        <div class="sp-main sp-warmup">
+          <div class="sp-kicker">Warm-up</div>
+          <div class="sp-exname" style="font-size:26px">Get the body ready</div>
+          <div class="sp-wu-list">
+            {p.warmup.map((w, i) => (
+              <button key={w.idx} type="button" class={`sp-wu-item ${wuChecked[i] ? "on" : ""}`} onClick={() => { const c = wuChecked.slice(); c[i] = !c[i]; setWuChecked(c); a.toggleWarmup(w.idx, c[i]); }}>
+                <span class="sp-wu-box" aria-hidden="true">{wuChecked[i] ? "✓" : ""}</span>{w.line}
+              </button>
+            ))}
+          </div>
+          <button type="button" class="sp-log" onClick={() => setPhase("lift")}>{wuAllChecked ? "Start main work" : "Skip to main work"}</button>
+        </div>
+      ) : null}
+
       {phase === "lift" && ex ? (
         <div class="sp-main">
-          <div class="sp-kicker">Set {Math.min(done[idx] + 1, ex.sets)} of {ex.sets}</div>
+          {ex.group === "finisher" ? <div class="sp-kicker" style="color:var(--gold)">Finisher · set {Math.min(done[idx] + 1, ex.sets)} of {ex.sets}</div> : <div class="sp-kicker">Set {Math.min(done[idx] + 1, ex.sets)} of {ex.sets}</div>}
           <div class="sp-exname">{ex.name}</div>
           {p.coached
             ? (ex.cue ? <p class="sp-cue">{ex.cue}</p> : null)
@@ -170,6 +221,7 @@ function SessionPlayer(p: SessionPlayerProps) {
               <button type="button" class="sp-step" aria-label="Increase reps" onClick={() => adj("r", 1)}>+</button>
             </div>
           </div>
+          {ex.plateHtml ? <div class="sp-plates" dangerouslySetInnerHTML={{ __html: ex.plateHtml }} /> : null}
           <div class="sp-feel-row" role="radiogroup" aria-label="How did that feel">
             {FEELS.map(([v, coachedLbl, proLbl]) => (
               <button key={v} type="button" role="radio" aria-checked={feel === v} class={`sp-feel ${feel === v ? "on" : ""}`} onClick={() => setFeel(v)}>{p.coached ? coachedLbl : proLbl}</button>
@@ -178,6 +230,7 @@ function SessionPlayer(p: SessionPlayerProps) {
           <button type="button" class="sp-log" onClick={logCurrent} disabled={busy}>{busy ? "Saving…" : "Log set"}</button>
           {prFlash ? <div class="sp-pr" role="status">🏆 New record!</div> : null}
           <div class="sp-secondary-row">
+            {(ex.howTo.length || ex.videoUrl) ? <button type="button" class="sp-ghost-btn" onClick={() => setInfo(true)}>How to & video</button> : null}
             <button type="button" class="sp-ghost-btn" onClick={skipExercise}>Skip exercise</button>
           </div>
         </div>
@@ -195,8 +248,9 @@ function SessionPlayer(p: SessionPlayerProps) {
           </div>
           <p class="sp-rest-next">{restNext}</p>
           <div class="sp-rest-actions">
+            <button type="button" class="sp-ghost-btn" onClick={() => { restUntil.current = Math.max(Date.now() + 3000, restUntil.current - 30000); }}>−30s</button>
+            <button type="button" class="sp-log sp-log-sm" onClick={() => setPhase("lift")}>Skip rest</button>
             <button type="button" class="sp-ghost-btn" onClick={() => { restUntil.current += 30000; setRestTotal((t) => t + 30); }}>+30s</button>
-            <button type="button" class="sp-log sp-log-sm" onClick={() => { setPhase("lift"); }}>Skip rest</button>
           </div>
         </div>
       ) : null}
@@ -206,10 +260,37 @@ function SessionPlayer(p: SessionPlayerProps) {
           <div class="sp-done-check" aria-hidden="true">✓</div>
           <div class="sp-exname">Session complete</div>
           <p class="sp-done-stats">{doneTotal} set{doneTotal !== 1 ? "s" : ""} logged · {elapsed} elapsed</p>
-          <p class="sp-cue">{p.coached ? "Great work. Finishing updates tomorrow's targets from what you just did." : "Finalize to run day adaptation on today's log."}</p>
+          {p.finisherOffer && !finisherAdded ? (
+            <button type="button" class="sp-finisher-btn" onClick={addFinisher} disabled={busy}>{busy ? "Adding…" : p.finisherOffer}</button>
+          ) : null}
+          {p.finisherText ? <p class="sp-cue">Optional finisher: {p.finisherText}</p> : null}
+          <p class="sp-cue">{p.coached ? "Finishing updates tomorrow's targets from what you just did." : "Finalize to run day adaptation on today's log."}</p>
           <button type="button" class="sp-log" onClick={() => a.finish()}>Finish session</button>
           <div class="sp-secondary-row">
             <button type="button" class="sp-ghost-btn" onClick={() => a.exit()}>Back to Today</button>
+          </div>
+        </div>
+      ) : null}
+
+      {info && ex ? (
+        <div class="sp-sheet-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setInfo(false); }}>
+          <div class="sp-sheet" role="dialog" aria-label={`How to: ${ex.name}`}>
+            <div class="sp-sheet-title">{ex.name}</div>
+            {ex.howTo.length ? <ol class="sp-howto">{ex.howTo.map((s, i) => <li key={i}>{s}</li>)}</ol> : <p class="sp-cue">{ex.cue || "No written guide for this one yet."}</p>}
+            {ex.videoUrl ? <a class="sp-video-link" href={ex.videoUrl} target="_blank" rel="noopener noreferrer">▶ Watch video demo</a> : null}
+            <button type="button" class="sp-log sp-log-sm" onClick={() => setInfo(false)}>Back to the set</button>
+          </div>
+        </div>
+      ) : null}
+
+      {exitAsk ? (
+        <div class="sp-sheet-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setExitAsk(false); }}>
+          <div class="sp-sheet" role="dialog" aria-label="Leave session">
+            <div class="sp-sheet-title">Done for today?</div>
+            <p class="sp-cue">{doneTotal > 0 ? `You've logged ${doneTotal} set${doneTotal !== 1 ? "s" : ""}. Finishing saves them and updates tomorrow's targets.` : "Nothing logged yet — you can leave and pick this up later."}</p>
+            {doneTotal > 0 ? <button type="button" class="sp-log sp-log-sm" onClick={() => a.finish()}>Finish & save</button> : null}
+            <button type="button" class="sp-ghost-btn" onClick={() => a.exit()}>Leave — resume later</button>
+            <button type="button" class="sp-ghost-btn" onClick={() => setExitAsk(false)}>Keep training</button>
           </div>
         </div>
       ) : null}
