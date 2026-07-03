@@ -309,8 +309,11 @@ details.log-entry .log-entry-expanded .log-detail-row{padding:10px 0;border-bott
 .train-session-footer{position:fixed;left:0;right:0;bottom:0;z-index:130;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,color-mix(in srgb,var(--bg) 40%,transparent));border-top:1px solid var(--border);box-shadow:0 -6px 24px rgba(0,0,0,.18)}
 body.appearance-light .train-session-footer{box-shadow:0 -4px 20px rgba(0,0,0,.06)}
 .focus-hint{font-size:11px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.45;margin-bottom:0}
-#p-today.train-focus-mode{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
-#p-today.train-session-active:not(.train-focus-mode){padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+/* Phase-7: the sticky Complete-session footer is gone (the player finishes
+   sessions), so #p-today no longer reserves space for it. The .page bottom
+   padding already clears the tab bar. */
+#p-today.train-focus-mode{padding-bottom:0}
+#p-today.train-session-active:not(.train-focus-mode){padding-bottom:0}
 .focus-session-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .focus-session-bar .focus-session-title{font-size:13px;font-weight:600;color:var(--text2)}
 .focus-session-progress{font-size:12px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
@@ -623,7 +626,7 @@ label,.fig-title{
   }
   #p-today.train-session-active:not(.train-focus-mode),
   #p-today.train-focus-mode{
-    padding-bottom:calc(150px + env(safe-area-inset-bottom));
+    padding-bottom:0;
   }
 }
 
