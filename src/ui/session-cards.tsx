@@ -10,18 +10,19 @@ import { render } from "preact";
 export interface ReadinessProps { readiness: string; onSelect: (v: string) => void }
 
 function ReadinessCard({ readiness, onSelect }: ReadinessProps) {
-  const Btn = ({ v, emoji, label, on }: { v: string; emoji: string; label: string; on: boolean }) => (
-    <button type="button" class={"btn btn-sm readiness-btn" + (on ? " readiness-on" : "")} data-ready={v} onClick={() => onSelect(v)}>
-      <span style="font-size:15px">{emoji}</span> {label}
+  // Same pill language as the player's Easy/Solid/Grind chips — one design.
+  const Btn = ({ v, label, on }: { v: string; label: string; on: boolean }) => (
+    <button type="button" class={"sp-feel readiness-btn" + (on ? " on" : "")} data-ready={v} onClick={() => onSelect(v)}>
+      {label}
     </button>
   );
   return (
     <div class="card section readiness-card">
       <div style="font-size:13px;font-weight:600;margin-bottom:6px">How are you feeling?</div>
       <div class="readiness-row">
-        <Btn v="strong" emoji="💪" label="Strong" on={readiness === "strong"} />
-        <Btn v="normal" emoji="👍" label="Normal" on={readiness === "normal" || !readiness} />
-        <Btn v="fatigued" emoji="😴" label="Fatigued" on={readiness === "fatigued"} />
+        <Btn v="strong" label="Strong" on={readiness === "strong"} />
+        <Btn v="normal" label="Normal" on={readiness === "normal" || !readiness} />
+        <Btn v="fatigued" label="Fatigued" on={readiness === "fatigued"} />
       </div>
       {readiness === "fatigued"
         ? <p style="font-size:11px;color:var(--gold);margin-top:8px;line-height:1.45">Loads eased ~5% for this session only — your program stays intact.</p>

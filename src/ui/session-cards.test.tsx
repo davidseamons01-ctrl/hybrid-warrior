@@ -16,7 +16,7 @@ describe("ReadinessCard", () => {
     const el = mount(<ReadinessCard readiness="" onSelect={onSelect} />);
     const btns = [...el.querySelectorAll(".readiness-btn")] as HTMLElement[];
     expect(btns.length).toBe(3);
-    expect(btns[1].classList.contains("readiness-on")).toBe(true); // normal-on by default
+    expect(btns[1].classList.contains("on")).toBe(true); // normal-on by default
     click(btns[2]);
     expect(onSelect).toHaveBeenCalledWith("fatigued");
   });

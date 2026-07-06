@@ -37,7 +37,7 @@ function BodyMetrics(p: BodyMetricsProps) {
   const dir = p.deltaDir > 0 ? "up" : p.deltaDir < 0 ? "down" : "flat";
   return (
     <div class="bm-board card dash-span-full">
-      <div class="card-h"><h2>Body Metrics</h2></div>
+      <div class="card-h"><h2>Body metrics</h2></div>
 
       {p.hasWeight ? (
         <div class="bm-weight">

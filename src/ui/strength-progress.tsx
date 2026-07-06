@@ -32,7 +32,7 @@ function StrengthProgress(p: StrengthProgressProps) {
   const lifts = p.lifts.filter((l) => l.has);
   return (
     <div class="sp-board card dash-span-full">
-      <div class="card-h"><h2>Strength Progress</h2><span class="badge badge-ice">e1RM</span></div>
+      <div class="card-h"><h2>Strength progress</h2><span class="badge badge-ice">e1RM</span></div>
 
       {lifts.length ? (
         <div class="sp-lifts">

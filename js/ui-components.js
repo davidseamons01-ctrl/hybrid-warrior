@@ -629,9 +629,9 @@ function ProfileSettings(props) {
     ] }),
     /* @__PURE__ */ u3("div", { class: "grid3", style: "margin-top:8px", children: [
       /* @__PURE__ */ u3(Num, { label: `Weight (${u4})`, value: f4.weight, onInput: (v3) => set("weight", v3) }),
-      /* @__PURE__ */ u3(Num, { label: `Goal Wt (${u4})`, value: f4.goalWt, onInput: (v3) => set("goalWt", v3) }),
+      /* @__PURE__ */ u3(Num, { label: `Goal weight (${u4})`, value: f4.goalWt, onInput: (v3) => set("goalWt", v3) }),
       /* @__PURE__ */ u3("div", { children: [
-        /* @__PURE__ */ u3("label", { children: "4mi pace" }),
+        /* @__PURE__ */ u3("label", { children: "4-mile pace" }),
         /* @__PURE__ */ u3("input", { class: "input-mmss", value: f4.run, placeholder: "35:00", inputmode: "numeric", autocomplete: "off", spellcheck: false, "aria-label": "Four mile time as mm:ss", onInput: (e3) => set("run", e3.target.value) })
       ] })
     ] }),
@@ -1317,17 +1317,13 @@ function mountExerciseCard(container, props) {
 
 // src/ui/session-cards.tsx
 function ReadinessCard({ readiness, onSelect }) {
-  const Btn = ({ v: v3, emoji, label, on }) => /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm readiness-btn" + (on ? " readiness-on" : ""), "data-ready": v3, onClick: () => onSelect(v3), children: [
-    /* @__PURE__ */ u3("span", { style: "font-size:15px", children: emoji }),
-    " ",
-    label
-  ] });
+  const Btn = ({ v: v3, label, on }) => /* @__PURE__ */ u3("button", { type: "button", class: "sp-feel readiness-btn" + (on ? " on" : ""), "data-ready": v3, onClick: () => onSelect(v3), children: label });
   return /* @__PURE__ */ u3("div", { class: "card section readiness-card", children: [
     /* @__PURE__ */ u3("div", { style: "font-size:13px;font-weight:600;margin-bottom:6px", children: "How are you feeling?" }),
     /* @__PURE__ */ u3("div", { class: "readiness-row", children: [
-      /* @__PURE__ */ u3(Btn, { v: "strong", emoji: "\u{1F4AA}", label: "Strong", on: readiness === "strong" }),
-      /* @__PURE__ */ u3(Btn, { v: "normal", emoji: "\u{1F44D}", label: "Normal", on: readiness === "normal" || !readiness }),
-      /* @__PURE__ */ u3(Btn, { v: "fatigued", emoji: "\u{1F634}", label: "Fatigued", on: readiness === "fatigued" })
+      /* @__PURE__ */ u3(Btn, { v: "strong", label: "Strong", on: readiness === "strong" }),
+      /* @__PURE__ */ u3(Btn, { v: "normal", label: "Normal", on: readiness === "normal" || !readiness }),
+      /* @__PURE__ */ u3(Btn, { v: "fatigued", label: "Fatigued", on: readiness === "fatigued" })
     ] }),
     readiness === "fatigued" ? /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--gold);margin-top:8px;line-height:1.45", children: "Loads eased ~5% for this session only \u2014 your program stays intact." }) : readiness === "strong" ? /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--mint);margin-top:8px;line-height:1.45", children: "Targets nudged up ~3% \u2014 push it today." }) : null
   ] });
@@ -1884,7 +1880,7 @@ function mountSessionSummary(container, props) {
 function PersonalRecords(p3) {
   return /* @__PURE__ */ u3("div", { class: "pr-board card dash-span-full", children: [
     /* @__PURE__ */ u3("div", { class: "card-h", children: [
-      /* @__PURE__ */ u3("h2", { children: "Personal Records" }),
+      /* @__PURE__ */ u3("h2", { children: "Personal records" }),
       /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: "e1RM" })
     ] }),
     /* @__PURE__ */ u3("div", { class: "pr-total", children: [
@@ -1942,7 +1938,7 @@ function StrengthProgress(p3) {
   const lifts = p3.lifts.filter((l3) => l3.has);
   return /* @__PURE__ */ u3("div", { class: "sp-board card dash-span-full", children: [
     /* @__PURE__ */ u3("div", { class: "card-h", children: [
-      /* @__PURE__ */ u3("h2", { children: "Strength Progress" }),
+      /* @__PURE__ */ u3("h2", { children: "Strength progress" }),
       /* @__PURE__ */ u3("span", { class: "badge badge-ice", children: "e1RM" })
     ] }),
     lifts.length ? /* @__PURE__ */ u3("div", { class: "sp-lifts", children: lifts.map((l3) => /* @__PURE__ */ u3("div", { class: "sp-lift", children: [
@@ -1990,7 +1986,7 @@ function Stat({ val, label }) {
 function TrainingHeatmap(p3) {
   return /* @__PURE__ */ u3("div", { class: "hm-board card dash-span-full", children: [
     /* @__PURE__ */ u3("div", { class: "card-h", children: [
-      /* @__PURE__ */ u3("h2", { children: "Training Consistency" }),
+      /* @__PURE__ */ u3("h2", { children: "Training consistency" }),
       p3.currentStreak > 0 ? /* @__PURE__ */ u3("span", { class: "badge badge-fire", children: [
         "\u{1F525} ",
         p3.currentStreak,
@@ -2070,7 +2066,7 @@ function Spark({ points }) {
 function BodyMetrics(p3) {
   const dir = p3.deltaDir > 0 ? "up" : p3.deltaDir < 0 ? "down" : "flat";
   return /* @__PURE__ */ u3("div", { class: "bm-board card dash-span-full", children: [
-    /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Body Metrics" }) }),
+    /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Body metrics" }) }),
     p3.hasWeight ? /* @__PURE__ */ u3("div", { class: "bm-weight", children: [
       /* @__PURE__ */ u3("div", { class: "bm-weight-num", children: [
         p3.currentWeight,

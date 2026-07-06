@@ -27,7 +27,7 @@ function TrainingHeatmap(p: TrainingHeatmapProps) {
   return (
     <div class="hm-board card dash-span-full">
       <div class="card-h">
-        <h2>Training Consistency</h2>
+        <h2>Training consistency</h2>
         {p.currentStreak > 0 ? <span class="badge badge-fire">🔥 {p.currentStreak} day streak</span> : null}
       </div>
 

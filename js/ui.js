@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hcb0cf9f25a45";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hf79eedaa2748";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=hcb0cf9f25a45";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=hcb0cf9f25a45";
+} from "./programming.js?v=hf79eedaa2748";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=hf79eedaa2748";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -2610,6 +2610,15 @@ function renderNavBanners(){
   const rv=document.getElementById("nav-refresh-verify");
   if(rv)rv.onclick=async()=>{try{await currentUser.reload();if(currentUser.emailVerified)toast("Email verified.");render()}catch(e){toast(e.message||"Could not refresh.")}};
 }
+const IC={
+  cal:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  users:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  target:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
+  chart:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>',
+  pause:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="10" y1="5" x2="10" y2="19"/><line x1="14" y1="5" x2="14" y2="19"/></svg>',
+  flask:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v7L4.5 19a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L14 9V2"/><path d="M8 2h8"/></svg>',
+  spark:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.8L20 10l-5.6 1.9L12 18l-2.4-6.1L4 10l6.1-1.2z"/></svg>'
+};
 const NAV_ICONS={
   train:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5a2 2 0 0 0-3 0L2 8l4.5 4.5M17.5 6.5a2 2 0 0 1 3 0L22 8l-4.5 4.5"/><path d="M2 12h20"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4"/></svg>`,
   plan:`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,
@@ -3460,7 +3469,7 @@ function goalEtaCardHtml(){
     rows.push({label:"Bodyweight",detail:`${Math.round(S.profile.weight)}→${S.profile.goalWt} lb · ${wt.perWeek>0?"+":""}${wt.perWeek.toFixed(1)}/wk`,eta});
   }
   if(!rows.length)return"";
-  return`<div class="card section" style="padding:14px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">🎯 Goal projections</div>${rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600;color:var(--text)">${r.label}</div><div style="font-size:10px;color:var(--text3)">${escPlanChip(r.detail)}</div></div><div style="font-size:12px;color:var(--text2);text-align:right;align-self:center">${escPlanChip(r.eta)}</div></div>`).join("")}<div style="font-size:10px;color:var(--text3);margin-top:8px">"Current" = your best logged e1RM (same number as Trophy Room). Projected from your logged trend.</div></div>`;
+  return`<div class="card section" style="padding:14px"><div style="font-size:13px;font-weight:600;margin-bottom:8px">Goal projections</div>${rows.map(r=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;font-weight:600;color:var(--text)">${r.label}</div><div style="font-size:10px;color:var(--text3)">${escPlanChip(r.detail)}</div></div><div style="font-size:12px;color:var(--text2);text-align:right;align-self:center">${escPlanChip(r.eta)}</div></div>`).join("")}<div style="font-size:10px;color:var(--text3);margin-top:8px">"Current" = your best logged e1RM (same number as Trophy Room). Projected from your logged trend.</div></div>`;
 }
 // Recent-runs analytics — surfaces the framework's logged distance/pace/HR.
 function recentRunsHtml(){
@@ -4625,9 +4634,9 @@ function renderToday(){
     ${plan.exs.length?`${plan.deloadHint?`<div class="today-hero-note">${escPlanChip(plan.deloadHint)}</div>`:""}<div id="readiness-mount"></div><button type="button" class="btn btn-cta btn-block today-start" id="train-begin-session">${startLabel}</button><p class="today-hero-hint">Everything happens here — warm-up, sets, rest, and finish, one screen at a time.</p>`:""}
   </div>
   <div class="today-quick-row">
-    <button type="button" class="chip-action" id="train-reschedule">📅 Reschedule week</button>
-    <button type="button" class="chip-action" id="train-bring-friend">👥 Train with a friend</button>
-    ${plan.exs.length?`<button type="button" class="chip-action" id="today-preview-map">🎯 Muscles worked</button>`:""}
+    <button type="button" class="chip-action" id="train-reschedule">${IC.cal} Reschedule week</button>
+    <button type="button" class="chip-action" id="train-bring-friend">${IC.users} Train with a friend</button>
+    ${plan.exs.length?`<button type="button" class="chip-action" id="today-preview-map">${IC.target} Muscles worked</button>`:""}
   </div>
   ${nextTrainingDotsHtml(6)}
   ${plan.exs.length?`<details class="card section" id="today-impact-fold"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">What today works <span style="font-size:11px;color:var(--text3);font-weight:400">· muscle map${meta?" & coaching notes":""}</span></summary><div class="fig-wrap" style="margin-top:10px"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div>${meta?`<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div>`:""}${planHasRun(plan)?`<div style="margin-top:12px">${runZonesPanelHtml()}</div>`:""}</div></details>`:""}
@@ -4919,13 +4928,13 @@ function coachInsights(){
 function buildCoachProps(){
   const hr=new Date().getHours();
   const greet=hr<12?"Good morning":hr<18?"Good afternoon":"Good evening";
-  const nm=((S.profile.name||"").trim().split(/\s+/)[0])||"athlete";
+  const nm=((S.profile.name||"").trim().split(/\s+/)[0])||"";
   const today=new Date();const start=new Date(today);start.setDate(today.getDate()-6);
   const days=new Set((S.logs||[]).filter(l=>l.date>=isoFromDate(start)&&l.date<=iso()).map(l=>l.date));
   const sched=Math.max(1,(S.schedule.days||[]).length);
   const w=S.program.week;
   return{
-    headline:`${greet}, ${nm}`,
+    headline:nm?`${greet}, ${nm}`:greet,
     sub:coachedModeOn()?`Week ${w} of 13 · ${days.size} of ${sched} sessions this week`:`Week ${w}/13 · ${phaseName(w)} · ${days.size}/${sched} sessions (7d)`,
     insights:coachInsights(),
     coached:coachedModeOn(),
@@ -5014,12 +5023,12 @@ function renderProgressTab(){
   <div id="coach-mount"></div>
   <div class="prog-metrics">${progressMetricsHtml()}</div>
   ${goals?`<section class="prog-section"><h2 class="prog-h">Goals &amp; forecast</h2>${goals}</section>`:""}
-  <section class="prog-section"><h2 class="prog-h">Strength trend</h2><div id="prog-strength"></div></section>
-  <section class="prog-section"><h2 class="prog-h">Consistency</h2><div id="prog-heat"></div></section>
-  <section class="prog-section"><h2 class="prog-h">Personal records</h2><div id="prog-pr"></div></section>
-  <section class="prog-section"><h2 class="prog-h">Achievements</h2><div id="prog-ach"></div></section>
-  <section class="prog-section"><h2 class="prog-h">Body &amp; measurements</h2><div id="prog-body"></div><details class="card section" id="prog-log-body" style="margin-top:10px"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Log weight &amp; measurements <span style="font-size:11px;color:var(--text3);font-weight:400">· update your numbers</span></summary><div id="prog-body-log" style="margin-top:12px"></div></details></section>
-  <section class="prog-section"><button type="button" class="btn btn-cta btn-block" id="prog-wrapped" style="margin-bottom:10px">✨ Your week — the highlight reel</button><button type="button" class="btn btn-secondary-solid btn-block" id="prog-export-pdf">Export progress report (PDF)</button></section>
+  <section class="prog-section"><div id="prog-strength"></div></section>
+  <section class="prog-section"><div id="prog-heat"></div></section>
+  <section class="prog-section"><div id="prog-pr"></div></section>
+  <section class="prog-section"><div id="prog-ach"></div></section>
+  <section class="prog-section"><div id="prog-body"></div><details class="card section" id="prog-log-body" style="margin-top:10px"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Log weight &amp; measurements <span style="font-size:11px;color:var(--text3);font-weight:400">· update your numbers</span></summary><div id="prog-body-log" style="margin-top:12px"></div></details></section>
+  <section class="prog-section"><button type="button" class="btn btn-cta btn-block" id="prog-wrapped" style="margin-bottom:10px">${IC.spark} Your week — the highlight reel</button><button type="button" class="btn btn-secondary-solid btn-block" id="prog-export-pdf">Export progress report (PDF)</button></section>
   </div>`;
 }
 function bindProgressTab(){
@@ -5518,7 +5527,7 @@ function runZonesPanelHtml(){
   const z=runZones(),r=S.running||{},bms=r.benchmarks||[],latest=latestBenchmark(bms);
   const src=latest?(latest.kind==="cooper"?`Cooper test (${latest.value} mi)`:latest.kind==="mile"?`1-mile test (${mmss(latest.value)})`:`5K test (${mmss(latest.value)})`):"estimated from your profile — log a test to dial it in";
   const cell=(lbl,s)=>`<div class="rz-cell"><span>${lbl}</span><b>${mmss(s)}</b></div>`;
-  return`<div class="card section run-zones"><div class="run-zones-h"><b>Your pace zones <span class="rz-unit">/mi</span></b><button type="button" class="btn btn-secondary-solid btn-sm" id="run-test-btn">📈 Log fitness test</button></div>
+  return`<div class="card section run-zones"><div class="run-zones-h"><b>Your pace zones <span class="rz-unit">/mi</span></b><button type="button" class="btn btn-secondary-solid btn-sm" id="run-test-btn">${IC.chart} Log fitness test</button></div>
   <div class="run-zones-grid">${cell("Easy",z.easy)}${cell("Steady",z.steady)}${cell("Tempo",z.tempo)}${cell("Interval",z.interval)}${cell("Long",z.long)}</div>
   <div class="run-zones-src">From: ${src}</div></div>`;
 }
@@ -5963,19 +5972,19 @@ function renderSettings(){
     <summary>Account &amp; plan</summary>
     <div class="settings-fold-body"><div class="grid2 section" style="margin-bottom:0">
     <div class="card settings-section" data-k="account email firebase sign plan switch onboard offline sync program start date calendar block" id="settings-account">
-      ${currentUser?`<div style="font-size:13px;font-weight:700;margin-bottom:4px">${currentUser.email}</div><div style="font-size:10px;color:var(--mint);margin-bottom:10px">Syncing to cloud</div><button class="btn btn-ghost btn-block" id="s-signout">Sign Out</button>`:`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">${offlineMode?"Offline mode":"Not connected"}</div>`}
+      ${currentUser?`<div style="font-size:13px;font-weight:700;margin-bottom:4px">${currentUser.email}</div><div style="font-size:10px;color:var(--mint);margin-bottom:10px">Syncing to cloud</div><button class="btn btn-ghost btn-block" id="s-signout">Sign out</button>`:`<div style="font-size:12px;color:var(--gold);margin-bottom:8px">${offlineMode?"Offline mode":"Not connected"}</div>`}
       <div style="margin-top:12px"><label>Program start date</label><input type="date" id="s-pstart" value="${(S.program&&S.program.start)||iso()}"></div>
       <details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does the start date work?</summary><p style="font-size:10px;color:var(--text3);margin:6px 0 0;line-height:1.45">Session 1 = first allowed train day on or after this date (then your template continues in weekday order).</p></details>
       <div style="margin-top:12px"><label>Browse plans (#${(S.planId||0)+1}/${PLANS.length})</label>
         <select id="s-plan" class="settings-plan-select">${PLANS.map(p=>`<option value="${p.id}" ${p.id===S.planId?"selected":""}>${p.name}</option>`).join("")}</select>
-        <p style="font-size:10px;color:var(--text3);margin-top:4px">Preview any of the ${PLANS.length} programs below — then Switch Plan to make it yours.</p></div>
+        <p style="font-size:10px;color:var(--text3);margin-top:4px">Preview any of the ${PLANS.length} programs below — then switch to make it yours.</p></div>
       <div id="plan-preview-mount">${planPreviewHtml(S.planId||0)}</div>
-      <button class="btn btn-ice btn-block" id="s-plan-save" style="margin-top:10px">Switch Plan</button>
+      <button class="btn btn-ice btn-block" id="s-plan-save" style="margin-top:10px">Switch plan</button>
       <div class="program-mgmt-card">
         <div class="program-mgmt-header"><div class="program-mgmt-icon">▶</div><div><div class="program-mgmt-title">Active Program</div><div class="program-mgmt-meta">${PLANS[S.planId||0].name} · Week ${S.program.week}/13 · ${(S.logs||[]).length} total logs</div></div></div>
         <div class="program-mgmt-actions">
-          <button class="btn btn-ghost btn-sm btn-block" id="s-park-program">⏸ Pause &amp; park this block</button>
-          <button class="btn btn-ghost btn-sm btn-block" id="s-trial-plan">🧪 Start 1-week trial (parks current)</button>
+          <button class="btn btn-ghost btn-sm btn-block" id="s-park-program">${IC.pause} Pause &amp; park this block</button>
+          <button class="btn btn-ghost btn-sm btn-block" id="s-trial-plan">${IC.flask} Start 1-week trial (parks current)</button>
         </div>
       </div>
       ${(S.parkedPrograms||[]).length?`<div class="parked-programs-section"><div class="parked-programs-header"><span style="font-size:13px;font-weight:700;color:var(--text)">Parked Programs</span><span class="parked-count-badge">${(S.parkedPrograms||[]).length}/5</span></div><p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45">Your progress is fully preserved — logs, adaptation, and schedule. Resume anytime without data loss.</p>${(S.parkedPrograms||[]).map(pp=>{const vol=(pp.logs||[]).reduce((a,l)=>{if(isRunExerciseName(l.exercise))return a;return a+(Number(l.aS)||1)*(Number(l.aR)||0)*(Number(l.aW)||0)},0);const volLabel=vol>=1000?Math.round(vol/1000)+"k lb":Math.round(vol)+" lb";return`<div class="parked-program-card"><div class="parked-program-info"><div class="parked-program-name">${pp.label}</div><div class="parked-program-detail">Parked ${pp.parkedAt} · ${(pp.logs||[]).length} logs · ${volLabel} volume</div></div><div class="parked-program-btns"><button type="button" class="btn btn-sm btn-mint parked-resume" data-pid="${pp.id}">▶ Resume</button><button type="button" class="btn btn-sm btn-ghost parked-delete" data-pid="${pp.id}" title="Delete parked program">✕</button></div></div>`}).join("")}</div>`:""} 
@@ -5987,7 +5996,7 @@ function renderSettings(){
         <label>Going away? Pause your program</label>
         ${isProgramPaused()?`<p style="font-size:12px;color:var(--text2);margin:4px 0 8px;line-height:1.45">Paused until <b style="color:var(--text)">${parseIsoNoon(S.program.pause.until).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</b> — nothing counts as missed.</p><button type="button" class="btn btn-cta btn-block" id="s-pause-resume">Resume now</button>`:`<p style="font-size:12px;color:var(--text3);margin:4px 0 8px;line-height:1.45">Freeze the block for a vacation. Your schedule shifts forward so you pick up exactly where you left off — no missed-day guilt.</p><div class="row" style="gap:8px"><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="7" style="flex:1">1 week</button><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="14" style="flex:1">2 weeks</button><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="21" style="flex:1">3 weeks</button></div>`}
       </div>
-      <button class="btn btn-ghost btn-block" id="s-reonboard" style="margin-top:12px">Re-run Onboarding Wizard</button>
+      <button class="btn btn-ghost btn-block" id="s-reonboard" style="margin-top:12px">Re-run onboarding</button>
     </div>
         </div></div>
   </details>
@@ -6118,6 +6127,17 @@ async function setProfileAltitude(v){S.profile.prefs={...(S.profile.prefs||{}),a
 async function setProfileBiometric(v){if(v){const ok=await webAuthnRegister();toast(ok?"Biometric lock enabled":"Biometric not available on this device");return!!ok}localStorage.removeItem("hw-webauthn-cred");toast("Biometric lock removed");return false}
 async function resetProfileAdaptation(){const ok=await showCustomModal("Reset adaptation?","Reset all multipliers to 1.000? Prescribed loads and run pace will change until your logs move them again.",{confirmLabel:"Reset"});if(!ok)return;const prev={...S.adapt};S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Adaptation reset",{undo:()=>{S.adapt=prev;persist();render()}});}
 function bindSettings(){
+  {
+    const open=new Set(JSON.parse(sessionStorage.getItem("hw-open-folds")||"[]"));
+    document.querySelectorAll("#you-inner details.settings-fold").forEach(d=>{
+      const key=((d.querySelector("summary")||{}).textContent||"").trim();
+      if(open.has(key))d.open=true;
+      d.addEventListener("toggle",()=>{
+        if(d.open)open.add(key);else open.delete(key);
+        sessionStorage.setItem("hw-open-folds",JSON.stringify([...open]));
+      });
+    });
+  }
   mountProfileSettingsTab();
   const fil=document.getElementById("s-filter");
   function applySettingsFilter(){

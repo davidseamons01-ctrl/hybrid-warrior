@@ -79,9 +79,9 @@ function ProfileSettings(props: ProfileSettingsProps) {
       </div>
       <div class="grid3" style="margin-top:8px">
         <Num label={`Weight (${u})`} value={f.weight} onInput={(v) => set("weight", v)} />
-        <Num label={`Goal Wt (${u})`} value={f.goalWt} onInput={(v) => set("goalWt", v)} />
+        <Num label={`Goal weight (${u})`} value={f.goalWt} onInput={(v) => set("goalWt", v)} />
         <div>
-          <label>4mi pace</label>
+          <label>4-mile pace</label>
           <input class="input-mmss" value={f.run} placeholder="35:00" inputmode="numeric" autocomplete="off" spellcheck={false} aria-label="Four mile time as mm:ss" onInput={(e) => set("run", (e.target as HTMLInputElement).value)} />
         </div>
       </div>

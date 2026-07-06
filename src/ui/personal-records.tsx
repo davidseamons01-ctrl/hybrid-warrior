@@ -17,7 +17,7 @@ export interface PersonalRecordsProps {
 function PersonalRecords(p: PersonalRecordsProps) {
   return (
     <div class="pr-board card dash-span-full">
-      <div class="card-h"><h2>Personal Records</h2><span class="badge badge-fire">e1RM</span></div>
+      <div class="card-h"><h2>Personal records</h2><span class="badge badge-fire">e1RM</span></div>
 
       <div class="pr-total">
         <div class="pr-total-num">{p.totalHas ? p.total : "—"}</div>

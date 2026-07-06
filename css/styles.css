@@ -2107,3 +2107,18 @@ select{max-width:100%}
 .wrapped-stat span{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
 .wrapped-top{font-size:12.5px;color:var(--text2);margin-bottom:18px}
 .wrapped-top b{color:var(--text)}
+
+/* ═══ Phase-10 FORGE: one button system + signature gradients ═══ */
+/* Radius scale: rectangular buttons 12px, pills 999px, circles 50%. */
+.btn{border-radius:12px}
+.btn-sm{border-radius:10px;font-size:12px}
+.subtab{border-radius:999px}
+button{font-family:var(--font-body)}
+.details-toggle{font-size:12px}
+.chip-action svg,.btn svg{vertical-align:-2px;margin-right:2px}
+/* Signature gradient DNA — same silhouette on every tab's lead card */
+.today-hero,.coach-card,.wk7-card{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 13%,var(--card)),var(--card) 62%)}
+body.appearance-light .today-hero,body.appearance-light .coach-card,body.appearance-light .wk7-card{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 9%,var(--card)),var(--card) 62%)}
+/* Readiness pills share the player feel-chip language */
+.readiness-row{display:flex;gap:8px;flex-wrap:wrap}
+.readiness-card .sp-feel{min-height:40px}
