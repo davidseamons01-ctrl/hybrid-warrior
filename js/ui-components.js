@@ -1520,6 +1520,10 @@ function SessionPlayer(p3) {
         clearInterval(t3);
         setPhase("lift");
         try {
+          a3.cue("rest");
+        } catch {
+        }
+        try {
           if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
         } catch {
         }

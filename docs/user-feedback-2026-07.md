@@ -176,3 +176,4 @@ docs/premium-launch-overhaul.md).
   is cryptic — no explanation of what the percentages mean. [P2]
 - **Session summary "Done"** needed a second interaction to dismiss in
   testing (likely related to the modal-teardown bug). [P2]
+- Wrapped card: run-only weeks show '0 lb moved' — add a cardio (miles/minutes) line so cardio weeks feel celebrated too. [P2]

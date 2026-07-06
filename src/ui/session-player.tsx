@@ -39,6 +39,7 @@ export interface SessionPlayerActions {
   addFinisher: () => Promise<PlayerExercise[]>; // returns the FULL new exercise list
   getAlternatives: (ex: PlayerExercise) => Promise<SwapAlternative[]>;
   swapExercise: (ex: PlayerExercise, altEid: string) => Promise<PlayerExercise[]>; // FULL new list
+  cue: (kind: string) => void; // sound vocabulary (tick/rest/pr/finish)
   finish: () => void;
   exit: () => void;
 }
@@ -106,6 +107,7 @@ function SessionPlayer(p: SessionPlayerProps) {
       if (left <= 0) {
         clearInterval(t);
         setPhase("lift");
+        try { a.cue("rest"); } catch {}
         try { if (navigator.vibrate) navigator.vibrate([60, 40, 60]); } catch {}
       } else setRestLeft(left);
     }, 200);

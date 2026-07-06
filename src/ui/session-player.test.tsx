@@ -26,7 +26,7 @@ function mount(over: Partial<SessionPlayerProps> = {}, actions: Partial<SessionP
       addFinisher: vi.fn(async () => []),
       getAlternatives: vi.fn(async () => [{ eid: "front_squat", name: "Front Squat", tag: "quads" }]),
       swapExercise: vi.fn(async () => [mkEx({ eid: "front_squat", name: "Front Squat" })]),
-      finish: vi.fn(), exit: vi.fn(), ...actions,
+      cue: vi.fn(), finish: vi.fn(), exit: vi.fn(), ...actions,
     },
     ...over,
   };

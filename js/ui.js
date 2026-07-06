@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=ha3edc69ffed6";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hcb0cf9f25a45";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=ha3edc69ffed6";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=ha3edc69ffed6";
+} from "./programming.js?v=hcb0cf9f25a45";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=hcb0cf9f25a45";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -663,6 +663,29 @@ function bindMmssPaceInput(el){
 }
 function hapticPulse(ms){try{if(typeof navigator!=="undefined"&&navigator.vibrate){const p=Array.isArray(ms)?ms:(ms!=null?[ms]:[12]);navigator.vibrate(p)}}catch{}}
 function hapticKey(){hapticPulse([50])}
+let _actx=null;
+/** Tiny sound vocabulary (gated by the Audio cues preference). Pure WebAudio
+    tones — no assets, instant, respectful. */
+function playCue(kind){
+  try{
+    if(!(S.profile.prefs||{}).audioCues)return;
+    if(!_actx)_actx=new (window.AudioContext||window.webkitAudioContext)();
+    const ctx=_actx;if(ctx.state==="suspended")ctx.resume();
+    const seq=kind==="pr"?[[880,0,.09],[1108,.1,.09],[1318,.2,.22]]
+      :kind==="finish"?[[659,0,.12],[784,.13,.12],[988,.26,.3]]
+      :kind==="rest"?[[988,0,.08],[988,.14,.08]]
+      :[[740,0,.05]];
+    for(const [f,at,dur] of seq){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="sine";o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,ctx.currentTime+at);
+      g.gain.exponentialRampToValueAtTime(0.18,ctx.currentTime+at+.015);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+at+dur);
+      o.connect(g).connect(ctx.destination);
+      o.start(ctx.currentTime+at);o.stop(ctx.currentTime+at+dur+.05);
+    }
+  }catch(e){}
+}
 function triggerHaptic(type){
   const patterns={tick:[10],light:[18],medium:[40],heavy:[60,30,60],success:[30,50,80],error:[80,40,80,40,120],pr:[50,30,80,30,120]};
   hapticPulse(patterns[type]||patterns.tick);
@@ -2605,6 +2628,25 @@ function trainStatusBadge(cls){
     if(trains)return`<span class="${cls}" aria-hidden="true" title="Training day — not logged yet" style="position:absolute;top:5px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--fire);box-shadow:0 0 0 2px var(--bg,#0e0f14)"></span>`;
   }catch(e){}
   return"";
+}
+/** Local training reminder (fires when the app opens; true push needs a
+    server and is tracked in the launch report). */
+function maybeTrainingReminder(){
+  try{
+    if(!(S.profile.prefs||{}).reminders)return;
+    if(typeof Notification==="undefined"||Notification.permission!=="granted")return;
+    if(isProgramPaused())return;
+    const today=iso();
+    if(sessionStorage.getItem("hw-reminded-"+today))return;
+    if(globalSessionIndexForDate(today)===null)return;
+    if((S.logs||[]).some(l=>l.date===today))return;
+    const plan=todayPlanFiltered();if(!plan.exs.length)return;
+    sessionStorage.setItem("hw-reminded-"+today,"1");
+    const title="Time to train 💪";
+    const body=`${(plan.focus||"Your session").replace(" (DELOAD)","")} · ${plan.exs.length} exercises is waiting.`;
+    if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:"./icons/icon-192.png"})).catch(()=>{try{new Notification(title,{body})}catch(e){}});}
+    else{try{new Notification(title,{body})}catch(e){}}
+  }catch(e){}
 }
 function closeTransientOverlays(){
   // Body-appended modal hosts (planner, calibration, run-test, summary) must
@@ -4835,7 +4877,7 @@ function coachInsights(){
     const cv=volOf(cur),pv=volOf(prev);
     if(ps>0&&cs>0&&pv>0){
       const dpct=Math.round((cv-pv)/pv*100);
-      ins.push({k:"recap",tone:dpct>=0?"win":"info",title:`Week in review: ${cs} session${cs!==1?"s":""} · volume ${dpct>=0?"up":"down"} ${Math.abs(dpct)}%`,body:coachedModeOn()?(dpct>=0?"More total work than the week before — that's how progress compounds.":"A lighter week — sometimes that's exactly right. The plan adjusts either way."):`${Math.round(loadInputDisplayFromLb(cv)).toLocaleString()} ${massUnitLabel()} vs ${Math.round(loadInputDisplayFromLb(pv)).toLocaleString()} prior · ${cs} vs ${ps} sessions.`,why:"Total lift volume (sets × reps × load) over the last 7 days, compared with the 7 days before that."});
+      ins.push({k:"recap",tone:dpct>=0?"win":"info",action:{label:"See your week",hash:"wrapped:"},title:`Week in review: ${cs} session${cs!==1?"s":""} · volume ${dpct>=0?"up":"down"} ${Math.abs(dpct)}%`,body:coachedModeOn()?(dpct>=0?"More total work than the week before — that's how progress compounds.":"A lighter week — sometimes that's exactly right. The plan adjusts either way."):`${Math.round(loadInputDisplayFromLb(cv)).toLocaleString()} ${massUnitLabel()} vs ${Math.round(loadInputDisplayFromLb(pv)).toLocaleString()} prior · ${cs} vs ${ps} sessions.`,why:"Total lift volume (sets × reps × load) over the last 7 days, compared with the 7 days before that."});
     }
   }catch(eR){}
   for(const [cid,clbl] of [["bench","bench"],["squat","squat"],["deadlift","deadlift"]]){
@@ -4887,7 +4929,44 @@ function buildCoachProps(){
     sub:coachedModeOn()?`Week ${w} of 13 · ${days.size} of ${sched} sessions this week`:`Week ${w}/13 · ${phaseName(w)} · ${days.size}/${sched} sessions (7d)`,
     insights:coachInsights(),
     coached:coachedModeOn(),
-    onAction:h=>{if(h.indexOf("cal:")===0){openMaxCalibration(h.slice(4));return}location.hash=h}
+    onAction:h=>{if(h.indexOf("cal:")===0){openMaxCalibration(h.slice(4));return}if(h.indexOf("wrapped:")===0){showWeekWrapped();return}location.hash=h}
+  };
+}
+// ── "Your Week" Wrapped: shareable weekly recap overlay ──
+function buildWeekWrapped(){
+  const p=x=>String(x).padStart(2,"0");
+  const dAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`};
+  const logs=(S.logs||[]).filter(l=>l.date>=dAgo(6)&&l.date<=iso());
+  const days=[...new Set(logs.map(l=>l.date))];
+  let vol=0,sets=0;const perEx={};
+  for(const l of logs){if(isRunExerciseName(l.exercise))continue;const v=(Number(l.aS)||1)*(Number(l.aR)||0)*(Number(l.aW)||0);vol+=v;sets+=Number(l.aS)||1;perEx[l.exercise]=(perEx[l.exercise]||0)+v;}
+  const top=Object.entries(perEx).sort((a,b)=>b[1]-a[1])[0];
+  return{sessions:days.length,sets,vol:Math.round(loadInputDisplayFromLb(vol)),unit:massUnitLabel(),topLift:top?top[0]:"",topVol:top?Math.round(loadInputDisplayFromLb(top[1])):0,streak:getStreak()};
+}
+function showWeekWrapped(){
+  const w=buildWeekWrapped();
+  if(!w.sessions){toast("Log a session first — then your week gets its own highlight reel.");return;}
+  const nm=((S.profile.name||"").trim().split(/\s+/)[0])||"Athlete";
+  const host=document.createElement("div");host.className="sp-host wrapped-overlay";
+  host.innerHTML=`<div class="wrapped-card" role="dialog" aria-label="Your week in review">
+    <button type="button" class="sp-close wrapped-close" aria-label="Close">×</button>
+    <div class="wrapped-kicker">Your week · ${nm}</div>
+    <div class="wrapped-big">${w.vol.toLocaleString()}<span class="wrapped-unit">${w.unit} moved</span></div>
+    <div class="wrapped-grid">
+      <div class="wrapped-stat"><b>${w.sessions}</b><span>session${w.sessions!==1?"s":""}</span></div>
+      <div class="wrapped-stat"><b>${w.sets}</b><span>sets</span></div>
+      <div class="wrapped-stat"><b>${w.streak}</b><span>day streak</span></div>
+    </div>
+    ${w.topLift?`<div class="wrapped-top">Biggest mover: <b>${w.topLift}</b> · ${w.topVol.toLocaleString()} ${w.unit}</div>`:""}
+    <button type="button" class="btn btn-cta btn-block wrapped-share">Share my week</button>
+  </div>`;
+  document.body.appendChild(host);
+  host.onclick=e=>{if(e.target===host)host.remove();};
+  host.querySelector(".wrapped-close").onclick=()=>host.remove();
+  host.querySelector(".wrapped-share").onclick=async()=>{
+    const text=`My week on Hybrid: ${w.sessions} sessions, ${w.sets} sets, ${w.vol.toLocaleString()} ${w.unit} moved${w.topLift?`, biggest mover ${w.topLift}`:""}. ${w.streak}-day streak. 🔥`;
+    try{if(navigator.share){await navigator.share({text});return;}}catch(e){if(e&&e.name==="AbortError")return;}
+    try{await navigator.clipboard.writeText(text);toast("Copied — paste it anywhere.");}catch(e){toast(text);}
   };
 }
 // ── Progress tab (overhaul phase 4): Coach + clean analytics; legacy dash = Classic ──
@@ -4940,7 +5019,7 @@ function renderProgressTab(){
   <section class="prog-section"><h2 class="prog-h">Personal records</h2><div id="prog-pr"></div></section>
   <section class="prog-section"><h2 class="prog-h">Achievements</h2><div id="prog-ach"></div></section>
   <section class="prog-section"><h2 class="prog-h">Body &amp; measurements</h2><div id="prog-body"></div><details class="card section" id="prog-log-body" style="margin-top:10px"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Log weight &amp; measurements <span style="font-size:11px;color:var(--text3);font-weight:400">· update your numbers</span></summary><div id="prog-body-log" style="margin-top:12px"></div></details></section>
-  <section class="prog-section"><button type="button" class="btn btn-secondary-solid btn-block" id="prog-export-pdf">Export progress report (PDF)</button></section>
+  <section class="prog-section"><button type="button" class="btn btn-cta btn-block" id="prog-wrapped" style="margin-bottom:10px">✨ Your week — the highlight reel</button><button type="button" class="btn btn-secondary-solid btn-block" id="prog-export-pdf">Export progress report (PDF)</button></section>
   </div>`;
 }
 function bindProgressTab(){
@@ -4955,6 +5034,7 @@ function bindProgressTab(){
   bindBodyLogInputs(document.getElementById("prog-log-body")||document);
   hydrateAnatomyTargets(document.getElementById("progress-inner")||document);
   const pe=document.getElementById("prog-export-pdf");if(pe)pe.onclick=()=>generateProgressPdf();
+  const pw=document.getElementById("prog-wrapped");if(pw)pw.onclick=()=>showWeekWrapped();
 }
 async function finalizeSession(day){
   if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};
@@ -4993,6 +5073,7 @@ async function playerLogSet(exd,data){
   await persist();
   const isPR=!isRunExerciseName(name)&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);
   triggerHaptic(isPR?"pr":"tick");
+  playCue(isPR?"pr":"tick");
   return{ok:true,isPR};
 }
 function buildSessionPlayerProps(){
@@ -5017,7 +5098,7 @@ function buildSessionPlayerProps(){
     finisherOffer:abAvail?"Add 5-min core finisher":"",
     finisherText:String(plan.finisher||""),
     formatW:(lb,isRun)=>isRun?(paceSecPerMiDisplay(lb)+"/mi"):formatLoadLbText(lb),
-    actions:{logSet:playerLogSet,toggleWarmup:warmupToggle,addFinisher:playerAddFinisher,getAlternatives:playerGetAlternatives,swapExercise:playerSwapExercise,finish:playerFinish,exit:()=>closeSessionPlayer(true)}
+    actions:{logSet:playerLogSet,toggleWarmup:warmupToggle,addFinisher:playerAddFinisher,getAlternatives:playerGetAlternatives,swapExercise:playerSwapExercise,cue:playCue,finish:playerFinish,exit:()=>closeSessionPlayer(true)}
   };
 }
 async function playerAddFinisher(){
@@ -5057,6 +5138,7 @@ function closeSessionPlayer(rerender){
   if(rerender)render();
 }
 async function playerFinish(){
+  playCue("finish");
   const day=activeTrainIso();
   closeSessionPlayer(false);
   await finalizeSession(day);
@@ -5756,7 +5838,17 @@ function renderPlanTab(){
     <div class="wk7-head"><div><div class="today-hero-kicker">This week</div><div class="wk7-title">Week ${S.program.week} of 13${coachedModeOn()?"":" · "+phaseName(S.program.week)}</div></div>
     <button type="button" class="btn btn-secondary-solid btn-sm" id="plan-adjust-week">Adjust week</button></div>
     <div class="wk7-days">${wk7DaysHtml()}</div>
-    <p class="wk7-note">${coachedModeOn()?"Life happens — move or skip any day with Adjust week. The program bends, it never breaks.":"Days follow your real calendar (overrides + standing template honored). Adjust week edits per-date slots and equipment."}</p>
+    <div class="card section" id="program-dials">
+    <div class="today-hero-kicker" style="margin-bottom:10px">Program dials · tune it live</div>
+    <div class="grid2" style="gap:10px">
+      <div><label>Priority goal</label><select id="dial-priority"><option value="">Auto — balance all</option>${(S.goals.focusAreas||[]).map(a=>`<option value="${a}" ${((S.profile.prefs||{}).primaryGoal||"")===a?"selected":""}>${a}</option>`).join("")}</select></div>
+      <div><label>Session length</label><select id="dial-mins">${[30,45,60,75,90].map(m=>`<option value="${m}" ${(S.schedule.sessionMin||45)===m?"selected":""}>${m} min</option>`).join("")}</select></div>
+      <div><label>Session style</label><select id="dial-style"><option value="balanced" ${(S.profile.prefs||{}).style!=="burner"?"selected":""}>Balanced</option><option value="burner" ${(S.profile.prefs||{}).style==="burner"?"selected":""}>Burners (10–20 min)</option></select></div>
+      <div><label>Emphasis</label><select id="dial-emphasis"><option value="classic" ${(PLANS[S.planId||0].variant||"classic")==="classic"?"selected":""}>Classic barbell</option><option value="sculpt" ${PLANS[S.planId||0].variant==="sculpt"?"selected":""}>Glute/curve sculpt</option></select></div>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin:10px 0 0;line-height:1.5">Every dial reshapes upcoming sessions instantly — your logs and progress carry over.</p>
+  </div>
+  <p class="wk7-note">${coachedModeOn()?"Life happens — move or skip any day with Adjust week. The program bends, it never breaks.":"Days follow your real calendar (overrides + standing template honored). Adjust week edits per-date slots and equipment."}</p>
   </div>`;
   return`<div class="subtab-row" role="tablist" aria-label="Plan views"><button type="button" class="subtab ${planSub==="week"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="week"}" data-s="week">This week</button><button type="button" class="subtab ${planSub==="block"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="block"}" data-s="block">13-week block</button></div><div id="plan-inner">${inner}</div>`;
 }
@@ -5765,6 +5857,17 @@ function bindPlanTab(){
   document.querySelectorAll(".plan-sub").forEach(b=>b.onclick=()=>{planSub=b.dataset.s;render()});
   if(planSub==="block"){mountPlanTab();return}
   const aw=document.getElementById("plan-adjust-week");if(aw)aw.onclick=()=>openSchedulePlanner();
+  {const dp=document.getElementById("dial-priority");if(dp)dp.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),primaryGoal:dp.value||""};await persist();render();toast(dp.value?`Priority: ${dp.value} — sessions re-weighted.`:"Balancing all goals.");};}
+  {const dm=document.getElementById("dial-mins");if(dm)dm.onchange=async()=>{S.schedule.sessionMin=Number(dm.value)||45;await persist();render();toast(`Sessions sized for ~${dm.value} min.`);};}
+  {const ds=document.getElementById("dial-style");if(ds)ds.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),style:ds.value};await persist();render();toast(ds.value==="burner"?"Burner style — short and sharp.":"Balanced strength + cardio.");};}
+  {const de=document.getElementById("dial-emphasis");if(de)de.onchange=async()=>{
+    const cur=PLANS[S.planId||0];const want=de.value;
+    if((cur.variant||"classic")===want)return;
+    const freq=/5-6 Day/.test(cur.name),exp=/Express/.test(cur.name),adv=/Advanced/.test(cur.name);
+    const match=PLANS.find(p=>p.goal===cur.goal&&(p.variant||"classic")===want&&/5-6 Day/.test(p.name)===freq&&/Express/.test(p.name)===exp&&/Advanced/.test(p.name)===adv);
+    if(!match){toast("No matching plan for that emphasis.");return;}
+    S.planId=match.id;await persist();render();toast(`Emphasis switched: ${match.name}`);
+  };}
   document.querySelectorAll(".wk7-go").forEach(b=>b.onclick=()=>{tab=TAB_TRAIN;if(location.hash!=="#"+TAB_TRAIN)location.hash=TAB_TRAIN;render();requestAnimationFrame(()=>openSessionPlayer());});
 }
 function buildPlanProps(){
@@ -5876,6 +5979,10 @@ function renderSettings(){
         </div>
       </div>
       ${(S.parkedPrograms||[]).length?`<div class="parked-programs-section"><div class="parked-programs-header"><span style="font-size:13px;font-weight:700;color:var(--text)">Parked Programs</span><span class="parked-count-badge">${(S.parkedPrograms||[]).length}/5</span></div><p style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.45">Your progress is fully preserved — logs, adaptation, and schedule. Resume anytime without data loss.</p>${(S.parkedPrograms||[]).map(pp=>{const vol=(pp.logs||[]).reduce((a,l)=>{if(isRunExerciseName(l.exercise))return a;return a+(Number(l.aS)||1)*(Number(l.aR)||0)*(Number(l.aW)||0)},0);const volLabel=vol>=1000?Math.round(vol/1000)+"k lb":Math.round(vol)+" lb";return`<div class="parked-program-card"><div class="parked-program-info"><div class="parked-program-name">${pp.label}</div><div class="parked-program-detail">Parked ${pp.parkedAt} · ${(pp.logs||[]).length} logs · ${volLabel} volume</div></div><div class="parked-program-btns"><button type="button" class="btn btn-sm btn-mint parked-resume" data-pid="${pp.id}">▶ Resume</button><button type="button" class="btn btn-sm btn-ghost parked-delete" data-pid="${pp.id}" title="Delete parked program">✕</button></div></div>`}).join("")}</div>`:""} 
+      ${typeof Notification!=="undefined"?`<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <label>Training reminders</label>
+        ${(S.profile.prefs||{}).reminders&&Notification.permission==="granted"?`<p style="font-size:12px;color:var(--text2);margin:4px 0 8px">On — a nudge on training days you haven't logged. <button type="button" class="btn btn-sm btn-ghost" id="s-reminders-off">Turn off</button></p>`:`<p style="font-size:12px;color:var(--text3);margin:4px 0 8px;line-height:1.45">A gentle nudge on training days you haven't logged yet.</p><button type="button" class="btn btn-secondary-solid btn-block" id="s-reminders-on">Enable reminders</button>`}
+      </div>`:""}
       <div class="settings-pause-block" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
         <label>Going away? Pause your program</label>
         ${isProgramPaused()?`<p style="font-size:12px;color:var(--text2);margin:4px 0 8px;line-height:1.45">Paused until <b style="color:var(--text)">${parseIsoNoon(S.program.pause.until).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</b> — nothing counts as missed.</p><button type="button" class="btn btn-cta btn-block" id="s-pause-resume">Resume now</button>`:`<p style="font-size:12px;color:var(--text3);margin:4px 0 8px;line-height:1.45">Freeze the block for a vacation. Your schedule shifts forward so you pick up exactly where you left off — no missed-day guilt.</p><div class="row" style="gap:8px"><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="7" style="flex:1">1 week</button><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="14" style="flex:1">2 weeks</button><button type="button" class="btn btn-secondary-solid s-pause-go" data-days="21" style="flex:1">3 weeks</button></div>`}
@@ -6056,6 +6163,8 @@ function bindSettings(){
   document.getElementById("s-reonboard").onclick=async()=>{const ok=await showCustomModal("Re-run onboarding?","Your logs stay saved, but you'll step through goals and schedule again.",{confirmLabel:"Re-run"});if(!ok)return;S.profile.onboarded=false;save();showOnboarding()};
   document.querySelectorAll(".s-pause-go").forEach(b=>b.onclick=async()=>{const days=Number(b.dataset.days)||7;const ok=await showCustomModal("Pause program?",`Freeze your block for ${days} days. Your schedule shifts forward — nothing counts as missed, and you resume right where you are now.`,{confirmLabel:"Pause"});if(ok)pauseProgram(days);});
   {const r=document.getElementById("s-pause-resume");if(r)r.onclick=()=>resumeProgramNow();}
+  {const ron=document.getElementById("s-reminders-on");if(ron)ron.onclick=async()=>{try{const p=await Notification.requestPermission();if(p==="granted"){S.profile.prefs={...(S.profile.prefs||{}),reminders:true};await persist();render();toast("Reminders on.");maybeTrainingReminder();}else toast("Notifications blocked by the browser.");}catch(e){toast("Notifications unavailable here.");}};}
+  {const roff=document.getElementById("s-reminders-off");if(roff)roff.onclick=async()=>{S.profile.prefs={...(S.profile.prefs||{}),reminders:false};await persist();render();toast("Reminders off.");};}
   document.getElementById("s-clear").onclick=async()=>{const ok=await showCustomModal("Clear all data?","Delete all workout logs and weight history? Use undo in the toast or a backup to restore.",{confirmLabel:"Clear everything"});if(!ok)return;const logs=S.logs.slice(),ev=Array.isArray(S.events)?S.events.slice():[],wl=S.weightLog.slice(),ad={...S.adapt};S.events=[];S.logs=[];S.weightLog=[];S.adapt={bench:1,squat:1,dead:1,run:1,setsBonus:{bench:0,squat:0,dead:0},runRestAdj:0};await persist();render();toast("Logs cleared.",{undo:()=>{S.events=ev;S.logs=logs;S.weightLog=wl;S.adapt=ad;persist();render()},duration:7200})};
   const shoeAdd=document.getElementById("shoe-add");
   if(shoeAdd)shoeAdd.onclick=async()=>{
@@ -6242,6 +6351,7 @@ function initRestBarDock(){
   if(s30)s30.onclick=()=>{restEndMs-=3e4;if(restEndMs<Date.now()+8e3)restEndMs=Date.now()+8e3};
 }
 export async function bootstrapApp(){
+  setTimeout(()=>{try{maybeTrainingReminder()}catch(e){}},4000);
   initRestBarDock();
   bindGlobalSearch();
   bindGlobalFab();
