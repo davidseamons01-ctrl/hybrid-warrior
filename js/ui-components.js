@@ -1049,7 +1049,8 @@ function PlanView(props) {
         ] }) : null
       ] }) : null,
       /* @__PURE__ */ u3("div", { class: "card plan-hide-simple", style: "margin-bottom:10px", children: [
-        /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Expected Changes Heatmap" }) }),
+        /* @__PURE__ */ u3("div", { class: "card-h", children: /* @__PURE__ */ u3("h2", { children: "Where this block hits hardest" }) }),
+        /* @__PURE__ */ u3("p", { style: "font-size:11px;color:var(--text3);margin:0 0 8px;line-height:1.45", children: "Share of this block's sessions that train each area \u2014 higher % = more emphasis over the 13 weeks." }),
         /* @__PURE__ */ u3("div", { class: "row", style: "gap:14px", children: [
           /* @__PURE__ */ u3("div", { style: "font-size:11px;color:var(--text2)", children: [
             "Glutes ",
@@ -1501,6 +1502,10 @@ function SessionPlayer(p3) {
   const [info, setInfo] = d2(false);
   const [exitAsk, setExitAsk] = d2(false);
   const [finisherAdded, setFinisherAdded] = d2(false);
+  const [swapOpen, setSwapOpen] = d2(false);
+  const [alts, setAlts] = d2(null);
+  const [prName, setPrName] = d2("");
+  const [prWeight, setPrWeight] = d2(0);
   const restUntil = A2(0);
   const startTs = A2(Date.now());
   const ex = list[idx];
@@ -1537,8 +1542,26 @@ function SessionPlayer(p3) {
     setPhase("rest");
   };
   const adj = (kind, dir) => {
-    if (kind === "w") setWLb((arr) => arr.map((v3, i4) => i4 === idx ? Math.max(0, v3 + dir * ex.stepLb) : v3));
+    if (kind === "w") setWLb((arr) => arr.map((v3, i4) => i4 === idx ? Math.max(0, v3 === 0 && dir === 1 && ex.plateHtml ? 45 : v3 + dir * ex.stepLb) : v3));
     else setReps((arr) => arr.map((v3, i4) => i4 === idx ? Math.max(1, v3 + dir) : v3));
+  };
+  const openSwap = async () => {
+    setSwapOpen(true);
+    setAlts(null);
+    const list2 = await a3.getAlternatives(ex);
+    setAlts(list2 || []);
+  };
+  const doSwap = async (altEid) => {
+    if (busy) return;
+    setBusy(true);
+    const full = await a3.swapExercise(ex, altEid);
+    setBusy(false);
+    setSwapOpen(false);
+    if (!full || !full.length) return;
+    setList(full);
+    setDone(full.map((e3) => e3.doneSets));
+    setWLb(full.map((e3) => e3.weightLb));
+    setReps(full.map((e3) => e3.reps));
   };
   const logCurrent = async () => {
     if (busy) return;
@@ -1547,8 +1570,10 @@ function SessionPlayer(p3) {
     setBusy(false);
     if (!r3.ok) return;
     if (r3.isPR) {
+      setPrName(ex.name);
+      setPrWeight(wLb[idx]);
       setPrFlash(true);
-      setTimeout(() => setPrFlash(false), 2200);
+      setTimeout(() => setPrFlash(false), 2600);
     }
     const nd = done.slice();
     nd[idx] = nd[idx] + 1;
@@ -1655,10 +1680,13 @@ function SessionPlayer(p3) {
       /* @__PURE__ */ u3("div", { class: "sp-adjust-row", children: [
         /* @__PURE__ */ u3("div", { class: "sp-adjust", children: [
           /* @__PURE__ */ u3("button", { type: "button", class: "sp-step", "aria-label": "Decrease load", onClick: () => adj("w", -1), children: "\u2212" }),
-          /* @__PURE__ */ u3("div", { class: "sp-adjust-val", children: [
+          /* @__PURE__ */ u3("div", { class: "sp-adjust-val", children: wLb[idx] === 0 && !ex.isRun ? /* @__PURE__ */ u3(S, { children: [
+            /* @__PURE__ */ u3("b", { children: "BW" }),
+            /* @__PURE__ */ u3("span", { children: ex.plateHtml ? "tap + to load the bar" : "bodyweight" })
+          ] }) : /* @__PURE__ */ u3(S, { children: [
             /* @__PURE__ */ u3("b", { children: p3.formatW(wLb[idx], ex.isRun) }),
             /* @__PURE__ */ u3("span", { children: ex.isRun ? "pace" : "load" })
-          ] }),
+          ] }) }),
           /* @__PURE__ */ u3("button", { type: "button", class: "sp-step", "aria-label": "Increase load", onClick: () => adj("w", 1), children: "+" })
         ] }),
         /* @__PURE__ */ u3("div", { class: "sp-adjust", children: [
@@ -1673,10 +1701,10 @@ function SessionPlayer(p3) {
       ex.plateHtml ? /* @__PURE__ */ u3("div", { class: "sp-plates", dangerouslySetInnerHTML: { __html: ex.plateHtml } }) : null,
       /* @__PURE__ */ u3("div", { class: "sp-feel-row", role: "radiogroup", "aria-label": "How did that feel", children: FEELS.map(([v3, coachedLbl, proLbl]) => /* @__PURE__ */ u3("button", { type: "button", role: "radio", "aria-checked": feel === v3, class: `sp-feel ${feel === v3 ? "on" : ""}`, onClick: () => setFeel(v3), children: p3.coached ? coachedLbl : proLbl }, v3)) }),
       /* @__PURE__ */ u3("button", { type: "button", class: "sp-log", onClick: logCurrent, disabled: busy, children: busy ? "Saving\u2026" : "Log set" }),
-      prFlash ? /* @__PURE__ */ u3("div", { class: "sp-pr", role: "status", children: "\u{1F3C6} New record!" }) : null,
       /* @__PURE__ */ u3("div", { class: "sp-secondary-row", children: [
         ex.howTo.length || ex.videoUrl ? /* @__PURE__ */ u3("button", { type: "button", class: "sp-ghost-btn", onClick: () => setInfo(true), children: "How to & video" }) : null,
-        /* @__PURE__ */ u3("button", { type: "button", class: "sp-ghost-btn", onClick: skipExercise, children: "Skip exercise" })
+        ex.group === "main" ? /* @__PURE__ */ u3("button", { type: "button", class: "sp-ghost-btn", onClick: openSwap, children: "Swap" }) : null,
+        /* @__PURE__ */ u3("button", { type: "button", class: "sp-ghost-btn", onClick: skipExercise, children: "Skip" })
       ] })
     ] }) : null,
     phase === "rest" ? /* @__PURE__ */ u3("div", { class: "sp-main sp-rest", "aria-live": "polite", children: [
@@ -1727,6 +1755,31 @@ function SessionPlayer(p3) {
       ex.howTo.length ? /* @__PURE__ */ u3("ol", { class: "sp-howto", children: ex.howTo.map((s3, i4) => /* @__PURE__ */ u3("li", { children: s3 }, i4)) }) : /* @__PURE__ */ u3("p", { class: "sp-cue", children: ex.cue || "No written guide for this one yet." }),
       ex.videoUrl ? /* @__PURE__ */ u3("a", { class: "sp-video-link", href: ex.videoUrl, target: "_blank", rel: "noopener noreferrer", children: "\u25B6 Watch video demo" }) : null,
       /* @__PURE__ */ u3("button", { type: "button", class: "sp-log sp-log-sm", onClick: () => setInfo(false), children: "Back to the set" })
+    ] }) }) : null,
+    prFlash ? /* @__PURE__ */ u3("div", { class: "sp-pr-burst", role: "status", "aria-live": "assertive", children: /* @__PURE__ */ u3("div", { class: "sp-pr-card", children: [
+      /* @__PURE__ */ u3("div", { class: "sp-pr-trophy", "aria-hidden": "true", children: "\u{1F3C6}" }),
+      /* @__PURE__ */ u3("div", { class: "sp-pr-title", children: "New record!" }),
+      /* @__PURE__ */ u3("div", { class: "sp-pr-detail", children: [
+        prName,
+        prWeight > 0 ? ` \xB7 ${p3.formatW(prWeight, false)}` : ""
+      ] })
+    ] }) }) : null,
+    swapOpen && ex ? /* @__PURE__ */ u3("div", { class: "sp-sheet-backdrop", onClick: (e3) => {
+      if (e3.target === e3.currentTarget) setSwapOpen(false);
+    }, children: /* @__PURE__ */ u3("div", { class: "sp-sheet", role: "dialog", "aria-label": `Swap ${ex.name}`, children: [
+      /* @__PURE__ */ u3("div", { class: "sp-sheet-title", children: [
+        "Swap ",
+        ex.name
+      ] }),
+      /* @__PURE__ */ u3("p", { class: "sp-cue", style: "margin:0 0 12px", children: "Alternatives hit the same muscles. Your logged sets stay logged." }),
+      alts === null ? /* @__PURE__ */ u3("p", { class: "sp-cue", children: "Finding matches\u2026" }) : alts.length === 0 ? /* @__PURE__ */ u3("p", { class: "sp-cue", children: "No close matches in the catalog for this one." }) : /* @__PURE__ */ u3("div", { class: "sp-swap-list", children: alts.map((alt) => /* @__PURE__ */ u3("button", { type: "button", class: "sp-swap-opt", disabled: busy, onClick: () => doSwap(alt.eid), children: [
+        /* @__PURE__ */ u3("span", { class: "sp-swap-name", children: alt.name }),
+        alt.tag ? /* @__PURE__ */ u3("span", { class: "sp-swap-tag", children: alt.tag }) : null
+      ] }, alt.eid)) }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "sp-ghost-btn", onClick: () => setSwapOpen(false), children: [
+        "Keep ",
+        ex.name
+      ] })
     ] }) }) : null,
     exitAsk ? /* @__PURE__ */ u3("div", { class: "sp-sheet-backdrop", onClick: (e3) => {
       if (e3.target === e3.currentTarget) setExitAsk(false);

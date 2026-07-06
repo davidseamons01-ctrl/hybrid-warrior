@@ -1,3 +1,3 @@
-import { DEF, S, currentUser, persist, load, save, initFB, cloudPush } from "./ui.js?v=h4c678e8a1e8c";
+import { DEF, S, currentUser, persist, load, save, initFB, cloudPush } from "./ui.js?v=ha3edc69ffed6";
 
 export { DEF, S, currentUser, persist, load, save, initFB, cloudPush };

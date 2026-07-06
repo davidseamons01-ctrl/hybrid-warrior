@@ -4,7 +4,7 @@ import { render } from "preact";
 import { SessionPlayer, type SessionPlayerProps, type PlayerExercise } from "./session-player";
 
 const mkEx = (over: Partial<PlayerExercise> = {}): PlayerExercise => ({
-  eid: "squat", name: "Back Squat", sets: 2, reps: 8, tReps: 8, target: 65, weightLb: 65, stepLb: 5,
+  eid: "squat", origEid: "squat", name: "Back Squat", sets: 2, reps: 8, tReps: 8, target: 65, weightLb: 65, stepLb: 5,
   restSec: 60, isRun: false, runTempo: false, doneSets: 0, cue: "Brace and sit back.", rx: "2×8 @ 65 lb",
   howTo: ["Bar on upper traps.", "Sit back and down."], videoUrl: "https://youtube.com/watch?v=x", plateHtml: "", group: "main",
   ...over,
@@ -23,7 +23,10 @@ function mount(over: Partial<SessionPlayerProps> = {}, actions: Partial<SessionP
     formatW: (lb) => `${lb} lb`,
     actions: {
       logSet: vi.fn(async () => ({ ok: true })), toggleWarmup: vi.fn(),
-      addFinisher: vi.fn(async () => []), finish: vi.fn(), exit: vi.fn(), ...actions,
+      addFinisher: vi.fn(async () => []),
+      getAlternatives: vi.fn(async () => [{ eid: "front_squat", name: "Front Squat", tag: "quads" }]),
+      swapExercise: vi.fn(async () => [mkEx({ eid: "front_squat", name: "Front Squat" })]),
+      finish: vi.fn(), exit: vi.fn(), ...actions,
     },
     ...over,
   };
@@ -113,6 +116,26 @@ describe("SessionPlayer", () => {
     expect(addFinisher).toHaveBeenCalled();
     expect(el.textContent).toContain("Cable Crunch");
     expect(el.textContent).toContain("Finisher");
+  });
+
+  it("swap sheet lists alternatives and swapping replaces the exercise", async () => {
+    const { el, props } = mount({ exercises: [mkEx()] });
+    btn(el, "Swap").click();
+    await flush();
+    await flush();
+    expect(el.textContent).toContain("Front Squat");
+    (el.querySelector(".sp-swap-opt") as HTMLButtonElement).click();
+    await flush();
+    expect(props.actions.swapExercise).toHaveBeenCalled();
+    expect((el.querySelector(".sp-exname") as HTMLElement).textContent).toBe("Front Squat");
+  });
+
+  it("uncalibrated lift shows BW and + starts at the empty bar", async () => {
+    const { el } = mount({ exercises: [mkEx({ weightLb: 0, plateHtml: "<b>bar</b>" })] });
+    expect(el.textContent).toContain("BW");
+    (el.querySelector('[aria-label="Increase load"]') as HTMLButtonElement).click();
+    await flush();
+    expect(el.textContent).toContain("45 lb");
   });
 
   it("completing every set reaches done and finish calls the action", async () => {

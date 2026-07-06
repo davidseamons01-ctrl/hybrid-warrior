@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 
 export interface PlayerExercise {
   eid: string;
+  origEid: string;   // programmed exercise id (swap key)
   name: string;
   sets: number;
   reps: number;       // working value (player-adjustable)
@@ -30,10 +31,14 @@ export interface PlayerExercise {
 
 export interface PlayerWarmupItem { idx: number; line: string; checked: boolean }
 
+export interface SwapAlternative { eid: string; name: string; tag: string }
+
 export interface SessionPlayerActions {
   logSet: (ex: PlayerExercise, data: { reps: number; weightLb: number; outcome: string }) => Promise<{ ok: boolean; isPR?: boolean }>;
   toggleWarmup: (idx: number, checked: boolean) => void;
   addFinisher: () => Promise<PlayerExercise[]>; // returns the FULL new exercise list
+  getAlternatives: (ex: PlayerExercise) => Promise<SwapAlternative[]>;
+  swapExercise: (ex: PlayerExercise, altEid: string) => Promise<PlayerExercise[]>; // FULL new list
   finish: () => void;
   exit: () => void;
 }
@@ -82,6 +87,10 @@ function SessionPlayer(p: SessionPlayerProps) {
   const [info, setInfo] = useState(false);
   const [exitAsk, setExitAsk] = useState(false);
   const [finisherAdded, setFinisherAdded] = useState(false);
+  const [swapOpen, setSwapOpen] = useState(false);
+  const [alts, setAlts] = useState<SwapAlternative[] | null>(null);
+  const [prName, setPrName] = useState("");
+  const [prWeight, setPrWeight] = useState(0);
   const restUntil = useRef(0);
   const startTs = useRef(Date.now());
 
@@ -120,8 +129,30 @@ function SessionPlayer(p: SessionPlayerProps) {
   };
 
   const adj = (kind: "w" | "r", dir: 1 | -1) => {
-    if (kind === "w") setWLb((arr) => arr.map((v, i) => (i === idx ? Math.max(0, v + dir * ex.stepLb) : v)));
+    // First press of + on an unloaded barbell lift starts at the empty bar (45),
+    // not 0+5 — an uncalibrated lift should never feel broken.
+    if (kind === "w") setWLb((arr) => arr.map((v, i) => (i === idx ? Math.max(0, v === 0 && dir === 1 && ex.plateHtml ? 45 : v + dir * ex.stepLb) : v)));
     else setReps((arr) => arr.map((v, i) => (i === idx ? Math.max(1, v + dir) : v)));
+  };
+
+  const openSwap = async () => {
+    setSwapOpen(true);
+    setAlts(null);
+    const list = await a.getAlternatives(ex);
+    setAlts(list || []);
+  };
+
+  const doSwap = async (altEid: string) => {
+    if (busy) return;
+    setBusy(true);
+    const full = await a.swapExercise(ex, altEid);
+    setBusy(false);
+    setSwapOpen(false);
+    if (!full || !full.length) return;
+    setList(full);
+    setDone(full.map((e) => e.doneSets));
+    setWLb(full.map((e) => e.weightLb));
+    setReps(full.map((e) => e.reps));
   };
 
   const logCurrent = async () => {
@@ -130,7 +161,7 @@ function SessionPlayer(p: SessionPlayerProps) {
     const r = await a.logSet(ex, { reps: reps[idx], weightLb: wLb[idx], outcome: feel });
     setBusy(false);
     if (!r.ok) return;
-    if (r.isPR) { setPrFlash(true); setTimeout(() => setPrFlash(false), 2200); }
+    if (r.isPR) { setPrName(ex.name); setPrWeight(wLb[idx]); setPrFlash(true); setTimeout(() => setPrFlash(false), 2600); }
     const nd = done.slice();
     nd[idx] = nd[idx] + 1;
     setDone(nd);
@@ -212,7 +243,9 @@ function SessionPlayer(p: SessionPlayerProps) {
           <div class="sp-adjust-row">
             <div class="sp-adjust">
               <button type="button" class="sp-step" aria-label="Decrease load" onClick={() => adj("w", -1)}>−</button>
-              <div class="sp-adjust-val"><b>{p.formatW(wLb[idx], ex.isRun)}</b><span>{ex.isRun ? "pace" : "load"}</span></div>
+              <div class="sp-adjust-val">{wLb[idx] === 0 && !ex.isRun
+                ? <><b>BW</b><span>{ex.plateHtml ? "tap + to load the bar" : "bodyweight"}</span></>
+                : <><b>{p.formatW(wLb[idx], ex.isRun)}</b><span>{ex.isRun ? "pace" : "load"}</span></>}</div>
               <button type="button" class="sp-step" aria-label="Increase load" onClick={() => adj("w", 1)}>+</button>
             </div>
             <div class="sp-adjust">
@@ -228,10 +261,10 @@ function SessionPlayer(p: SessionPlayerProps) {
             ))}
           </div>
           <button type="button" class="sp-log" onClick={logCurrent} disabled={busy}>{busy ? "Saving…" : "Log set"}</button>
-          {prFlash ? <div class="sp-pr" role="status">🏆 New record!</div> : null}
           <div class="sp-secondary-row">
             {(ex.howTo.length || ex.videoUrl) ? <button type="button" class="sp-ghost-btn" onClick={() => setInfo(true)}>How to & video</button> : null}
-            <button type="button" class="sp-ghost-btn" onClick={skipExercise}>Skip exercise</button>
+            {ex.group === "main" ? <button type="button" class="sp-ghost-btn" onClick={openSwap}>Swap</button> : null}
+            <button type="button" class="sp-ghost-btn" onClick={skipExercise}>Skip</button>
           </div>
         </div>
       ) : null}
@@ -279,6 +312,34 @@ function SessionPlayer(p: SessionPlayerProps) {
             {ex.howTo.length ? <ol class="sp-howto">{ex.howTo.map((s, i) => <li key={i}>{s}</li>)}</ol> : <p class="sp-cue">{ex.cue || "No written guide for this one yet."}</p>}
             {ex.videoUrl ? <a class="sp-video-link" href={ex.videoUrl} target="_blank" rel="noopener noreferrer">▶ Watch video demo</a> : null}
             <button type="button" class="sp-log sp-log-sm" onClick={() => setInfo(false)}>Back to the set</button>
+          </div>
+        </div>
+      ) : null}
+
+      {prFlash ? (
+        <div class="sp-pr-burst" role="status" aria-live="assertive">
+          <div class="sp-pr-card">
+            <div class="sp-pr-trophy" aria-hidden="true">🏆</div>
+            <div class="sp-pr-title">New record!</div>
+            <div class="sp-pr-detail">{prName}{prWeight > 0 ? ` · ${p.formatW(prWeight, false)}` : ""}</div>
+          </div>
+        </div>
+      ) : null}
+
+      {swapOpen && ex ? (
+        <div class="sp-sheet-backdrop" onClick={(e) => { if (e.target === e.currentTarget) setSwapOpen(false); }}>
+          <div class="sp-sheet" role="dialog" aria-label={`Swap ${ex.name}`}>
+            <div class="sp-sheet-title">Swap {ex.name}</div>
+            <p class="sp-cue" style="margin:0 0 12px">Alternatives hit the same muscles. Your logged sets stay logged.</p>
+            {alts === null ? <p class="sp-cue">Finding matches…</p>
+              : alts.length === 0 ? <p class="sp-cue">No close matches in the catalog for this one.</p>
+              : <div class="sp-swap-list">{alts.map((alt) => (
+                  <button key={alt.eid} type="button" class="sp-swap-opt" disabled={busy} onClick={() => doSwap(alt.eid)}>
+                    <span class="sp-swap-name">{alt.name}</span>
+                    {alt.tag ? <span class="sp-swap-tag">{alt.tag}</span> : null}
+                  </button>
+                ))}</div>}
+            <button type="button" class="sp-ghost-btn" onClick={() => setSwapOpen(false)}>Keep {ex.name}</button>
           </div>
         </div>
       ) : null}

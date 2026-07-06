@@ -216,7 +216,8 @@ function PlanView(props: PlanProps) {
         ) : null}
 
         <div class="card plan-hide-simple" style="margin-bottom:10px">
-          <div class="card-h"><h2>Expected Changes Heatmap</h2></div>
+          <div class="card-h"><h2>Where this block hits hardest</h2></div>
+          <p style="font-size:11px;color:var(--text3);margin:0 0 8px;line-height:1.45">Share of this block's sessions that train each area — higher % = more emphasis over the 13 weeks.</p>
           <div class="row" style="gap:14px">
             <div style="font-size:11px;color:var(--text2)">Glutes <b style="color:var(--mint)">{hm.glutes}%</b></div>
             <div style="font-size:11px;color:var(--text2)">Core <b style="color:var(--mint)">{hm.core}%</b></div>

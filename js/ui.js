@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h4c678e8a1e8c";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=ha3edc69ffed6";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h4c678e8a1e8c";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h4c678e8a1e8c";
+} from "./programming.js?v=ha3edc69ffed6";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=ha3edc69ffed6";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -2606,13 +2606,18 @@ function trainStatusBadge(cls){
   }catch(e){}
   return"";
 }
+function closeTransientOverlays(){
+  // Body-appended modal hosts (planner, calibration, run-test, summary) must
+  // not survive tab navigation.
+  document.querySelectorAll(".sp-host").forEach(h=>{try{h.remove()}catch(e){}});
+}
 function renderTabBar(){
   let bar=document.getElementById("tabBar");
   if(!bar){bar=document.createElement("nav");bar.id="tabBar";bar.className="tabbar";bar.setAttribute("aria-label","Primary");document.body.appendChild(bar)}
   const nav=document.getElementById("mainNav");
   bar.hidden=!nav||nav.style.display==="none";
   bar.innerHTML=navTabs().map(([id,lb,hint,ic])=>`<button class="tabbar-btn ${tab===id?"active":""}" data-t="${id}" type="button" aria-label="${lb}: ${hint}" ${tab===id?'aria-current="page"':""}><span class="tabbar-ic" aria-hidden="true">${ic}</span>${lb}${id===TAB_TRAIN?trainStatusBadge("tabbar-badge"):""}</button>`).join("");
-  bar.querySelectorAll(".tabbar-btn").forEach(b=>b.onclick=()=>{triggerHaptic("light");const t=b.dataset.t;if(location.hash==="#"+t){tab=t;render();}else location.hash=t;});
+  bar.querySelectorAll(".tabbar-btn").forEach(b=>b.onclick=()=>{triggerHaptic("light");closeTransientOverlays();const t=b.dataset.t;if(location.hash==="#"+t){tab=t;render();}else location.hash=t;});
 }
 function renderNav(){
   renderNavBanners();
@@ -4449,7 +4454,7 @@ function renderTrain(){
 }
 function renderYou(){
   if(youSub!=="settings"&&youSub!=="community")youSub="settings";
-  const inner=youSub==="community"?`<div class="pane show" id="p-social"></div>`:renderSettings();
+  const inner=youSub==="community"?(currentUser?`<div class="pane show" id="p-social"></div>`:`<div class="card section empty-state"><div class="empty-ico" aria-hidden="true">🤝</div><div class="empty-title">Community lives here</div><p class="empty-body">Challenges, leaderboards, and training with friends — synced to your account. Sign in and this space comes alive.</p></div>`):renderSettings();
   return`<div class="subtab-row you-subtabs" role="tablist" aria-label="You sections"><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" role="tab" aria-selected="${youSub==="settings"}" data-s="settings">Settings</button><button type="button" class="subtab ${youSub==="community"?"on":""} you-sub" role="tab" aria-selected="${youSub==="community"}" data-s="community">Community</button></div><div id="you-inner">${inner}</div>`;
 }
 function bindTrain(){
@@ -4459,7 +4464,7 @@ function bindTrain(){
 function bindYou(){
   releaseWorkoutWakeLock();
   document.querySelectorAll(".you-sub").forEach(b=>b.onclick=()=>{youSub=b.dataset.s;render()});
-  if(youSub==="community")bindSocial();
+  if(youSub==="community"){if(currentUser)bindSocial();}
   else{enhanceNumericInputs(document.getElementById("you-inner")||document);bindSettings()}
 }
 
@@ -4556,6 +4561,9 @@ function renderToday(){
     </div>`;
   }
   const doneCount=plan.exs.filter(ex=>{const e=exById(ex.eid);const nm=e?e.name:ex.eid;return(S.logs||[]).some(l=>l.date===dayIso&&l.exercise===nm)}).length;
+  let setsTotal=0,setsDone=0;
+  plan.exs.forEach(ex=>{const e=exById(ex.eid);const nm=e?e.name:ex.eid;const c=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===nm).length;const s=Math.max(1,Number(ex.sets)||1);setsTotal+=s;setsDone+=Math.min(c,s);});
+  const RC=2*Math.PI*18;const ringOff=RC*(1-(setsTotal?Math.min(1,setsDone/setsTotal):0));
   const allDone=plan.exs.length>0&&doneCount>=plan.exs.length;
   const startedSome=doneCount>0&&!allDone;
   const startLabel=allDone?(finalized?"Review session":"Wrap up session"):startedSome?"Resume session":"Start session";
@@ -4565,6 +4573,7 @@ function renderToday(){
   ${deloadBannerHtml(w)}
   ${isTaperWeek(w)&&!isDeloadWeek(w)?`<div class="card section taper-banner"><div class="taper-banner-icon">📉</div><div class="taper-banner-body"><div class="taper-banner-title">Taper Week ${w}</div><div class="taper-banner-text">Volume reduced by 40% while intensity stays high. This primes your nervous system for ${w===12?"next week's Test":"the Peak phase"}.</div></div></div>`:""}
   <div class="card today-hero section">
+    ${plan.exs.length?`<div class="today-ring" role="img" aria-label="${setsDone} of ${setsTotal} sets done today"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="tr-track" cx="22" cy="22" r="18"/><circle class="tr-fill" cx="22" cy="22" r="18" style="stroke-dasharray:${RC};stroke-dashoffset:${ringOff}"/></svg><span class="tr-num">${setsDone}/${setsTotal}</span></div>`:""}
     <div class="today-hero-kicker">${DAYS[d.getDay()]}${dayIso===iso()?"":" · "+dayIso}</div>
     <div class="today-hero-title">${(plan.focus||(plan.exs.length?"Training day":"Recovery day")).replace(" (DELOAD)","")}</div>
     <div class="today-hero-sub">${coachedModeOn()?`Week ${w} of 13`:bc}</div>
@@ -4778,7 +4787,7 @@ function cardCopyPrev(b){const i=+b.dataset.i;const plan=todayPlanFiltered();con
 async function cardSaveAll(b){const i=+b.dataset.i;const plan=todayPlanFiltered();const ex=plan.exs[i];const e=exById(ex.eid);const name=e?e.name:ex.eid;const prev=S.logs.slice();const prevEv=Array.isArray(S.events)?S.events.slice():[];const aS=Number(document.getElementById("t-s"+i).value)||0,aR=Number(document.getElementById("t-r"+i).value)||0;const run=isRunExerciseName(name);const aW=run?paceSecPerMiFromInput(document.getElementById("t-w"+i).value):loadInputToLb(Number(document.getElementById("t-w"+i).value)||0);if(run){if(aR<=0||aW<=0){toast("Enter minutes or intervals and pace (mm:ss per mile).");return}}else{if(aS<=0||aR<=0){toast("Enter sets and reps.");return}}const out=(document.getElementById("t-o"+i)||{value:"ok"}).value;const makeId=()=>((typeof crypto!=="undefined"&&crypto.randomUUID)?crypto.randomUUID():("log_"+Date.now()+"_"+Math.random().toString(36).slice(2,10)));const dayIso=activeTrainIso();const logWk=plan.blockWeek!=null?plan.blockWeek:getWkForDate(dayIso);const log={id:makeId(),date:dayIso,week:logWk,exercise:name,tS:ex.sets,tR:ex.reps,tW:ex.target,aS,aR,aW,liftFeel:readLiftFeel(i),outcome:out,score:1};if(run){const d=Number(document.getElementById("t-dist"+i)?.value)||0,hr=Number(document.getElementById("t-hr"+i)?.value)||0;if(d>0)log.aDist=d;if(hr>0)log.aHR=hr;}log.score=calcLogScore(log);recordLoggedSet(log);S.lastLiftByEid[ex.eid]=aW;if(!S.sessionAdaptedByDate)S.sessionAdaptedByDate={};delete S.sessionAdaptedByDate[dayIso];resolveCatchUpQueueAfterLog(dayIso);await persist();const vol=run?0:aS*aR*aW;lastLogSummary={name:name,streak:getStreak(),vol:vol>0?vol:"",next:nextScheduledDayTeaser()};let toastMsg=`${name} saved`;if(trainFocusIdx!==null){const ni=i;const p2=todayPlanFiltered();if(ni===trainFocusIdx){if(trainFocusIdx<p2.exs.length-1){trainFocusIdx++;toastMsg=`${name} saved — next lift`}else{trainFocusIdx=null;toastMsg=`${name} saved — session complete`;celebrateFinish()}}}const isPR=!run&&aW>0&&!prev.some(l=>l.exercise===name&&(l.aW||0)>=aW&&(l.aR||0)>=aR);if(isPR){triggerHaptic("pr");celebrateFinish();toastMsg+=" — 🏆 New Record!"}else{triggerHaptic("tick")}toast(toastMsg,{undo:()=>{S.events=prevEv;reprojectLogs();delete S.lastLiftByEid[ex.eid];lastLogSummary=null;persist();render()}});const restSec=e&&e.rest?parseRestSec(e.rest):90;startRestTimer(restSec,name);render()}
 const cardActions={noteInput:cardNoteInput,feelClick:cardFeelClick,skip:cardSkip,rest:cardRest,toggleBody:cardToggleBody,step:cardStep,logSet:cardLogSet,copyPrev:cardCopyPrev,saveAll:cardSaveAll,benchmarkLog:(kind)=>openRunTestModal(kind)};
 // ── Session-shell cards (UI rebuild #4c): actions + mount into render slots ──
-async function readinessSelect(v){if(!S.sessionReadinessByDate)S.sessionReadinessByDate={};S.sessionReadinessByDate[activeTrainIso()]=v;await persist();render();}
+async function readinessSelect(v){if(!S.sessionReadinessByDate)S.sessionReadinessByDate={};S.sessionReadinessByDate[activeTrainIso()]=v;await persist();render();toast(v==="fatigued"?"Got it — easing loads about 5% today.":v==="strong"?"Feeling strong — loads nudged up ~3% today.":"Targets as prescribed today.");}
 async function sessionFeelSelect(feel){const day=activeTrainIso();if(!S.sessionFeelByDate)S.sessionFeelByDate={};const prev=S.sessionFeelByDate[day];if(prev===feel){revertSessionFeelNudge(prev);delete S.sessionFeelByDate[day];await persist();render();toast("Session feel cleared.");return}if(prev)revertSessionFeelNudge(prev);applySessionFeelNudge(feel);S.sessionFeelByDate[day]=feel;await persist();render();toast("Session feel updated.");}
 async function sessionFeelClear(){const day=activeTrainIso();const prev=(S.sessionFeelByDate||{})[day];if(!prev)return;revertSessionFeelNudge(prev);delete S.sessionFeelByDate[day];await persist();render();toast("Session feel cleared.");}
 async function warmupToggle(idx,checked){const day=activeTrainIso();if(!S.warmupDoneByDate)S.warmupDoneByDate={};if(!S.warmupDoneByDate[day])S.warmupDoneByDate[day]={};S.warmupDoneByDate[day][String(idx)]=checked;await persist();}
@@ -4995,7 +5004,7 @@ function buildSessionPlayerProps(){
     const lastW=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?Number(S.lastLiftByEid[ex.eid]):(Number(ex.target)||0);
     let m={};try{m=exMedia(ex.eid)||{};}catch(e2){}
     let plateHtml="";try{plateHtml=run?"":(inlinePlateMathHtml(ex)||"");}catch(e3){}
-    return{eid:ex.eid,name,sets:Math.max(1,Number(ex.sets)||1),reps:Number(ex.reps)||(run?20:8),tReps:Number(ex.reps)||0,target:Number(ex.target)||0,weightLb:lastW,stepLb:run?5:Math.max(1,Number(e&&e.increment)||5),restSec:e&&e.rest?parseRestSec(e.rest):90,isRun:run,runTempo:run&&isRunTempoStyle(ex),doneSets,cue:(e&&e.howTo&&e.howTo[0])?String(e.howTo[0]).slice(0,120):"",rx:formatPrescribedRx(ex),howTo:(e&&e.howTo)?e.howTo.slice(0,6).map(String):[],videoUrl:m.video?openVideoUrl(m.video):"",plateHtml,group:ex._abFinisher?"finisher":"main"};
+    return{eid:ex.eid,origEid:ex.originalEid||ex.eid,name,sets:Math.max(1,Number(ex.sets)||1),reps:Number(ex.reps)||(run?20:8),tReps:Number(ex.reps)||0,target:Number(ex.target)||0,weightLb:lastW,stepLb:run?5:Math.max(1,Number(e&&e.increment)||5),restSec:e&&e.rest?parseRestSec(e.rest):90,isRun:run,runTempo:run&&isRunTempoStyle(ex),doneSets,cue:(e&&e.howTo&&e.howTo[0])?String(e.howTo[0]).slice(0,120):"",rx:formatPrescribedRx(ex),howTo:(e&&e.howTo)?e.howTo.slice(0,6).map(String):[],videoUrl:m.video?openVideoUrl(m.video):"",plateHtml,group:ex._abFinisher?"finisher":"main"};
   });
   const wuSteps=plan.warmup?warmupStepsFromPlan(plan.warmup):[];
   const wuState=(S.warmupDoneByDate&&S.warmupDoneByDate[dayIso])||{};
@@ -5008,11 +5017,29 @@ function buildSessionPlayerProps(){
     finisherOffer:abAvail?"Add 5-min core finisher":"",
     finisherText:String(plan.finisher||""),
     formatW:(lb,isRun)=>isRun?(paceSecPerMiDisplay(lb)+"/mi"):formatLoadLbText(lb),
-    actions:{logSet:playerLogSet,toggleWarmup:warmupToggle,addFinisher:playerAddFinisher,finish:playerFinish,exit:()=>closeSessionPlayer(true)}
+    actions:{logSet:playerLogSet,toggleWarmup:warmupToggle,addFinisher:playerAddFinisher,getAlternatives:playerGetAlternatives,swapExercise:playerSwapExercise,finish:playerFinish,exit:()=>closeSessionPlayer(true)}
   };
 }
 async function playerAddFinisher(){
   try{applyAbFinisher();await persist();}catch(e){}
+  return buildSessionPlayerProps().exercises;
+}
+async function playerGetAlternatives(exd){
+  try{
+    const alts=similarExerciseAlternatives(exd.origEid||exd.eid)||[];
+    return alts.filter(x=>x.id!==exd.eid).slice(0,6).map(x=>({eid:x.id,name:x.name,tag:(x.tags||[]).includes("home")?"home-friendly":((x.tags||[])[0]||"")}));
+  }catch(e){return[];}
+}
+async function playerSwapExercise(exd,altEid){
+  try{
+    const day=activeTrainIso();
+    if(!S.exerciseSwapsByDate)S.exerciseSwapsByDate={};
+    const bucket={...(S.exerciseSwapsByDate[day]||{})};
+    bucket[exd.origEid||exd.eid]=altEid;
+    S.exerciseSwapsByDate[day]=bucket;
+    await persist();
+    toast("Swapped in — same muscles, your call.");
+  }catch(e){}
   return buildSessionPlayerProps().exercises;
 }
 function openSessionPlayer(){
@@ -5080,7 +5107,7 @@ function buildSessionSummaryProps(dayIso){
 }
 function showSessionSummary(dayIso){
   if(!(S.logs||[]).some(l=>l.date===dayIso))return;
-  const c=document.createElement("div");
+  const c=document.createElement("div");c.className="sp-host";
   document.body.appendChild(c);
   const close=()=>{try{c.remove()}catch(e){}};
   mountSessionSummary(c,Object.assign(buildSessionSummaryProps(dayIso),{onClose:close,onViewLog:()=>{close();tab=TAB_TRAIN;trainSub="log";render();}}));
@@ -5606,7 +5633,7 @@ function renderLog(){
   const avgScoreTitle="Average log score vs plan for this day (volume and estimated strength vs prescription). 1.0 ≈ on target; higher = you outperformed; lower = lighter loads or a tough day.";
   const lineHtml=l=>{const txt=`${l.exercise}: ${formatLogPerfSummary(l)}${l.note?" — "+l.note:""}${l.outcome==="fail"?" · failed rep target":l.outcome==="time"?" · time-capped":""}`;return`<div class="log-detail log-detail-row"><span>${txt}</span><span class="row log-line-actions" style="gap:4px;flex-shrink:0"><button type="button" class="btn btn-sm btn-ghost log-move-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Move ${l.exercise} entry">Move</button><button type="button" class="btn btn-sm btn-ghost log-del-line" data-id="${l.id}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Remove ${l.exercise} set">Remove</button></span></div>`};
   const bulkCb=logBulkSelectOn?`<label class="bulk-select-cb" style="margin-right:8px;flex-shrink:0"><input type="checkbox" class="bulk-day-cb" data-d="__D__"></label>`:"";
-  const historyBlocks=allDates.length?(showDates.length?showDates.map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<details class="log-entry ${logBulkSelectOn?"bulk-mode":""}" data-d="${d}"><summary class="log-entry-summary">${bulkCb.replace("__D__",d)}<span class="log-sum-lead"><span class="log-sum-chev" aria-hidden="true">▸</span><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><span class="log-tap-hint">Tap for sets</span></span><span class="log-sum-meta"><span class="log-score ${cls}" title="${avgScoreTitle}"><span class="log-score-prefix">Avg</span> ${avg.toFixed(2)}</span><span class="log-avg-hint" title="${avgScoreTitle}">intensity vs plan</span></span><span class="row log-history-actions" style="gap:6px"><button type="button" class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Edit log for ${d}">Edit log</button><button type="button" class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Delete all logs for ${d}">✕</button></span></summary><div class="log-entry-expanded">${dl.map(lineHtml).join("")}</div></details>`}).join(""):`<p style="color:var(--text3);font-size:12px">No days match your search.</p>`):`<p style="color:var(--text3);font-size:12px">No logs yet.</p>`;
+  const historyBlocks=allDates.length?(showDates.length?showDates.map(d=>{const dl=S.logs.filter(l=>l.date===d);const avg=dl.reduce((s,l)=>s+(l.score||1),0)/dl.length;const cls=avg>=1.02?"score-good":avg>=.9?"score-ok":"score-low";const dd=new Date(d+"T12:00:00");return`<details class="log-entry ${logBulkSelectOn?"bulk-mode":""}" data-d="${d}"><summary class="log-entry-summary">${bulkCb.replace("__D__",d)}<span class="log-sum-lead"><span class="log-sum-chev" aria-hidden="true">▸</span><span class="log-date">${d} (${DAYS[dd.getDay()]})</span><span class="log-tap-hint">Tap for sets</span></span><span class="log-sum-meta"><span class="log-score ${cls}" title="${avgScoreTitle}"><span class="log-score-prefix">Avg</span> ${avg.toFixed(2)}</span><span class="log-avg-hint" title="${avgScoreTitle}">intensity vs plan</span></span><span class="row log-history-actions" style="gap:6px"><button type="button" class="btn btn-sm btn-ghost log-edit" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--ice)" aria-label="Edit log for ${d}">Edit log</button><button type="button" class="btn btn-sm btn-ghost log-del" data-d="${d}" style="padding:4px 8px;font-size:10px;color:var(--red)" aria-label="Delete all logs for ${d}">✕</button></span></summary><div class="log-entry-expanded">${dl.map(lineHtml).join("")}</div></details>`}).join(""):`<p style="color:var(--text3);font-size:12px">No days match your search.</p>`):`<div class="empty-state" style="padding:20px 8px;text-align:center"><div class="empty-ico" aria-hidden="true">📓</div><div class="empty-title">No logs yet</div><p class="empty-body">Your first session lands here with per-set detail — everything you lift, remembered.</p></div>`;
   const filterMeta=qRaw&&allDates.length?`<p class="log-history-meta">${showDates.length===filteredDates.length?`Showing ${showDates.length} day${showDates.length!==1?"s":""}`:`Showing ${showDates.length} of ${filteredDates.length} matching days`}${filteredDates.length<allDates.length?` (${allDates.length} total)`:""}</p>`:"";
   const editingOther=logDate!==iso();
   const editBanner=editingOther?`<div class="log-edit-banner session-banner" role="status"><b style="color:var(--text)">Editing mode.</b> Showing <b>${logDate}</b> (${DAYS[dayIdx]}). Update the table and save — or pick another date.</div>`:"";
@@ -6204,7 +6231,7 @@ function tryThemePreviewBoot(){
   const appEl=document.getElementById("app");if(appEl)appEl.style.display="";
   applyVisualTheme(false);
   const routeTab=tabFromHash();if(routeTab)tab=routeTab;
-  window.addEventListener("hashchange",()=>{const t=tabFromHash();if(t){tab=t;render();}});
+  window.addEventListener("hashchange",()=>{closeTransientOverlays();const t=tabFromHash();if(t){tab=t;render();}});
   render();
   return true;
 }
@@ -6234,7 +6261,7 @@ export async function bootstrapApp(){
   if(!location.hash)location.hash=TAB_YOU;
   const routeTab=tabFromHash();
   if(routeTab)tab=routeTab;
-  window.addEventListener("hashchange",()=>{const t=tabFromHash();if(t){tab=t;render();}});
+  window.addEventListener("hashchange",()=>{closeTransientOverlays();const t=tabFromHash();if(t){tab=t;render();}});
   window.addEventListener("online",()=>{
     const ind=document.getElementById("navSyncInd");
     if(ind){ind.className="nav-sync-indicator online";ind.textContent="●";ind.title="Synced"}
