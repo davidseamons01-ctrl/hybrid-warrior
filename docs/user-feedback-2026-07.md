@@ -139,3 +139,40 @@ Resolution of every logged item:
 16. Vacation pause: Settings → Account & plan (1/2/3 wk); shifts start
     forward, suppresses miss prompts, Today shows a break screen, resume
     reclaims unused days. ✅
+
+---
+
+# Walkthrough findings — Fable's hands-on audit (2026-07-05)
+
+Interactive pass through every tab/subtab/player/modal in Pro mode.
+Tactical issues + quick wins (distinct from the strategic report in
+docs/premium-launch-overhaul.md).
+
+## Bugs
+- **Modals persist across navigation.** The calibration sheet stayed
+  overlaid after switching to the You tab; the session summary lingered
+  too. Body-appended modal hosts (`.sp-host`, `.cal-overlay`, summary
+  host) are not torn down on tab/hash change. FIX: close any open modal
+  host in the render()/hashchange path. [P0]
+
+## First-run confusion
+- **"0 LOAD / @ BW" on barbell lifts** for an uncalibrated profile reads
+  like a bug (Back Squat shows "0 LOAD"). Show "bodyweight" gracefully or
+  route the user through calibration before the first barbell session. [P1]
+- **Readiness picker gives no feedback.** Selecting "Fatigued" silently
+  trims loads ~5% with no confirmation. Add a one-line "we'll ease today's
+  loads ~5%." [P1]
+
+## Weak surfaces
+- **Community signed-out state** is a dead end: one line of text over a
+  huge empty screen, no actual sign-in button or value preview. [P1]
+- **Empty vertical space** on the Log tab and Community reads as
+  unfinished (acceptable on the player where it reads as focus). [P2]
+
+## Polish nits
+- **Plan "This week" title wraps** ("Week 1 of 13 ·" / "Hypertrophy")
+  because the "Adjust week" button crowds it. [P2]
+- **13-week block "Expected Changes Heatmap"** (Glutes 67%, Core 100%…)
+  is cryptic — no explanation of what the percentages mean. [P2]
+- **Session summary "Done"** needed a second interaction to dismiss in
+  testing (likely related to the modal-teardown bug). [P2]
