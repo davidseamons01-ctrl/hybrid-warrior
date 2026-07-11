@@ -2122,3 +2122,22 @@ body.appearance-light .today-hero,body.appearance-light .coach-card,body.appeara
 /* Readiness pills share the player feel-chip language */
 .readiness-row{display:flex;gap:8px;flex-wrap:wrap}
 .readiness-card .sp-feel{min-height:40px}
+
+/* ═══ Phase-11: goal journey + block signature ═══ */
+.journey-card{background:linear-gradient(160deg,color-mix(in srgb,var(--gold) 14%,var(--card)),var(--card) 62%);border-color:color-mix(in srgb,var(--gold) 30%,var(--border-lit));padding:18px}
+.jr-kicker{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:2px}
+.jr-title{font-family:var(--font-display);font-size:24px;font-weight:700;letter-spacing:-0.02em;color:var(--text)}
+.jr-meta{font-size:12px;color:var(--text2);margin:4px 0 22px}
+.jr-meta b{color:var(--text)}
+.jr-track-wrap{position:relative;margin:0 8px 30px}
+.jr-track{height:8px;border-radius:4px;background:color-mix(in srgb,var(--bg) 60%,transparent);overflow:hidden}
+.jr-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--gold));transition:width .8s cubic-bezier(.22,1,.36,1)}
+.jr-node{position:absolute;top:4px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
+.jr-node-dot{width:14px;height:14px;border-radius:50%;background:var(--surface);border:2px solid var(--border-lit);margin-top:-9px}
+.jr-node.hit .jr-node-dot{background:var(--gold);border-color:var(--gold);box-shadow:0 0 10px color-mix(in srgb,var(--gold) 55%,transparent)}
+.jr-node-lbl{font-size:10px;font-weight:700;color:var(--text3);font-variant-numeric:tabular-nums}
+.jr-node.hit .jr-node-lbl{color:var(--text)}
+.jr-next{font-size:12.5px;color:var(--text2)}
+.jr-next b{color:var(--gold)}
+.plan-signature{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 13%,var(--card)),var(--card) 62%)}
+.rest-bar{display:none!important}

@@ -998,16 +998,9 @@ function PlanView(props) {
   const [over, setOver] = d2(null);
   return /* @__PURE__ */ u3("div", { class: "plan-root", children: [
     /* @__PURE__ */ u3("div", { class: "section", children: [
-      /* @__PURE__ */ u3("div", { class: "row", style: "justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px", children: [
-        /* @__PURE__ */ u3("h2", { style: "font-size:18px;font-weight:600;letter-spacing:-0.02em", children: "Thirteen-week block" }),
-        /* @__PURE__ */ u3("div", { class: "row", style: "gap:8px;align-items:center", children: [
-          /* @__PURE__ */ u3("span", { style: "font-size:12px;color:var(--text3)", children: "Loads follow your logs" }),
-          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-ghost", id: "plan-compact-toggle", onClick: () => a3.toggleCompact(), children: props.toggleLabel })
-        ] })
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "plan-context-card card section", children: /* @__PURE__ */ u3("div", { class: "plan-context-inner", children: [
+      /* @__PURE__ */ u3("div", { class: "plan-context-card card section plan-signature", children: /* @__PURE__ */ u3("div", { class: "plan-context-inner", children: [
         /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("div", { class: "plan-context-kicker", children: "You are here" }),
+          /* @__PURE__ */ u3("div", { class: "plan-context-kicker", children: "The 13-week block \xB7 you are here" }),
           /* @__PURE__ */ u3("div", { class: "plan-context-title", children: [
             "Week ",
             c3.week,
@@ -1018,15 +1011,18 @@ function PlanView(props) {
             c3.slots,
             " session",
             c3.slotsPlural ? "s" : "",
-            " per training week \xB7 bar loads follow your logs"
+            " per training week \xB7 loads follow your logs"
           ] })
         ] }),
-        /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-sm", id: "plan-jump-current", onClick: () => a3.jumpCurrent(), children: "Open this week" })
+        /* @__PURE__ */ u3("div", { class: "row", style: "gap:8px;flex-wrap:wrap", children: [
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-secondary-solid btn-sm", id: "plan-jump-current", onClick: () => a3.jumpCurrent(), children: "Open this week" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "btn btn-sm btn-ghost", id: "plan-compact-toggle", onClick: () => a3.toggleCompact(), children: props.toggleLabel })
+        ] })
       ] }) }),
       /* @__PURE__ */ u3(Html, { html: props.anchorSummaryHtml }),
       ws ? /* @__PURE__ */ u3("div", { class: "card plan-hide-simple", style: "margin-bottom:10px;border-left:3px solid var(--mint)", children: [
         /* @__PURE__ */ u3("div", { class: "card-h", children: [
-          /* @__PURE__ */ u3("h2", { children: "Women's Program Summary" }),
+          /* @__PURE__ */ u3("h2", { children: "Women's program summary" }),
           /* @__PURE__ */ u3("span", { class: "badge badge-mint", children: ws.label })
         ] }),
         /* @__PURE__ */ u3("div", { style: "font-size:12px;color:var(--text2);margin-bottom:8px", children: [

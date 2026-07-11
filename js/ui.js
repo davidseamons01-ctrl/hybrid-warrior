@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hf79eedaa2748";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hf3bec21568e3";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=hf79eedaa2748";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=hf79eedaa2748";
+} from "./programming.js?v=hf3bec21568e3";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=hf3bec21568e3";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4993,6 +4993,46 @@ function progressMetricsHtml(){
   <div class="prog-metric"><span class="prog-metric-num">${volTxt}</span><span class="prog-metric-lbl">${massUnitLabel()} volume · 7d</span></div>
   <div class="prog-metric"><span class="prog-metric-num">${lvl}</span><span class="prog-metric-lbl">level</span></div>`;
 }
+// ── Goal journey: the road to your #1 target, visualized with milestones ──
+function goalJourneyHtml(){
+  const cands=[["bench","Bench press",S.profile.bench1RM,S.goals.bench],["squat","Squat",S.profile.squat1RM,S.goals.squat],["deadlift","Deadlift",S.profile.dead1RM,S.goals.deadlift]];
+  const primMap={"Bench Press":"bench","Squat":"squat","Deadlift":"deadlift","Powerlifting Total":"squat"};
+  const prim=primMap[(S.profile.prefs||{}).primaryGoal||""]||"";
+  let pick=null;
+  const ordered=prim?[...cands.filter(c=>c[0]===prim),...cands.filter(c=>c[0]!==prim)]:cands;
+  for(const [id,label,max,goal] of ordered){
+    const e=exById(id);if(!e)continue;
+    const tgt=Number(goal)||0;if(!tgt)continue;
+    const best=bestLoggedE1RM(e.name);
+    const cur=best>0?best:(Number(max)||0);
+    if(!cur||tgt<=cur)continue;
+    pick={id,label,name:e.name,cur,tgt};break;
+  }
+  if(!pick)return"";
+  const first=(S.logs||[]).find(l=>l.exercise===pick.name&&Number(l.aW)>0&&Number(l.aR)>0);
+  let start=first?Math.round(epley(Number(first.aW),Number(first.aR))):Math.round(pick.cur*0.9);
+  if(start>=pick.tgt)start=Math.round(pick.cur*0.9);
+  start=Math.min(start,pick.cur);
+  const span=Math.max(1,pick.tgt-start);
+  const pct=Math.max(0,Math.min(1,(pick.cur-start)/span));
+  const disp=v=>Math.round(loadInputDisplayFromLb(v));
+  const unit=massUnitLabel();
+  const nodes=[start,start+span/3,start+2*span/3,pick.tgt];
+  const next=nodes.find(n=>n>pick.cur+0.5)||pick.tgt;
+  let etaTxt="";
+  try{
+    const rate=liftRatePerWeek(pick.name);
+    if(rate&&rate>0){const proj=projectWeeksToGoal(pick.cur,pick.tgt,rate);if(proj&&proj.weeks>0){const d=new Date();d.setDate(d.getDate()+proj.weeks*7);etaTxt=d.toLocaleDateString(undefined,{month:"short",day:"numeric"});}}
+  }catch(e){}
+  const dots=nodes.map((n,i)=>{const left=(i/(nodes.length-1))*100;const hit=pick.cur+0.5>=n;return`<div class="jr-node ${hit?"hit":""}" style="left:${left}%"><span class="jr-node-dot"></span><span class="jr-node-lbl">${disp(n)}</span></div>`}).join("");
+  return`<div class="card section journey-card">
+    <div class="jr-kicker">The road to ${disp(pick.tgt)} ${unit}</div>
+    <div class="jr-title">${pick.label}</div>
+    <div class="jr-meta">Now <b>${disp(pick.cur)} ${unit}</b> · started at ${disp(start)}${etaTxt?` · on pace for <b>${etaTxt}</b>`:""}</div>
+    <div class="jr-track-wrap"><div class="jr-track"><div class="jr-fill" style="width:${Math.round(pct*100)}%"></div></div>${dots}</div>
+    <div class="jr-next">${pct>=1?"Goal reached — time to set the next one 🏆":`Next milestone: <b>${disp(next)} ${unit}</b>`}</div>
+  </div>`;
+}
 function bodyLogInputsHtml(){
   const p=S.profile||{};const u=massUnitLabel();
   return`<div class="grid2" style="gap:8px">
@@ -5022,6 +5062,7 @@ function renderProgressTab(){
   return`<div id="progress-inner">
   <div id="coach-mount"></div>
   <div class="prog-metrics">${progressMetricsHtml()}</div>
+  ${goalJourneyHtml()}
   ${goals?`<section class="prog-section"><h2 class="prog-h">Goals &amp; forecast</h2>${goals}</section>`:""}
   <section class="prog-section"><div id="prog-strength"></div></section>
   <section class="prog-section"><div id="prog-heat"></div></section>
@@ -6364,12 +6405,7 @@ function tryThemePreviewBoot(){
   render();
   return true;
 }
-function initRestBarDock(){
-  const d=document.getElementById("restDone"),a30=document.getElementById("restAdd30"),s30=document.getElementById("restSkip30");
-  if(d)d.onclick=()=>stopRestTimer();
-  if(a30)a30.onclick=()=>{restEndMs+=3e4;toast("+30s")};
-  if(s30)s30.onclick=()=>{restEndMs-=3e4;if(restEndMs<Date.now()+8e3)restEndMs=Date.now()+8e3};
-}
+function initRestBarDock(){/* retired: the session player owns rest timing (phase 7+) */}
 export async function bootstrapApp(){
   setTimeout(()=>{try{maybeTrainingReminder()}catch(e){}},4000);
   initRestBarDock();

@@ -185,22 +185,17 @@ function PlanView(props: PlanProps) {
   return (
     <div class="plan-root">
       <div class="section">
-        <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-          <h2 style="font-size:18px;font-weight:600;letter-spacing:-0.02em">Thirteen-week block</h2>
-          <div class="row" style="gap:8px;align-items:center">
-            <span style="font-size:12px;color:var(--text3)">Loads follow your logs</span>
-            <button type="button" class="btn btn-sm btn-ghost" id="plan-compact-toggle" onClick={() => a.toggleCompact()}>{props.toggleLabel}</button>
-          </div>
-        </div>
-
-        <div class="plan-context-card card section">
+        <div class="plan-context-card card section plan-signature">
           <div class="plan-context-inner">
             <div>
-              <div class="plan-context-kicker">You are here</div>
+              <div class="plan-context-kicker">The 13-week block · you are here</div>
               <div class="plan-context-title">Week {c.week} of 13 · {c.phaseName}</div>
-              <div class="plan-context-sub">{c.slots} session{c.slotsPlural ? "s" : ""} per training week · bar loads follow your logs</div>
+              <div class="plan-context-sub">{c.slots} session{c.slotsPlural ? "s" : ""} per training week · loads follow your logs</div>
             </div>
-            <button type="button" class="btn btn-secondary-solid btn-sm" id="plan-jump-current" onClick={() => a.jumpCurrent()}>Open this week</button>
+            <div class="row" style="gap:8px;flex-wrap:wrap">
+              <button type="button" class="btn btn-secondary-solid btn-sm" id="plan-jump-current" onClick={() => a.jumpCurrent()}>Open this week</button>
+              <button type="button" class="btn btn-sm btn-ghost" id="plan-compact-toggle" onClick={() => a.toggleCompact()}>{props.toggleLabel}</button>
+            </div>
           </div>
         </div>
 
@@ -208,7 +203,7 @@ function PlanView(props: PlanProps) {
 
         {ws ? (
           <div class="card plan-hide-simple" style="margin-bottom:10px;border-left:3px solid var(--mint)">
-            <div class="card-h"><h2>Women's Program Summary</h2><span class="badge badge-mint">{ws.label}</span></div>
+            <div class="card-h"><h2>Women's program summary</h2><span class="badge badge-mint">{ws.label}</span></div>
             <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Baseline: <b style="color:var(--text)">{ws.tier}</b> · Life stage: <b style="color:var(--text)">{ws.life}</b> · Equipment: <b style="color:var(--text)">{ws.eq}</b> · Session style: <b style="color:var(--text)">{ws.style}</b></div>
             <div style="display:grid;gap:4px">{ws.tracks.map((t, i) => <div key={i} style="font-size:11px;color:var(--text2)">• {t}</div>)}</div>
             {ws.fa.length ? <div style="margin-top:8px;font-size:10px;color:var(--text3)">Goals: {ws.fa.join(" · ")}</div> : null}

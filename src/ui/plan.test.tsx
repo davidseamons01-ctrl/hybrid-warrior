@@ -105,11 +105,11 @@ describe("PlanView", () => {
   });
 
   it("shows women's summary only when provided", () => {
-    expect(mount({ women: null }).textContent).not.toContain("Women's Program Summary");
+    expect(mount({ women: null }).textContent).not.toContain("Women's program summary");
     const withWomen = mount({
       women: { label: "Hourglass", tier: "Intermediate", life: "General", eq: "Gym", style: "Balanced", tracks: ["Glute focus"], fa: ["Shape"] },
     });
-    expect(withWomen.textContent).toContain("Women's Program Summary");
+    expect(withWomen.textContent).toContain("Women's program summary");
     expect(withWomen.textContent).toContain("Glute focus");
   });
 });
