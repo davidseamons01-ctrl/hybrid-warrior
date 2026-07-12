@@ -2141,3 +2141,55 @@ body.appearance-light .today-hero,body.appearance-light .coach-card,body.appeara
 .jr-next b{color:var(--gold)}
 .plan-signature{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 13%,var(--card)),var(--card) 62%)}
 .rest-bar{display:none!important}
+
+/* ═══ Phase-12 SUNRISE: Centr-inspired light editorial theme ═══ */
+/* Light canvas: warm greige, pure-white borderless cards, depth via shadow */
+body.appearance-light{--bg:#edecea;--surface:#f7f6f4;--card:#ffffff;--card-hover:#f2f1ee;--border:#e6e4df;--border-lit:#d6d3cc;--text:#161719;--text2:#43454a;--text3:#82848b;--radius:20px;--radius-sm:14px}
+body.appearance-light{background:var(--bg)}
+body.appearance-light .card{border-color:transparent;box-shadow:0 1px 2px rgba(25,25,20,.05),0 10px 30px rgba(25,25,20,.07)}
+body.appearance-light .nav{background:rgba(237,236,234,.92);border-bottom-color:transparent}
+/* CTAs: charcoal pills in light (Centr), accent pills in dark */
+.btn-cta,.today-start,.sp-log,.wrapped-share{border-radius:999px!important}
+body.appearance-light .btn-cta,body.appearance-light .today-start,body.appearance-light .sp-log{background:#1b1c1f;color:#fff;box-shadow:0 10px 26px rgba(20,20,20,.25)}
+body.appearance-light .sp-done .sp-log{background:#1b1c1f;box-shadow:0 10px 26px rgba(20,20,20,.25)}
+/* Floating pill dock (both modes) */
+.tabbar{left:14px;right:14px;bottom:calc(10px + env(safe-area-inset-bottom));border-radius:999px;border:1px solid var(--border);padding:7px;gap:4px;box-shadow:0 14px 40px rgba(0,0,0,.28)}
+body.appearance-light .tabbar{background:#fff;border-color:transparent;box-shadow:0 12px 34px rgba(25,25,20,.16)}
+.tabbar-btn{border-radius:999px;padding:8px 0 6px}
+.tabbar-btn.active{background:var(--surface)}
+body.appearance-light .tabbar-btn.active{background:#ececea;color:#161719}
+.tabbar-btn.active::after{display:none}
+@media(max-width:860px){.page{padding-bottom:calc(108px + env(safe-area-inset-bottom))}}
+/* Editorial page head */
+.page-kicker{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--text2);margin:2px 0 2px 2px}
+.greet-row{display:flex;align-items:center;justify-content:space-between;margin:6px 0 14px}
+.greet{font-family:var(--font-display);font-size:38px;font-weight:700;letter-spacing:-0.03em;color:var(--text);line-height:1.05}
+.greet-gear{width:42px;height:42px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+/* Domain chips (Move/Progress/Plan color system) */
+.dom-row{display:flex;align-items:center;gap:10px;margin:4px 0 10px}
+.dom-chip{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.dom-chip svg{width:17px;height:17px}
+.dom-train{background:var(--accent)}
+.dom-progress{background:var(--gold)}
+.dom-plan{background:var(--ice)}
+.dom-mind{background:#8b7cc4}
+.dom-kicker{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--text)}
+/* Date strip (Centr week calendar) */
+.dstrip{display:flex;justify-content:space-between;gap:2px;margin:0 0 16px;padding:0 2px}
+.dstrip-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 9px;background:none;border:none;border-radius:999px;cursor:pointer;position:relative}
+.dstrip-dow{font-size:10.5px;font-weight:700;color:var(--text3);letter-spacing:.02em}
+.dstrip-num{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--text2)}
+.dstrip-day.train .dstrip-num{color:var(--text)}
+.dstrip-day .dstrip-dot{width:4px;height:4px;border-radius:50%;background:transparent}
+.dstrip-day.train .dstrip-dot{background:var(--accent)}
+.dstrip-day.today{border:1.5px solid var(--text2);}
+.dstrip-day.viewing{background:var(--card);box-shadow:0 4px 14px rgba(25,25,20,.10)}
+.dstrip-day.done .dstrip-dot{background:var(--mint)}
+/* Row spines by content type */
+.spine-lift{box-shadow:inset 3px 0 0 var(--accent)}
+.spine-run{box-shadow:inset 3px 0 0 var(--ice)}
+.spine-core{box-shadow:inset 3px 0 0 var(--gold)}
+body.appearance-light .today-next-row,body.appearance-light .wk7-day{background:var(--surface)}
+/* Softer light gradients on signature cards */
+body.appearance-light .today-hero,body.appearance-light .coach-card,body.appearance-light .wk7-card,body.appearance-light .plan-signature{background:linear-gradient(165deg,color-mix(in srgb,var(--accent) 7%,#ffffff),#ffffff 60%)}
+body.appearance-light .journey-card{background:linear-gradient(165deg,color-mix(in srgb,var(--gold) 9%,#ffffff),#ffffff 60%)}

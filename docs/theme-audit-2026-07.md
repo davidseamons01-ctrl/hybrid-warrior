@@ -94,3 +94,29 @@ than any single feature.
 6. Block-subtab restyle into the new language.
 7. Fold open-state persistence; readiness card unified with player pills;
    retire legacy rest-bar; Coach greeting uses name or drops the comma.
+
+---
+
+# Addendum: SUNRISE — Centr-inspired light editorial theme (2026-07-07)
+
+David's reference: Centr (screenshots). Design-language study:
+- Warm greige canvas (#eeedeb), pure-white cards, near-zero borders,
+  ~20px radius, depth via soft shadow + canvas contrast (not lines).
+- Editorial type: huge greeting ("Hi David"), small ALL-CAPS page
+  kickers (HOME/EXPLORE), caps-tracked pill CTAs.
+- Domain color system: Move=teal, Meals=olive, Mind=purple,
+  Motivation=charcoal — icon chips + colored list-row spines.
+- Date-strip week calendar with today in an outlined pill.
+- Floating pill bottom dock, active tab in a capsule.
+
+Novel adaptations for Hybrid (ours, not copies):
+- Domain mapping: TRAIN=accent, PROGRESS=gold, RECOVERY/MIND=purple,
+  FUEL=olive — icon chips ahead of section kickers; 3px color spines on
+  session/day rows keyed by content type (lift vs run vs core vs rest).
+- Date strip replaces the "next sessions" dots on Today — train days
+  get a dot, today gets the outlined pill, taps jump to that day.
+- Greeting header on Today ("Hi …" + settings gear) above the hero.
+- Charcoal pill CTAs in light mode (accent reserved for progress/rings);
+  dark mode keeps accent CTAs.
+- Light becomes the flagship appearance (default for new users); dark
+  remains a first-class option.

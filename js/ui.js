@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hf3bec21568e3";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hfa3abc70cecf";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=hf3bec21568e3";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=hf3bec21568e3";
+} from "./programming.js?v=hfa3abc70cecf";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=hfa3abc70cecf";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -83,7 +83,7 @@ function activeTrainIso(){
 }
 const DEF={
   v:7,
-  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,neckCirc:0,onboarded:false,prefs:{equipment:"gym",equipmentInv:null,experienceMonths:0,primaryGoal:"",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"dark",units:"imperial",quickSessionMin:0,uiMode:"",accentTheme:""}},
+  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,neckCirc:0,onboarded:false,prefs:{equipment:"gym",equipmentInv:null,experienceMonths:0,primaryGoal:"",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"light",units:"imperial",quickSessionMin:0,uiMode:"",accentTheme:""}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   scheduleAdjust:{catchUpQueue:[],missChoices:{},missSnoozed:{},extraTrainingIso:null,catchUpClearedDate:null},
@@ -1443,6 +1443,24 @@ function oldestUnresolvedMiss(){
   }
   return null;
 }
+function dateStripHtml(){
+  const today=iso();const viewing=trainSessionDate||today;
+  const cells=[];
+  for(let i=0;i<7;i++){
+    const dt=new Date();dt.setDate(dt.getDate()+i);const dIso=isoFromDate(dt);
+    const trains=(()=>{try{const p=rollingPlanForDate(dIso);return!!(p&&p.exs&&p.exs.length)}catch(e){return false}})();
+    const done=(S.logs||[]).some(l=>l.date===dIso);
+    cells.push(`<button type="button" class="dstrip-day${trains?" train":""}${dIso===today?" today":""}${dIso===viewing?" viewing":""}${done?" done":""}" data-d="${dIso}" aria-label="${DAYS[dt.getDay()]} ${dt.getDate()}${trains?" — training day":""}"><span class="dstrip-dow">${DAYS[dt.getDay()].slice(0,3)}</span><span class="dstrip-num">${dt.getDate()}</span><span class="dstrip-dot"></span></button>`);
+  }
+  return`<div class="dstrip" role="group" aria-label="This week">${cells.join("")}</div>`;
+}
+function bindDateStrip(){
+  document.querySelectorAll(".dstrip-day").forEach(b=>b.onclick=()=>{
+    const d=b.dataset.d;
+    trainSessionDate=(d===iso())?null:d;
+    render();
+  });
+}
 function nextTrainingDotsHtml(maxDots){
   const n=maxDots||6;
   const today=iso();
@@ -2617,6 +2635,8 @@ const IC={
   chart:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>',
   pause:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="10" y1="5" x2="10" y2="19"/><line x1="14" y1="5" x2="14" y2="19"/></svg>',
   flask:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v7L4.5 19a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L14 9V2"/><path d="M8 2h8"/></svg>',
+  gear:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  run:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="17" cy="4" r="2"/><path d="M15 7l-4 3 2 4 4-2"/><path d="M11 10l-5 1 1 5-4 4"/><path d="M13 14l1 7"/></svg>',
   spark:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.8L20 10l-5.6 1.9L12 18l-2.4-6.1L4 10l6.1-1.2z"/></svg>'
 };
 const NAV_ICONS={
@@ -4506,7 +4526,7 @@ function renderTrain(){
 function renderYou(){
   if(youSub!=="settings"&&youSub!=="community")youSub="settings";
   const inner=youSub==="community"?(currentUser?`<div class="pane show" id="p-social"></div>`:`<div class="card section empty-state"><div class="empty-ico" aria-hidden="true">🤝</div><div class="empty-title">Community lives here</div><p class="empty-body">Challenges, leaderboards, and training with friends — synced to your account. Sign in and this space comes alive.</p></div>`):renderSettings();
-  return`<div class="subtab-row you-subtabs" role="tablist" aria-label="You sections"><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" role="tab" aria-selected="${youSub==="settings"}" data-s="settings">Settings</button><button type="button" class="subtab ${youSub==="community"?"on":""} you-sub" role="tab" aria-selected="${youSub==="community"}" data-s="community">Community</button></div><div id="you-inner">${inner}</div>`;
+  return`<div class="page-head"><div class="page-kicker">You</div></div><div class="subtab-row you-subtabs" role="tablist" aria-label="You sections"><button type="button" class="subtab ${youSub==="settings"?"on":""} you-sub" role="tab" aria-selected="${youSub==="settings"}" data-s="settings">Settings</button><button type="button" class="subtab ${youSub==="community"?"on":""} you-sub" role="tab" aria-selected="${youSub==="community"}" data-s="community">Community</button></div><div id="you-inner">${inner}</div>`;
 }
 function bindTrain(){
   document.querySelectorAll(".train-sub").forEach(b=>b.onclick=()=>{if(b.dataset.s==="log")trainFocusIdx=null;trainSub=b.dataset.s;render()});
@@ -4618,7 +4638,11 @@ function renderToday(){
   const allDone=plan.exs.length>0&&doneCount>=plan.exs.length;
   const startedSome=doneCount>0&&!allDone;
   const startLabel=allDone?(finalized?"Review session":"Wrap up session"):startedSome?"Resume session":"Start session";
+  const firstName=((S.profile.name||"").trim().split(/\s+/)[0])||"";
   return`<div id="p-today" class="${plan.exs.length?"train-session-active":""}">
+  <div class="page-head"><div class="page-kicker">Today</div><div class="greet-row"><h1 class="greet">${firstName?`Hi ${firstName}`:"Let's train"}</h1><button type="button" class="greet-gear" id="greet-settings" aria-label="Open settings">${IC.gear}</button></div></div>
+  ${dateStripHtml()}
+  <div class="dom-row"><span class="dom-chip dom-train" aria-hidden="true">${IC.run}</span><span class="dom-kicker">Move</span></div>
   ${trainSessionDate&&trainSessionDate!==iso()?`<div class="session-banner" role="status"><span>Viewing <b style="color:var(--text)">${trainSessionDate}</b> — not today on the calendar.</span> <button type="button" class="btn btn-sm btn-secondary-solid" id="train-clear-date">Back to today</button></div>`:""}
   ${programPausedBannerHtml()}
   ${deloadBannerHtml(w)}
@@ -4629,7 +4653,7 @@ function renderToday(){
     <div class="today-hero-title">${(plan.focus||(plan.exs.length?"Training day":"Recovery day")).replace(" (DELOAD)","")}</div>
     <div class="today-hero-sub">${coachedModeOn()?`Week ${w} of 13`:bc}</div>
     ${plan.exs.length?`<div class="today-hero-meta">~${qm>0?qm:(S.schedule.sessionMin||45)} min · ${plan.exs.length} exercise${plan.exs.length!==1?"s":""}${startedSome?` · ${doneCount} done`:""}${bpos&&!coachedModeOn()?` · ${bpos}`:""}</div>
-    <div class="today-next"><div class="today-next-label">The session</div>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);const nm=e?e.name:ex.eid;const exDone=(S.logs||[]).some(l=>l.date===dayIso&&l.exercise===nm);return`<div class="today-next-row${exDone?" done":""}"><span class="today-next-num">${exDone?"✓":i+1}</span><span class="today-next-name">${nm}</span>${coachedModeOn()?"":`<span class="today-next-rx">${formatPrescribedRx(ex)}</span>`}</div>`}).join("")}</div>`
+    <div class="today-next"><div class="today-next-label">The session</div>${plan.exs.map((ex,i)=>{const e=exById(ex.eid);const nm=e?e.name:ex.eid;const exDone=(S.logs||[]).some(l=>l.date===dayIso&&l.exercise===nm);const spine=isRunExerciseName(nm)?"spine-run":(ex._abFinisher?"spine-core":"spine-lift");return`<div class="today-next-row ${spine}${exDone?" done":""}"><span class="today-next-num">${exDone?"✓":i+1}</span><span class="today-next-name">${nm}</span>${coachedModeOn()?"":`<span class="today-next-rx">${formatPrescribedRx(ex)}</span>`}</div>`}).join("")}</div>`
     :`<div class="today-hero-meta">Nothing scheduled — recovery is part of the program.</div>`}
     ${plan.exs.length?`${plan.deloadHint?`<div class="today-hero-note">${escPlanChip(plan.deloadHint)}</div>`:""}<div id="readiness-mount"></div><button type="button" class="btn btn-cta btn-block today-start" id="train-begin-session">${startLabel}</button><p class="today-hero-hint">Everything happens here — warm-up, sets, rest, and finish, one screen at a time.</p>`:""}
   </div>
@@ -4638,7 +4662,6 @@ function renderToday(){
     <button type="button" class="chip-action" id="train-bring-friend">${IC.users} Train with a friend</button>
     ${plan.exs.length?`<button type="button" class="chip-action" id="today-preview-map">${IC.target} Muscles worked</button>`:""}
   </div>
-  ${nextTrainingDotsHtml(6)}
   ${plan.exs.length?`<details class="card section" id="today-impact-fold"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">What today works <span style="font-size:11px;color:var(--text3);font-weight:400">· muscle map${meta?" & coaching notes":""}</span></summary><div class="fig-wrap" style="margin-top:10px"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div>${meta?`<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div>`:""}${planHasRun(plan)?`<div style="margin-top:12px">${runZonesPanelHtml()}</div>`:""}</div></details>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does catch-up work?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p></details><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
@@ -5060,6 +5083,7 @@ function bindBodyLogInputs(root){
 function renderProgressTab(){
   const goals=goalEtaCardHtml();
   return`<div id="progress-inner">
+  <div class="page-head"><div class="page-kicker">Progress</div></div><div class="dom-row"><span class="dom-chip dom-progress" aria-hidden="true">${IC.chart}</span><span class="dom-kicker">Your journey</span></div>
   <div id="coach-mount"></div>
   <div class="prog-metrics">${progressMetricsHtml()}</div>
   ${goalJourneyHtml()}
@@ -5687,6 +5711,8 @@ function bindToday(){
   if(tcd)tcd.onclick=()=>{trainSessionDate=null;render()};
   const tbs=document.getElementById("train-begin-session");
   if(tbs)tbs.onclick=()=>openSessionPlayer();
+  {const gg=document.getElementById("greet-settings");if(gg)gg.onclick=()=>{tab=TAB_YOU;youSub="settings";if(location.hash!=="#"+TAB_YOU)location.hash=TAB_YOU;else render();};}
+  bindDateStrip();
   {const pm=document.getElementById("today-preview-map");if(pm)pm.onclick=()=>{const f=document.getElementById("today-impact-fold");if(f){f.open=true;f.scrollIntoView({behavior:"smooth",block:"start"})}};}
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
   const teg=document.getElementById("train-ease-go");
@@ -5873,7 +5899,7 @@ function wk7DaysHtml(){
     const logged=(S.logs||[]).some(l=>l.date===dIso);
     const focus=has?(p.focus||"Session").replace(" (DELOAD)","").split("·")[0].trim():"Rest day";
     const isToday=dIso===today;
-    rows.push(`<div class="wk7-day ${isToday?"wk7-today":""} ${has?"":"wk7-rest"}">
+    const spine=has?(/interval|run|pace|tempo|recovery/i.test(focus)?"spine-run":"spine-lift"):"";rows.push(`<div class="wk7-day ${spine} ${isToday?"wk7-today":""} ${has?"":"wk7-rest"}">
       <div class="wk7-left"><span class="wk7-dow">${DAYS[dt.getDay()].slice(0,3)}</span><span class="wk7-date">${dt.getDate()}</span></div>
       <div class="wk7-main"><span class="wk7-focus">${focus}</span><span class="wk7-meta">${[isToday?"Today":"",has&&!coachedModeOn()?`${p.exs.length} exercises · ~${S.schedule.sessionMin||45} min`:"",p&&p._rescheduled?"moved by you":""].filter(Boolean).join(" · ")}</span></div>
       <div class="wk7-right">${logged?`<span class="wk7-check" title="Logged">✓</span>`:isToday&&has?`<button type="button" class="wk7-go">Start</button>`:""}</div>
@@ -5900,7 +5926,7 @@ function renderPlanTab(){
   </div>
   <p class="wk7-note">${coachedModeOn()?"Life happens — move or skip any day with Adjust week. The program bends, it never breaks.":"Days follow your real calendar (overrides + standing template honored). Adjust week edits per-date slots and equipment."}</p>
   </div>`;
-  return`<div class="subtab-row" role="tablist" aria-label="Plan views"><button type="button" class="subtab ${planSub==="week"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="week"}" data-s="week">This week</button><button type="button" class="subtab ${planSub==="block"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="block"}" data-s="block">13-week block</button></div><div id="plan-inner">${inner}</div>`;
+  return`<div class="page-head"><div class="page-kicker">Plan</div></div><div class="dom-row"><span class="dom-chip dom-plan" aria-hidden="true">${IC.cal}</span><span class="dom-kicker">Your schedule</span></div><div class="subtab-row" role="tablist" aria-label="Plan views"><button type="button" class="subtab ${planSub==="week"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="week"}" data-s="week">This week</button><button type="button" class="subtab ${planSub==="block"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="block"}" data-s="block">13-week block</button></div><div id="plan-inner">${inner}</div>`;
 }
 function bindPlanTab(){
   releaseWorkoutWakeLock();
