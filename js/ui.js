@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=hfa3abc70cecf";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h3d62bbd25a1e";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=hfa3abc70cecf";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=hfa3abc70cecf";
+} from "./programming.js?v=h3d62bbd25a1e";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h3d62bbd25a1e";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -4249,6 +4249,16 @@ function activeRecoverySuggestion(){
   const dayNum=Math.floor(Date.now()/(864e5));
   return ACTIVE_RECOVERY_SUGGESTIONS[dayNum%ACTIVE_RECOVERY_SUGGESTIONS.length];
 }
+const MIND_CONTENT=[
+  {icon:"stretch",title:"5-minute mobility flow",meta:"Mobility \u00b7 5 min",body:"Cat-cow \u00d78, world's greatest stretch \u00d75/side, deep squat hold 60s, thoracic rotations \u00d78/side. Move slow, breathe into each position."},
+  {icon:"breath",title:"Box breathing reset",meta:"Breath \u00b7 4 min",body:"Inhale 4s, hold 4s, exhale 4s, hold 4s. Repeat for 4 minutes. Lowers heart rate and primes recovery \u2014 great before sleep."},
+  {icon:"moon",title:"Wind-down for deep sleep",meta:"Sleep \u00b7 read",body:"Dim screens 60 min before bed, keep the room cool (18\u00b0C), and hold a consistent sleep window. Sleep is where the adaptation from your training actually happens."}
+];
+const MIND_ICONS={stretch:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4" r="2"/><path d="M12 6v6l-4 6M12 12l4 6M8 10h8"/></svg>',breath:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>',moon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>'};
+function mindDomainHtml(){
+  const rows=MIND_CONTENT.map((c)=>`<details class="card section mind-card"><summary class="mind-sum"><span class="mind-ico">${MIND_ICONS[c.icon]}</span><span class="mind-sum-main"><span class="mind-sum-title">${c.title}</span><span class="mind-sum-meta">${c.meta}</span></span><span class="mind-chev">\u203a</span></summary><p class="mind-body">${c.body}</p></details>`).join("");
+  return`<div class="dom-row" style="margin-top:18px"><span class="dom-chip dom-mind" aria-hidden="true">${MIND_ICONS.moon}</span><span class="dom-kicker">Mind &amp; recovery</span></div>${activeRecoveryCardHtml()}${rows}`;
+}
 function activeRecoveryCardHtml(){
   const s=activeRecoverySuggestion();
   return`<div class="card section active-recovery-card"><div class="active-recovery-header"><span class="active-recovery-icon">${s.icon}</span><div><div class="active-recovery-title">Suggested Active Recovery</div><div class="active-recovery-subtitle">Today is a rest day — stay moving without stress</div></div></div><div class="active-recovery-body"><div class="active-recovery-name">${s.title}</div><div class="active-recovery-desc">${s.desc}</div></div><details class="info-accordion" style="margin-top:8px"><summary class="info-accordion-sum">Why active recovery?</summary><p style="font-size:11px;color:var(--text3);margin:6px 0 0;line-height:1.45">Light movement on rest days promotes blood flow and nutrient delivery to muscles without creating additional training stress. It speeds recovery and reduces stiffness.</p></details></div>`;
@@ -4667,7 +4677,7 @@ function renderToday(){
   ${miss?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:14px;font-weight:600">Missed ${miss.dayName}. What should we do?</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">How does catch-up work?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">We only ask once per miss unless you use <b style="color:var(--text)">Adjust schedule</b>. Logging on the original day still counts and clears a queued move.</p></details><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:12px"><button type="button" class="btn btn-cta btn-sm" id="miss-move">Move to next training day</button><button type="button" class="btn btn-secondary-solid btn-sm" id="miss-skip">Skip it</button><button type="button" class="btn btn-ghost btn-sm" id="miss-pick">Different day…</button><button type="button" class="btn btn-ghost btn-sm" id="miss-later">Decide later</button></div></div>`:""}
   ${showOffDayCatch?`<div class="card section" style="border-left:3px solid var(--border-lit)"><div style="font-size:13px;font-weight:600">Optional catch-up</div><details class="info-accordion" style="margin-top:6px"><summary class="info-accordion-sum">Why am I seeing this?</summary><p style="font-size:12px;color:var(--text2);margin:8px 0 0;line-height:1.45">No extra work is scheduled for today — totally optional. Add the queued session if you want more: <b style="color:var(--text)">${catchLabel||"Queued session"}</b></p></details><button type="button" class="btn btn-secondary-solid btn-sm" id="catchup-add-today" style="margin-top:8px">Add to today</button></div>`:""}
   ${micro?`<div class="card section" style="border-left:3px solid var(--gold)"><div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:4px">Posture / prehab add-on</div><ol style="margin-left:16px;color:var(--text2);font-size:12px">${micro.map(x=>`<li>${x}</li>`).join("")}</ol></div>`:""}
-  ${!plan.exs.length?`<div class="card section" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>${activeRecoveryCardHtml()}`:""}
+  ${!plan.exs.length?`<div class="card section" style="text-align:center;padding:28px"><p style="font-size:15px;color:var(--text);font-weight:700;margin-bottom:8px">Recovery day</p><p style="font-size:13px;color:var(--text2)">Light walk or easy mobility — optional. Come back on your next scheduled train day.</p></div>${mindDomainHtml()}`:""}
   ${plan.exs.length?`<details class="card section" id="train-ease-panel"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">Program feels too heavy? <span style="font-size:11px;color:var(--text3);font-weight:400">· ease it</span></summary><p style="font-size:12px;color:var(--text2);margin:10px 0;line-height:1.45">Nudge all lift/run adaptation down ~5% and add 5 minutes to your session budget (max 75 min).</p><button type="button" class="btn btn-cta btn-sm" id="train-ease-go">Ease my program</button></details>`:""}
   </div>`;
 }
@@ -4963,6 +4973,74 @@ function buildCoachProps(){
     coached:coachedModeOn(),
     onAction:h=>{if(h.indexOf("cal:")===0){openMaxCalibration(h.slice(4));return}if(h.indexOf("wrapped:")===0){showWeekWrapped();return}location.hash=h}
   };
+}
+// ── Exercise library: a browsable destination for every movement ──
+const LIB_GROUPS=[["all","All"],["chest","Chest"],["back","Back"],["shoulders","Shoulders"],["arms","Arms"],["legs","Legs"],["glutes","Glutes"],["core","Core"],["cardio","Cardio"]];
+function libGroupOf(e){
+  const t=new Set([...(e.tags||[]),...(e.kw||[])].map(x=>String(x).toLowerCase()));
+  const nm=(e.name||"").toLowerCase();
+  if(t.has("run")||/run|interval|tempo|sprint|cardio|rowing machine|erg|bike|cycling|jump rope|burpee/.test(nm))return"cardio";
+  if(t.has("chest")||/bench|push-?up|fly|chest press/.test(nm))return"chest";
+  if(t.has("back")||t.has("pull")||t.has("posterior")||/row|pull|lat|deadlift/.test(nm))return"back";
+  if(t.has("shoulders")||/overhead|shoulder|lateral raise|face pull/.test(nm))return"shoulders";
+  if(t.has("triceps")||t.has("biceps")||/curl|tricep|extension/.test(nm))return"arms";
+  if(t.has("glutes")||/glute|hip thrust|bridge/.test(nm))return"glutes";
+  if(t.has("core")||t.has("abs")||/plank|crunch|leg raise|carry|ab /.test(nm))return"core";
+  if(t.has("legs")||t.has("lower")||t.has("hamstrings")||t.has("quads")||/squat|lunge|leg|calf/.test(nm))return"legs";
+  return "core";
+}
+let _libFilter="all";
+function exerciseLibraryRows(q){
+  const term=(q||"").trim().toLowerCase();
+  const items=EX.filter(e=>{
+    if(_libFilter!=="all"&&libGroupOf(e)!==_libFilter)return false;
+    if(term){const blob=(e.name+" "+(e.tags||[]).join(" ")+" "+(e.kw||[]).join(" ")).toLowerCase();if(!blob.includes(term))return false;}
+    return true;
+  });
+  if(!items.length)return`<p class="lib-empty">No moves match. Try another filter or search.</p>`;
+  const eqIcon=e=>/db|dumbbell/i.test(e.name)?"Dumbbell":/band/i.test(e.name)?"Band":/barbell|bench|squat|deadlift|row/i.test(e.name)?"Barbell":"Bodyweight";
+  return items.map(e=>{
+    const grp=(LIB_GROUPS.find(g=>g[0]===libGroupOf(e))||["","Move"])[1];
+    return`<button type="button" class="lib-row spine-${libGroupOf(e)==="cardio"?"run":"lift"}" data-eid="${e.id}"><span class="lib-row-main"><span class="lib-row-name">${e.name}</span><span class="lib-row-meta">${grp} \u00b7 ${eqIcon(e)}</span></span><span class="lib-row-chev">\u203a</span></button>`;
+  }).join("");
+}
+function openExerciseLibrary(){
+  const host=document.createElement("div");host.className="sp-host lib-overlay";
+  host.innerHTML=`<div class="lib-panel" role="dialog" aria-label="Exercise library">
+    <div class="lib-head"><button type="button" class="sp-close lib-close" aria-label="Close">\u00d7</button><div class="lib-title">Exercise library</div><div class="lib-count">${EX.length} moves</div></div>
+    <div class="lib-search-wrap"><input type="search" id="lib-search" class="lib-search" placeholder="Search moves\u2026" autocomplete="off" aria-label="Search exercises"></div>
+    <div class="lib-filters" id="lib-filters">${LIB_GROUPS.map(([k,l])=>`<button type="button" class="lib-filter ${k===_libFilter?"on":""}" data-g="${k}">${l}</button>`).join("")}</div>
+    <div class="lib-list" id="lib-list">${exerciseLibraryRows("")}</div>
+  </div>`;
+  document.body.appendChild(host);
+  document.body.classList.add("player-open");
+  const list=host.querySelector("#lib-list"),search=host.querySelector("#lib-search");
+  const bindRows=()=>{host.querySelectorAll(".lib-row").forEach(b=>b.onclick=()=>openLibDetail(b.dataset.eid));};
+  const refresh=()=>{list.innerHTML=exerciseLibraryRows(search.value);bindRows();};
+  const close=()=>{host.remove();document.body.classList.remove("player-open");};
+  host.querySelector(".lib-close").onclick=close;
+  host.onclick=e=>{if(e.target===host)close();};
+  search.oninput=refresh;
+  host.querySelectorAll(".lib-filter").forEach(f=>f.onclick=()=>{_libFilter=f.dataset.g;host.querySelectorAll(".lib-filter").forEach(x=>x.classList.toggle("on",x===f));refresh();});
+  bindRows();
+}
+function openLibDetail(eid){
+  const e=exById(eid);if(!e)return;
+  let m={};try{m=exMedia(eid)||{}}catch(x){}
+  const video=m.video?openVideoUrl(m.video):"";
+  const mm=(function(){try{return exMuscles(eid)}catch(x){return null}})();
+  const sheet=document.createElement("div");sheet.className="sp-host sp-sheet-backdrop lib-detail";
+  sheet.innerHTML=`<div class="sp-sheet" role="dialog" aria-label="${e.name}"><div class="sp-sheet-title">${e.name}</div>
+    <p class="sp-cue" style="margin:0 0 12px">${(e.tags||[]).join(" \u00b7 ")}</p>
+    ${(e.howTo&&e.howTo.length)?`<ol class="sp-howto">${e.howTo.slice(0,6).map(s=>`<li>${s}</li>`).join("")}</ol>`:`<p class="sp-cue">No written guide for this one yet.</p>`}
+    ${mm?`<div class="lib-anat">${anatomyContainer(mm)}</div>`:""}
+    ${video?`<a class="sp-video-link" href="${video}" target="_blank" rel="noopener noreferrer">\u25b6 Watch video demo</a>`:""}
+    <button type="button" class="sp-log sp-log-sm lib-detail-close">Back to library</button></div>`;
+  document.body.appendChild(sheet);
+  try{hydrateAnatomyTargets(sheet)}catch(x){}
+  const close=()=>sheet.remove();
+  sheet.onclick=ev=>{if(ev.target===sheet)close();};
+  sheet.querySelector(".lib-detail-close").onclick=close;
 }
 // ── "Your Week" Wrapped: shareable weekly recap overlay ──
 function buildWeekWrapped(){
@@ -5924,6 +6002,7 @@ function renderPlanTab(){
     </div>
     <p style="font-size:11px;color:var(--text3);margin:10px 0 0;line-height:1.5">Every dial reshapes upcoming sessions instantly — your logs and progress carry over.</p>
   </div>
+  <button type="button" class="btn btn-ghost btn-block" id="open-exercise-library" style="margin-top:4px">Browse the exercise library</button>
   <p class="wk7-note">${coachedModeOn()?"Life happens — move or skip any day with Adjust week. The program bends, it never breaks.":"Days follow your real calendar (overrides + standing template honored). Adjust week edits per-date slots and equipment."}</p>
   </div>`;
   return`<div class="page-head"><div class="page-kicker">Plan</div></div><div class="dom-row"><span class="dom-chip dom-plan" aria-hidden="true">${IC.cal}</span><span class="dom-kicker">Your schedule</span></div><div class="subtab-row" role="tablist" aria-label="Plan views"><button type="button" class="subtab ${planSub==="week"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="week"}" data-s="week">This week</button><button type="button" class="subtab ${planSub==="block"?"on":""} plan-sub" role="tab" aria-selected="${planSub==="block"}" data-s="block">13-week block</button></div><div id="plan-inner">${inner}</div>`;
@@ -5933,6 +6012,7 @@ function bindPlanTab(){
   document.querySelectorAll(".plan-sub").forEach(b=>b.onclick=()=>{planSub=b.dataset.s;render()});
   if(planSub==="block"){mountPlanTab();return}
   const aw=document.getElementById("plan-adjust-week");if(aw)aw.onclick=()=>openSchedulePlanner();
+  {const lb=document.getElementById("open-exercise-library");if(lb)lb.onclick=()=>openExerciseLibrary();}
   {const dp=document.getElementById("dial-priority");if(dp)dp.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),primaryGoal:dp.value||""};await persist();render();toast(dp.value?`Priority: ${dp.value} — sessions re-weighted.`:"Balancing all goals.");};}
   {const dm=document.getElementById("dial-mins");if(dm)dm.onchange=async()=>{S.schedule.sessionMin=Number(dm.value)||45;await persist();render();toast(`Sessions sized for ~${dm.value} min.`);};}
   {const ds=document.getElementById("dial-style");if(ds)ds.onchange=async()=>{S.profile.prefs={...(S.profile.prefs||{}),style:ds.value};await persist();render();toast(ds.value==="burner"?"Burner style — short and sharp.":"Balanced strength + cardio.");};}
@@ -5997,6 +6077,15 @@ async function planReorderExercise(dateIso,fromEid,toEid){
 // ═══════════════════════════════════════════════════════════
 // At-a-glance preview of any of the 128 programs: session types this week +
 // the 13-week phase arc + quick tags. Updates live as the plan dropdown changes.
+const COVER_ART={strength:["#f06844","#7a2f1c"],hybrid:["#4c9ff0","#123a63"],fat_loss:["#f0687f","#6b1f2e"],muscle:["#9b7bff","#3a2a6b"],beginner:["#4fc79a","#1c5c46"],powerlifting:["#e0b25c","#6b4f1f"],endurance:["#67c3e8","#1c4a5c"],hybrid_runner:["#4fc7ae","#1c5c50"]};
+function planCoverHtml(plan){
+  const c=COVER_ART[plan.goal]||["#6b7280","#2b2f36"];
+  const run=plan.goal==="endurance"||plan.goal==="hybrid_runner";
+  const emblem=run?IC.run:'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5a2 2 0 0 0-3 0L2 8l4.5 4.5M17.5 6.5a2 2 0 0 1 3 0L22 8l-4.5 4.5"/><path d="M2 12h20"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4"/></svg>';
+  const gn=plan.name.split(" \u00b7 ")[0];
+  const variant=plan.variant==="sculpt"?"Sculpt":"Classic";
+  return`<div class="pp-cover" style="background:linear-gradient(145deg,${c[0]},${c[1]})"><div class="pp-cover-emblem">${emblem}</div><div class="pp-cover-name">${gn}</div><div class="pp-cover-sub">${variant} \u00b7 ${plan.slots.length}-day program</div></div>`;
+}
 function planPreviewHtml(pid){
   const plan=PLANS[pid];if(!plan)return"";
   const goal=plan.goal;
@@ -6017,6 +6106,7 @@ function planPreviewHtml(pid){
   let phases="";
   try{phases=`${goalPhaseLabel(goal,1)} → ${goalPhaseLabel(goal,5)} → ${goalPhaseLabel(goal,9)} → ${goalPhaseLabel(goal,13)}${peakIsMaxTest(goal)?" (max test)":""}`;}catch(e){phases="";}
   return`<div class="plan-preview">
+    ${planCoverHtml(plan)}
     <div class="pp-tags">${tags.map(t=>`<span class="pp-tag">${t}</span>`).join("")}</div>
     <div class="pp-label">A week in this program</div>
     <div class="pp-sessions">${sessionRows}</div>
