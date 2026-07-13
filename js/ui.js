@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h3d62bbd25a1e";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h142d3f732864";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h3d62bbd25a1e";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h3d62bbd25a1e";
+} from "./programming.js?v=h142d3f732864";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h142d3f732864";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -1247,7 +1247,21 @@ function programWeekForDate(dateIso){
   const wa=ensureWeekAnchor();
   return weekFromAnchor(wa.iso,wa.week,dateIso,13);
 }
-function autoWeek(){S.program.week=programWeekForDate(iso());}
+function autoWeek(){
+  const p=S.program&&S.program.pause;
+  if(p&&p.until&&iso()>=p.until){
+    // The break is over. New-code pauses hold the week anchor for the whole
+    // break (they carry prevAnchorIso). Pre-fix pauses only shifted the start
+    // date, so the week advanced through the break — reclaim those days once so
+    // you resume exactly where you left off, not a week ahead.
+    if(p.days&&!p.prevAnchorIso){
+      try{const wa=ensureWeekAnchor();wa.iso=shiftIso(wa.iso,p.days);}catch(e){}
+    }
+    delete S.program.pause;
+    try{persist();}catch(e){}
+  }
+  S.program.week=programWeekForDate(iso());
+}
 function trainingDatesForIndexRange(startG,endG){
   const anchor=firstTrainingIsoOnOrAfter(S.program.start);
   if(!anchor||startG>endG)return[];
@@ -1397,9 +1411,16 @@ function daysBetweenIso(aIso,bIso){return Math.round((parseIsoNoon(bIso).getTime
 function isProgramPaused(){const p=S.program&&S.program.pause;return!!(p&&p.until&&iso()<p.until);}
 async function pauseProgram(days){
   const n=Math.max(1,Math.min(60,Number(days)||0));if(!n)return;
+  // Hold BOTH the session schedule (start) AND the program week (weekAnchor) for
+  // the break — the week is anchor-driven (weekFromAnchor), and the workout
+  // CONTENT for each date is picked by that week, so both must move together or
+  // you resume a week ahead.
+  const wa=ensureWeekAnchor();
   const prevStart=(S.program&&S.program.start)||iso();
+  const prevAnchorIso=wa.iso;
   S.program.start=shiftIso(prevStart,n);
-  S.program.pause={from:iso(),until:shiftIso(iso(),n),days:n,prevStart};
+  wa.iso=shiftIso(prevAnchorIso,n);
+  S.program.pause={from:iso(),until:shiftIso(iso(),n),days:n,prevStart,prevAnchorIso};
   await persist();render();
   toast(`Program paused for ${n} day${n!==1?"s":""} — back on ${parseIsoNoon(S.program.pause.until).toLocaleDateString(undefined,{month:"short",day:"numeric"})}. Enjoy the break.`);
 }
@@ -1407,7 +1428,12 @@ async function resumeProgramNow(){
   const p=S.program&&S.program.pause;if(!p)return;
   const elapsed=Math.max(0,Math.min(p.days,daysBetweenIso(p.from,iso())));
   const unused=p.days-elapsed;
-  if(unused>0)S.program.start=shiftIso(S.program.start,-unused);
+  if(unused>0){
+    // Coming back early — reclaim the unused break days on both the schedule and
+    // the week anchor so you don't lose the days you didn't take.
+    S.program.start=shiftIso(S.program.start,-unused);
+    if(p.prevAnchorIso){const wa=ensureWeekAnchor();wa.iso=shiftIso(wa.iso,-unused);}
+  }
   delete S.program.pause;
   await persist();render();
   toast("Welcome back — program resumed.");
