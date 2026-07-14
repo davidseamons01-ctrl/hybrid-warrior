@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h142d3f732864";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h10dec0d23bff";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h142d3f732864";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h142d3f732864";
+} from "./programming.js?v=h10dec0d23bff";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h10dec0d23bff";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -1247,19 +1247,41 @@ function programWeekForDate(dateIso){
   const wa=ensureWeekAnchor();
   return weekFromAnchor(wa.iso,wa.week,dateIso,13);
 }
+// Ground-truth current week from the START DATE (never the anchor) — calendar
+// weeks since the first training day, which is robust to how many days/week you
+// train and correctly reflects a pause (pause shifts start forward). Used to
+// detect and repair a corrupted anchor. Returns null if uncomputable.
+function scheduleDerivedWeek(){
+  try{
+    const first=firstTrainingIsoOnOrAfter(S.program.start);
+    if(!first)return null;
+    const d=daysBetweenIso(first,iso());
+    if(d<0)return 1;
+    return Math.max(1,Math.min(13,Math.floor(d/7)+1));
+  }catch(e){return null;}
+}
 function autoWeek(){
+  // Pure: never persist or mutate program timing from inside render (that path
+  // caused a feedback loop that walked the week anchor into the future).
+  // Clear a pause whose window has elapsed (in-memory; saved on next real save).
   const p=S.program&&S.program.pause;
-  if(p&&p.until&&iso()>=p.until){
-    // The break is over. New-code pauses hold the week anchor for the whole
-    // break (they carry prevAnchorIso). Pre-fix pauses only shifted the start
-    // date, so the week advanced through the break — reclaim those days once so
-    // you resume exactly where you left off, not a week ahead.
-    if(p.days&&!p.prevAnchorIso){
-      try{const wa=ensureWeekAnchor();wa.iso=shiftIso(wa.iso,p.days);}catch(e){}
+  if(p&&p.until&&iso()>=p.until)delete S.program.pause;
+  // Self-correct a corrupted week anchor: if it has drifted far from the
+  // schedule-derived truth (and no pause is legitimately holding the program),
+  // re-pin it so a bad anchor can never strand you on the wrong / a repeating
+  // training week.
+  try{
+    if(!isProgramPaused()&&S.program&&S.program.weekAnchor){
+      const schedW=scheduleDerivedWeek();
+      if(schedW!=null){
+        const anchorW=programWeekForDate(iso());
+        const anchorFuture=parseIsoNoon(S.program.weekAnchor.iso).getTime()>parseIsoNoon(iso()).getTime();
+        if(anchorFuture||Math.abs(anchorW-schedW)>=3){
+          S.program.weekAnchor={iso:iso(),week:schedW};
+        }
+      }
     }
-    delete S.program.pause;
-    try{persist();}catch(e){}
-  }
+  }catch(e){}
   S.program.week=programWeekForDate(iso());
 }
 function trainingDatesForIndexRange(startG,endG){
