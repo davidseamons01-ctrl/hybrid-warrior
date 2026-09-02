@@ -26,6 +26,7 @@ export interface PlayerExercise {
   howTo: string[];
   videoUrl: string;   // watch URL, "" if none
   plateHtml: string;  // trusted plate-math HTML, "" if none
+  ladder?: number[];  // home-gym: sorted buildable total loads (lb); load steps snap to these
   group: "main" | "finisher";
 }
 
@@ -52,6 +53,7 @@ export interface SessionPlayerProps {
   finisherOffer: string;  // "" when none available / already added
   finisherText: string;   // plan.finisher free text, "" if none
   formatW: (lb: number, isRun: boolean) => string;
+  platesFor?: (lb: number) => string;  // home-gym: live per-side plate breakdown for a load
   actions: SessionPlayerActions;
 }
 
@@ -132,8 +134,21 @@ function SessionPlayer(p: SessionPlayerProps) {
 
   const adj = (kind: "w" | "r", dir: 1 | -1) => {
     // First press of + on an unloaded barbell lift starts at the empty bar (45),
-    // not 0+5 — an uncalibrated lift should never feel broken.
-    if (kind === "w") setWLb((arr) => arr.map((v, i) => (i === idx ? Math.max(0, v === 0 && dir === 1 && ex.plateHtml ? 45 : v + dir * ex.stepLb) : v)));
+    // not 0+5 — an uncalibrated lift should never feel broken. Home-gym lifts
+    // snap along the ladder of loads their actual bar + plates can build.
+    if (kind === "w") setWLb((arr) => arr.map((v, i) => {
+      if (i !== idx) return v;
+      const lad = ex.ladder;
+      if (lad && lad.length) {
+        if (v <= 0) return dir === 1 ? lad[0] : 0;
+        let ni = 0, bd = Infinity;
+        for (let k = 0; k < lad.length; k++) { const d = Math.abs(lad[k] - v); if (d < bd) { bd = d; ni = k; } }
+        const cur = lad[ni];
+        let t = Math.abs(cur - v) < 0.05 ? ni + dir : (dir === 1 ? (cur > v ? ni : ni + 1) : (cur < v ? ni : ni - 1));
+        return lad[Math.max(0, Math.min(lad.length - 1, t))];
+      }
+      return Math.max(0, v === 0 && dir === 1 && ex.plateHtml ? 45 : v + dir * ex.stepLb);
+    }));
     else setReps((arr) => arr.map((v, i) => (i === idx ? Math.max(1, v + dir) : v)));
   };
 
@@ -246,7 +261,7 @@ function SessionPlayer(p: SessionPlayerProps) {
             <div class="sp-adjust">
               <button type="button" class="sp-step" aria-label="Decrease load" onClick={() => adj("w", -1)}>−</button>
               <div class="sp-adjust-val">{wLb[idx] === 0 && !ex.isRun
-                ? <><b>BW</b><span>{ex.plateHtml ? "tap + to load the bar" : "bodyweight"}</span></>
+                ? <><b>BW</b><span>{(ex.plateHtml || (ex.ladder && ex.ladder.length)) ? "tap + to load the bar" : "bodyweight"}</span></>
                 : <><b>{p.formatW(wLb[idx], ex.isRun)}</b><span>{ex.isRun ? "pace" : "load"}</span></>}</div>
               <button type="button" class="sp-step" aria-label="Increase load" onClick={() => adj("w", 1)}>+</button>
             </div>
@@ -256,7 +271,7 @@ function SessionPlayer(p: SessionPlayerProps) {
               <button type="button" class="sp-step" aria-label="Increase reps" onClick={() => adj("r", 1)}>+</button>
             </div>
           </div>
-          {ex.plateHtml ? <div class="sp-plates" dangerouslySetInnerHTML={{ __html: ex.plateHtml }} /> : null}
+          {(() => { const html = (ex.ladder && ex.ladder.length && p.platesFor) ? p.platesFor(wLb[idx]) : ex.plateHtml; return html ? <div class="sp-plates" dangerouslySetInnerHTML={{ __html: html }} /> : null; })()}
           <div class="sp-feel-row" role="radiogroup" aria-label="How did that feel">
             {FEELS.map(([v, coachedLbl, proLbl]) => (
               <button key={v} type="button" role="radio" aria-checked={feel === v} class={`sp-feel ${feel === v ? "on" : ""}`} onClick={() => setFeel(v)}>{p.coached ? coachedLbl : proLbl}</button>

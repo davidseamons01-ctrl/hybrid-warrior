@@ -1538,7 +1538,25 @@ function SessionPlayer(p3) {
     setPhase("rest");
   };
   const adj = (kind, dir) => {
-    if (kind === "w") setWLb((arr) => arr.map((v3, i4) => i4 === idx ? Math.max(0, v3 === 0 && dir === 1 && ex.plateHtml ? 45 : v3 + dir * ex.stepLb) : v3));
+    if (kind === "w") setWLb((arr) => arr.map((v3, i4) => {
+      if (i4 !== idx) return v3;
+      const lad = ex.ladder;
+      if (lad && lad.length) {
+        if (v3 <= 0) return dir === 1 ? lad[0] : 0;
+        let ni = 0, bd = Infinity;
+        for (let k3 = 0; k3 < lad.length; k3++) {
+          const d3 = Math.abs(lad[k3] - v3);
+          if (d3 < bd) {
+            bd = d3;
+            ni = k3;
+          }
+        }
+        const cur = lad[ni];
+        let t3 = Math.abs(cur - v3) < 0.05 ? ni + dir : dir === 1 ? cur > v3 ? ni : ni + 1 : cur < v3 ? ni : ni - 1;
+        return lad[Math.max(0, Math.min(lad.length - 1, t3))];
+      }
+      return Math.max(0, v3 === 0 && dir === 1 && ex.plateHtml ? 45 : v3 + dir * ex.stepLb);
+    }));
     else setReps((arr) => arr.map((v3, i4) => i4 === idx ? Math.max(1, v3 + dir) : v3));
   };
   const openSwap = async () => {
@@ -1678,7 +1696,7 @@ function SessionPlayer(p3) {
           /* @__PURE__ */ u3("button", { type: "button", class: "sp-step", "aria-label": "Decrease load", onClick: () => adj("w", -1), children: "\u2212" }),
           /* @__PURE__ */ u3("div", { class: "sp-adjust-val", children: wLb[idx] === 0 && !ex.isRun ? /* @__PURE__ */ u3(S, { children: [
             /* @__PURE__ */ u3("b", { children: "BW" }),
-            /* @__PURE__ */ u3("span", { children: ex.plateHtml ? "tap + to load the bar" : "bodyweight" })
+            /* @__PURE__ */ u3("span", { children: ex.plateHtml || ex.ladder && ex.ladder.length ? "tap + to load the bar" : "bodyweight" })
           ] }) : /* @__PURE__ */ u3(S, { children: [
             /* @__PURE__ */ u3("b", { children: p3.formatW(wLb[idx], ex.isRun) }),
             /* @__PURE__ */ u3("span", { children: ex.isRun ? "pace" : "load" })
@@ -1694,7 +1712,10 @@ function SessionPlayer(p3) {
           /* @__PURE__ */ u3("button", { type: "button", class: "sp-step", "aria-label": "Increase reps", onClick: () => adj("r", 1), children: "+" })
         ] })
       ] }),
-      ex.plateHtml ? /* @__PURE__ */ u3("div", { class: "sp-plates", dangerouslySetInnerHTML: { __html: ex.plateHtml } }) : null,
+      (() => {
+        const html = ex.ladder && ex.ladder.length && p3.platesFor ? p3.platesFor(wLb[idx]) : ex.plateHtml;
+        return html ? /* @__PURE__ */ u3("div", { class: "sp-plates", dangerouslySetInnerHTML: { __html: html } }) : null;
+      })(),
       /* @__PURE__ */ u3("div", { class: "sp-feel-row", role: "radiogroup", "aria-label": "How did that feel", children: FEELS.map(([v3, coachedLbl, proLbl]) => /* @__PURE__ */ u3("button", { type: "button", role: "radio", "aria-checked": feel === v3, class: `sp-feel ${feel === v3 ? "on" : ""}`, onClick: () => setFeel(v3), children: p3.coached ? coachedLbl : proLbl }, v3)) }),
       /* @__PURE__ */ u3("button", { type: "button", class: "sp-log", onClick: logCurrent, disabled: busy, children: busy ? "Saving\u2026" : "Log set" }),
       /* @__PURE__ */ u3("div", { class: "sp-secondary-row", children: [

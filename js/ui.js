@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════
-import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h10dec0d23bff";
+import { EX, exById, EX_MEDIA, EX_MEDIA_FEMALE, EX_QUICK_DEMO_VIDEO, EX_MUSCLE_IDS } from "./exercises.js?v=h96dd53d0e4f3";
 import {
   goalFromFocus, equipmentSet as equipSetOf, substituteEid, exerciseNeeds,
   wkFactorFor, phaseRepsFor, phaseSetsFor, peakIsMaxTest, phaseLabel as goalPhaseLabel,
@@ -13,8 +13,8 @@ import {
   paceZonesFromBenchmark, latestBenchmark, progressiveDistance,
   steadyRun, longRun, intervalSession, fartlek, progressionRun, recoveryRun, mindfulRun, benchmarkWorkout,
   calendarBlockWeek, weekFromAnchor, weekDates, defaultPlacement, overridesFromBoard, dowOf, DOW_LABELS
-} from "./programming.js?v=h10dec0d23bff";
-import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h10dec0d23bff";
+} from "./programming.js?v=h96dd53d0e4f3";
+import { mountSocial, mountProfileSettings, mountPlan, mountExerciseCard, mountReadinessCard, mountSessionFeelCard, mountWarmupChecklist, mountWorkoutToolsCard, mountFocusShell, mountSessionSummary, mountPersonalRecords, mountStrengthProgress, mountTrainingHeatmap, mountAchievements, mountBodyMetrics, mountPartnerApp, mountSchedulePlanner,mountSessionPlayer,unmountSessionPlayer,mountCoachCard,mountCalibrationSheet} from "./ui-components.js?v=h96dd53d0e4f3";
 
 const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const TAB_TRAIN="train",TAB_PLAN="plan",TAB_PROGRESS="progress",TAB_YOU="you",TAB_SOCIAL="social";
@@ -83,7 +83,7 @@ function activeTrainIso(){
 }
 const DEF={
   v:7,
-  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,neckCirc:0,onboarded:false,prefs:{equipment:"gym",equipmentInv:null,experienceMonths:0,primaryGoal:"",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"light",units:"imperial",quickSessionMin:0,uiMode:"",accentTheme:""}},
+  profile:{name:"",sex:"male",age:24,height:70,bench1RM:0,squat1RM:0,dead1RM:0,run4mi:0,weight:0,startWt:0,goalWt:0,waist:0,hips:0,shoulders:0,bodyFat:0,neckCirc:0,onboarded:false,prefs:{equipment:"gym",equipmentInv:null,experienceMonths:0,primaryGoal:"",style:"balanced",lifeStage:"general",barrier:"none",womenMode:"auto",appearance:"light",units:"imperial",quickSessionMin:0,uiMode:"",accentTheme:"",homeGym:null}},
   goals:{bench:0,squat:0,deadlift:0,fiveK:0,fatLoss:0,focusAreas:[]},
   schedule:{days:[1,2,3,4,5],sessionMin:45},
   scheduleAdjust:{catchUpQueue:[],missChoices:{},missSnoozed:{},extraTrainingIso:null,catchUpClearedDate:null},
@@ -103,6 +103,7 @@ const DEF={
   warmupDoneByDate:{},
   exerciseOrderByDate:{},
   scheduleOverrides:{},
+  homeSessionByDate:{},
   sessionReadinessByDate:{},
   exerciseNotes:{},
   shoes:[],
@@ -1935,6 +1936,76 @@ function startRestTimer(sec,nameHint,subLabel){
   restEndMs=Date.now()+Math.max(10,sec)*1000;
   const tick=()=>{const left=restEndMs-Date.now();tim.textContent=formatRestMs(left);if(left<=0){stopRestTimer();triggerHaptic("heavy");announceNextExercise();toast("Rest finished")}};
   tick();if(restTimerId)clearInterval(restTimerId);restTimerId=setInterval(tick,400);
+}
+// ── Home-gym loading: custom bar + finite plate inventory (kg or lb), snap
+//    each prescribed weight to the nearest total you can actually build. ──
+function defaultHomeGym(){
+  return{enabled:true,barLb:45,plateUnit:"lb",plates:[{w:45,pairs:2},{w:25,pairs:1},{w:10,pairs:1},{w:5,pairs:1},{w:2.5,pairs:1}],capLb:0};
+}
+function homeGymCfg(){const hg=(S.profile.prefs||{}).homeGym;return hg&&hg.plates?hg:null;}
+function plateWtToLb(w,unit){return unit==="kg"?w*LB_PER_KG:w;}
+// Nearest buildable total to targetLb → {total, perSideLb, plates:[{w,n}], unit, bar}.
+// cfg defaults to the saved config; the setup gate passes an uncommitted one to preview.
+function homeGymSolve(targetLb,cfg){
+  const hg=cfg||homeGymCfg();if(!hg||!hg.plates)return null;
+  const bar=Number(hg.barLb)||45;const unit=hg.plateUnit==="kg"?"kg":"lb";
+  const plates=(hg.plates||[]).map(p=>({w:Number(p.w)||0,lb:plateWtToLb(Number(p.w)||0,unit),pairs:Math.max(0,Math.floor(Number(p.pairs)||0))})).filter(p=>p.lb>0&&p.pairs>0).sort((a,b)=>b.lb-a.lb);
+  // reachable per-side sums (bounded knapsack) → smallest plate-count combo.
+  // Keys are per-side lb sums (rounded to 0.01), NOT ×100 integers — the
+  // accumulation reads the key back as a running total, so it must stay in lb.
+  const reach=new Map();reach.set(0,[]);
+  for(const p of plates){
+    for(const [sum,combo] of [...reach.entries()]){
+      for(let n=1;n<=p.pairs;n++){
+        const key=Math.round((sum+n*p.lb)*100)/100;
+        if(!reach.has(key))reach.set(key,[...combo,{w:p.w,n}]);
+      }
+    }
+  }
+  const cap=Number(hg.capLb)||0;
+  let best=null;
+  for(const [perSide,combo] of reach.entries()){
+    const total=bar+2*perSide;
+    if(cap&&total>cap+1e-6)continue;
+    if(!best||Math.abs(total-targetLb)<Math.abs(best.total-targetLb)-1e-6||(Math.abs(Math.abs(total-targetLb)-Math.abs(best.total-targetLb))<1e-6&&total<best.total))best={total,perSide,combo};
+  }
+  return best?{total:Math.round(best.total*10)/10,perSideLb:best.perSide,plates:best.combo,unit,bar}:null;
+}
+// Sorted list of all buildable totals (lb) — the "ladder" the player steps along.
+function homeGymLadder(cfg){
+  const hg=cfg||homeGymCfg();if(!hg||!hg.plates)return[];
+  const bar=Number(hg.barLb)||45;const unit=hg.plateUnit==="kg"?"kg":"lb";
+  const plates=(hg.plates||[]).map(p=>({lb:plateWtToLb(Number(p.w)||0,unit),pairs:Math.max(0,Math.floor(Number(p.pairs)||0))})).filter(p=>p.lb>0&&p.pairs>0);
+  let sums=new Set([0]);
+  for(const p of plates){const cur=[...sums];for(const s of cur){for(let n=1;n<=p.pairs;n++)sums.add(Math.round((s+n*p.lb)*100)/100);}}
+  const cap=Number(hg.capLb)||0;
+  const totals=[...sums].map(s=>Math.round((bar+2*s)*10)/10).filter(t=>!cap||t<=cap+1e-6).sort((a,b)=>a-b);
+  const out=[];for(const t of totals){if(!out.length||t-out[out.length-1]>0.05)out.push(t);}return out;
+}
+function homeGymPlateText(targetLb,cfg){
+  const s=homeGymSolve(targetLb,cfg);if(!s)return"";
+  if(!s.plates.length)return`Empty bar (${Math.round(s.bar*10)/10} lb)`;
+  const per=s.plates.map(p=>`${p.n>1?p.n+"×":""}${p.w}${s.unit}`).join(" + ");
+  const totalDisp=useMetric()?`${Math.round(s.total/LB_PER_KG*10)/10} kg`:`${Math.round(s.total*10)/10} lb`;
+  return`${per} per side · ${totalDisp}`;
+}
+// Same visual language as inlinePlateMathHtml, but for the user's own bar/plates.
+function homeGymPlateInlineHtml(targetLb){
+  const s=homeGymSolve(targetLb);if(!s)return"";
+  const barDisp=`${Math.round(s.bar*10)/10} lb bar`;
+  const body=s.plates.length?`Per side: <b style="color:var(--text)">${s.plates.map(p=>`${p.n>1?p.n+"×":""}${p.w}${s.unit}`).join(" + ")}</b> <span style="color:var(--text3)">(${barDisp})</span>`:`<b style="color:var(--text)">Empty bar</b> <span style="color:var(--text3)">(${barDisp})</span>`;
+  return`<div class="ex-plate-inline" style="font-size:11px;color:var(--text2);margin-top:4px;display:flex;align-items:center;gap:5px;line-height:1.3"><span aria-hidden="true">🏠</span><span>${body}</span></div>`;
+}
+function snapToLadder(lb,ladder){
+  if(!ladder||!ladder.length)return lb;
+  let best=ladder[0],bd=Infinity;
+  for(const v of ladder){const d=Math.abs(v-lb);if(d<bd-1e-9||(Math.abs(d-bd)<1e-9&&v<best)){bd=d;best=v;}}
+  return best;
+}
+// Today is a home-gym session only if the user marked it so AND a bar/plate config exists.
+function isHomeSessionToday(){
+  const iso=activeTrainIso();const m=S.homeSessionByDate||{};
+  return m[iso]===true && !!homeGymCfg();
 }
 function calcPlatesPerSide(totalLb,barLb){
   if(totalLb<=0)return{ok:true,plates:[],perSide:0,note:""};
@@ -4719,6 +4790,7 @@ function renderToday(){
     <button type="button" class="chip-action" id="train-reschedule">${IC.cal} Reschedule week</button>
     <button type="button" class="chip-action" id="train-bring-friend">${IC.users} Train with a friend</button>
     ${plan.exs.length?`<button type="button" class="chip-action" id="today-preview-map">${IC.target} Muscles worked</button>`:""}
+    ${plan.exs.length&&Object.prototype.hasOwnProperty.call(S.homeSessionByDate||{},dayIso)?`<button type="button" class="chip-action" id="today-home-gym">${S.homeSessionByDate[dayIso]?"🏠 Home gym":"🏋️ Gym"} · Change</button>`:""}
   </div>
   ${plan.exs.length?`<details class="card section" id="today-impact-fold"><summary style="font-size:13px;font-weight:600;cursor:pointer;list-style:none">What today works <span style="font-size:11px;color:var(--text3);font-weight:400">· muscle map${meta?" & coaching notes":""}</span></summary><div class="fig-wrap" style="margin-top:10px"><div class="fig-title">Combined stimulus</div>${anatomyContainer(zones)}<div class="fig-legend"><span><span class="dot" style="background:#00e676;opacity:1"></span>Primary</span><span><span class="dot" style="background:#00e676;opacity:.72"></span>Secondary</span><span><span class="dot" style="background:#00e676;opacity:.45"></span>Tertiary</span><span><span class="dot" style="background:#ff6b35;opacity:.65"></span>Burn</span></div></div>${meta?`<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px"><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Target:</b> ${meta.muscles}</div><div style="font-size:12px;color:var(--text2);margin-bottom:4px"><b style="color:var(--text)">Purpose:</b> ${meta.why}</div><div style="font-size:12px;color:var(--text2)"><b style="color:var(--text)">Progress:</b> ${meta.expect}</div></div>`:""}${planHasRun(plan)?`<div style="margin-top:12px">${runZonesPanelHtml()}</div>`:""}</div></details>`:""}
   ${catchBanner?`<div class="session-banner" role="status">Catch-up session loaded — this is the workout that moved from a missed day. Log when done; the queue clears after you train.</div>`:""}
@@ -5278,14 +5350,19 @@ async function playerLogSet(exd,data){
 }
 function buildSessionPlayerProps(){
   const plan=todayPlanFiltered();const dayIso=activeTrainIso();
+  const homeSess=isHomeSessionToday();
+  const ladder=homeSess?homeGymLadder():[];
   const exercises=plan.exs.map(ex=>{
     const e=exById(ex.eid);const name=e?e.name:ex.eid;
     const run=isRunExerciseName(name);
+    const barbell=!run&&exerciseNeeds(ex.eid)==="barbell";
+    const homeBar=homeSess&&barbell&&ladder.length>0;
     const doneSets=(S.logs||[]).filter(l=>l.date===dayIso&&l.exercise===name).length;
-    const lastW=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?Number(S.lastLiftByEid[ex.eid]):(Number(ex.target)||0);
+    let lastW=(S.lastLiftByEid&&S.lastLiftByEid[ex.eid]!=null)?Number(S.lastLiftByEid[ex.eid]):(Number(ex.target)||0);
+    if(homeBar&&lastW>0)lastW=snapToLadder(lastW,ladder); // open on a load this bar+plates can actually build
     let m={};try{m=exMedia(ex.eid)||{};}catch(e2){}
-    let plateHtml="";try{plateHtml=run?"":(inlinePlateMathHtml(ex)||"");}catch(e3){}
-    return{eid:ex.eid,origEid:ex.originalEid||ex.eid,name,sets:Math.max(1,Number(ex.sets)||1),reps:Number(ex.reps)||(run?20:8),tReps:Number(ex.reps)||0,target:Number(ex.target)||0,weightLb:lastW,stepLb:run?5:Math.max(1,Number(e&&e.increment)||5),restSec:e&&e.rest?parseRestSec(e.rest):90,isRun:run,runTempo:run&&isRunTempoStyle(ex),doneSets,cue:(e&&e.howTo&&e.howTo[0])?String(e.howTo[0]).slice(0,120):"",rx:formatPrescribedRx(ex),howTo:(e&&e.howTo)?e.howTo.slice(0,6).map(String):[],videoUrl:m.video?openVideoUrl(m.video):"",plateHtml,group:ex._abFinisher?"finisher":"main"};
+    let plateHtml="";try{plateHtml=run?"":(homeBar?homeGymPlateInlineHtml(lastW):(inlinePlateMathHtml(ex)||""));}catch(e3){}
+    return{eid:ex.eid,origEid:ex.originalEid||ex.eid,name,sets:Math.max(1,Number(ex.sets)||1),reps:Number(ex.reps)||(run?20:8),tReps:Number(ex.reps)||0,target:Number(ex.target)||0,weightLb:lastW,stepLb:run?5:Math.max(1,Number(e&&e.increment)||5),restSec:e&&e.rest?parseRestSec(e.rest):90,isRun:run,runTempo:run&&isRunTempoStyle(ex),doneSets,cue:(e&&e.howTo&&e.howTo[0])?String(e.howTo[0]).slice(0,120):"",rx:formatPrescribedRx(ex),howTo:(e&&e.howTo)?e.howTo.slice(0,6).map(String):[],videoUrl:m.video?openVideoUrl(m.video):"",plateHtml,ladder:homeBar?ladder:[],group:ex._abFinisher?"finisher":"main"};
   });
   const wuSteps=plan.warmup?warmupStepsFromPlan(plan.warmup):[];
   const wuState=(S.warmupDoneByDate&&S.warmupDoneByDate[dayIso])||{};
@@ -5298,6 +5375,7 @@ function buildSessionPlayerProps(){
     finisherOffer:abAvail?"Add 5-min core finisher":"",
     finisherText:String(plan.finisher||""),
     formatW:(lb,isRun)=>isRun?(paceSecPerMiDisplay(lb)+"/mi"):formatLoadLbText(lb),
+    platesFor:homeSess?(lb=>homeGymPlateInlineHtml(lb)):undefined,
     actions:{logSet:playerLogSet,toggleWarmup:warmupToggle,addFinisher:playerAddFinisher,getAlternatives:playerGetAlternatives,swapExercise:playerSwapExercise,cue:playCue,finish:playerFinish,exit:()=>closeSessionPlayer(true)}
   };
 }
@@ -5323,9 +5401,150 @@ async function playerSwapExercise(exd,altEid){
   }catch(e){}
   return buildSessionPlayerProps().exercises;
 }
-function openSessionPlayer(){
+// ── Home-gym pre-session gate ──────────────────────────────────────────────
+const HG_EQUIP_LABELS={dumbbell:["Dumbbells","fixed or adjustable"],kettlebell:["Kettlebell",""],machine:["Machines / cables","leg press, cable stack, lat pulldown"],bands:["Resistance bands",""],pullup_bar:["Pull-up bar",""],bench:["Bench",""]};
+const HG_PLATE_SIZES={lb:[45,35,25,10,5,2.5],kg:[25,20,15,10,5,2.5,1.25]};
+const HG_DEFAULT_PAIRS={lb:{45:2,25:1,10:1,5:1,2.5:1},kg:{20:2,15:1,10:1,5:1,2.5:1}};
+// Non-barbell, non-bodyweight equipment today's plan calls for → the checklist.
+function homeGymNeedsForToday(){
+  try{
+    const plan=todayPlanFiltered();const seen=new Set();const out=[];
+    for(const ex of (plan.exs||[])){const n=exerciseNeeds(ex.eid);if(n==="barbell"||n==="bodyweight"||seen.has(n))continue;seen.add(n);out.push(n);}
+    return out;
+  }catch(e){return[];}
+}
+// Undo an equipment substitution this gate applied for a date (keeps any real reschedule slot).
+function hgClearEquipOverride(dayIso){
+  const cur=(S.scheduleOverrides||{})[dayIso];if(!cur||!cur.equip)return;
+  const rest={...cur};delete rest.equip;
+  if("slot" in rest)S.scheduleOverrides[dayIso]=rest;else delete S.scheduleOverrides[dayIso];
+}
+function openHomeGymGate(onProceed){
+  const dayIso=activeTrainIso();
+  const host=document.createElement("div");host.className="sp-host";document.body.appendChild(host);
+  const done=()=>{try{host.remove()}catch(e){}try{onProceed&&onProceed()}catch(e2){}};
+  const saved=(S.profile.prefs||{}).homeGym;
+  const st={
+    step:"choose",
+    barLb:saved&&Number(saved.barLb)?Number(saved.barLb):45,
+    unit:saved&&saved.plateUnit==="kg"?"kg":"lb",
+    capDisp:0, // in the selected unit; 0 = no cap
+    pairs:{lb:{...HG_DEFAULT_PAIRS.lb},kg:{...HG_DEFAULT_PAIRS.kg}},
+    avail:{}
+  };
+  if(saved&&Array.isArray(saved.plates)){const u=st.unit;st.pairs[u]={};for(const p of saved.plates){st.pairs[u][Number(p.w)]=Math.max(0,Math.floor(Number(p.pairs)||0));}if(Number(saved.capLb)>0)st.capDisp=st.unit==="kg"?Math.round(saved.capLb/LB_PER_KG*10)/10:Math.round(saved.capLb*10)/10;}
+  const needs=homeGymNeedsForToday();
+  needs.forEach(n=>{st.avail[n]=true;});
+  // working config → the live preview + save
+  const workingCfg=()=>{
+    const u=st.unit;const plates=HG_PLATE_SIZES[u].map(w=>({w,pairs:st.pairs[u][w]||0})).filter(p=>p.pairs>0);
+    const capLb=st.capDisp>0?(u==="kg"?st.capDisp*LB_PER_KG:st.capDisp):0;
+    return{enabled:true,barLb:st.barLb,plateUnit:u,plates,capLb};
+  };
+  const previewHtml=()=>{
+    const cfg=workingCfg();const lad=homeGymLadder(cfg);
+    if(!lad.length)return`<div class="hg-preview">Add at least one pair of plates and your bar builds a ladder of loads to train from.</div>`;
+    const lo=lad[0],hi=lad[lad.length-1];
+    const disp=v=>useMetric()?`${Math.round(v/LB_PER_KG*10)/10} kg`:`${Math.round(v*10)/10} lb`;
+    const sample=[95,135,185].map(t=>{const s=homeGymSolve(t,cfg);return s?`${disp(s.total)} = ${s.plates.length?s.plates.map(p=>`${p.n>1?p.n+"×":""}${p.w}${s.unit}`).join(" + ")+"/side":"empty bar"}`:null;}).filter(Boolean);
+    return`<div class="hg-preview"><b>${lad.length} loads</b> from <b>${disp(lo)}</b> to <b>${disp(hi)}</b> with your ${Math.round(st.barLb*10)/10} lb bar.${sample.length?`<div style="margin-top:6px;color:var(--text3)">Nearest builds · ${sample.join(" · ")}</div>`:""}</div>`;
+  };
+  const render=()=>{
+    let inner="";
+    if(st.step==="choose"){
+      inner=`<div class="hg-kicker">Before you start</div>
+        <div class="hg-title">Where are you training today?</div>
+        <div class="hg-sub">Home gyms rarely have the full rack. Tell us and we'll match today's moves to your gear and do the plate math for your bar.</div>
+        <div class="hg-choice">
+          <button type="button" class="hg-opt" data-act="gym"><span class="hg-opt-ic" aria-hidden="true">🏋️</span><span><span class="hg-opt-tt">At a gym</span><span class="hg-opt-ds">Full equipment — use the plan as written.</span></span></button>
+          <button type="button" class="hg-opt" data-act="home"><span class="hg-opt-ic" aria-hidden="true">🏠</span><span><span class="hg-opt-tt">Home gym</span><span class="hg-opt-ds">Custom bar &amp; plates, limited equipment.</span></span></button>
+        </div>`;
+    }else{
+      const u=st.unit;
+      const plateRows=HG_PLATE_SIZES[u].map(w=>`<div class="hg-plate-row"><div class="hg-plate-name">${w} ${u}<span>per pair</span></div><div class="hg-stepper" data-size="${w}"><button type="button" data-d="-1" aria-label="Fewer">−</button><div class="hg-stepper-v" data-v>${st.pairs[u][w]||0}</div><button type="button" data-d="1" aria-label="More">+</button></div></div>`).join("");
+      const checkRows=needs.length?needs.map(n=>{const L=HG_EQUIP_LABELS[n]||[n,""];return`<label class="hg-check"><input type="checkbox" data-need="${n}" ${st.avail[n]!==false?"checked":""}><span><span class="hg-check-tt">${L[0]}</span>${L[1]?`<span class="hg-check-ds">${L[1]}</span>`:""}</span></label>`;}).join(""):`<div class="hg-section-note">Today's session only needs a barbell and your bodyweight — nothing to swap.</div>`;
+      inner=`<div class="hg-kicker">Home gym setup</div>
+        <div class="hg-title">Your bar &amp; plates</div>
+        <div class="hg-sub">We'll recalculate the exact plates for every set and snap each load to a weight you can actually build.</div>
+        <div class="hg-section">
+          <div class="hg-section-h">Barbell weight</div>
+          <div class="row" style="gap:10px;align-items:center">
+            <input type="number" id="hg-bar" value="${st.barLb}" step="0.5" min="0" style="max-width:130px" inputmode="decimal">
+            <span style="font-size:12px;color:var(--text3)">lb (standard 45 · women's 35 · yours may differ, e.g. 28.5)</span>
+          </div>
+        </div>
+        <div class="hg-section">
+          <div class="hg-section-h" style="display:flex;justify-content:space-between;align-items:center">Plates you own<span class="hg-unit-toggle" id="hg-unit"><button type="button" data-u="lb" class="${u==="lb"?"on":""}">lb</button><button type="button" data-u="kg" class="${u==="kg"?"on":""}">kg</button></span></div>
+          <div class="hg-section-note">Pairs per size (one for each side of the bar).</div>
+          ${plateRows}
+        </div>
+        <div class="hg-section">
+          <div class="hg-section-h">Max total load <span style="font-weight:500;color:var(--text3)">(optional)</span></div>
+          <div class="row" style="gap:10px;align-items:center">
+            <input type="number" id="hg-cap" value="${st.capDisp||""}" step="0.5" min="0" placeholder="no limit" style="max-width:130px" inputmode="decimal">
+            <span style="font-size:12px;color:var(--text3)">${u} — cap the heaviest load we'll program</span>
+          </div>
+        </div>
+        <div class="hg-section">
+          <div class="hg-section-h">Available today</div>
+          <div class="hg-section-note">Uncheck anything you don't have — we'll swap those moves for ones you can do.</div>
+          ${checkRows}
+        </div>
+        ${previewHtml()}
+        <div class="hg-actions">
+          <button type="button" class="btn btn-ghost" data-act="back">Back</button>
+          <button type="button" class="btn btn-cta" data-act="start">Start session</button>
+        </div>`;
+    }
+    host.innerHTML=`<div class="hg-overlay"><div class="hg-sheet" role="dialog" aria-modal="true" aria-label="Session setup">${inner}</div></div>`;
+    bind();
+  };
+  const syncInputs=()=>{
+    const bar=host.querySelector("#hg-bar");if(bar)st.barLb=Math.max(0,Number(bar.value)||0);
+    const cap=host.querySelector("#hg-cap");if(cap)st.capDisp=Math.max(0,Number(cap.value)||0);
+  };
+  const refreshPreview=()=>{const wrap=host.querySelector(".hg-preview");if(wrap){const tmp=document.createElement("div");tmp.innerHTML=previewHtml();wrap.replaceWith(tmp.firstElementChild);}};
+  const bind=()=>{
+    host.querySelectorAll(".hg-opt").forEach(b=>b.addEventListener("click",()=>{
+      const act=b.getAttribute("data-act");
+      if(act==="gym"){if(!S.homeSessionByDate)S.homeSessionByDate={};S.homeSessionByDate[dayIso]=false;hgClearEquipOverride(dayIso);persist();done();}
+      else{st.step="config";render();}
+    }));
+    const back=host.querySelector('[data-act="back"]');if(back)back.addEventListener("click",()=>{st.step="choose";render();});
+    const bar=host.querySelector("#hg-bar");if(bar)bar.addEventListener("input",()=>{st.barLb=Math.max(0,Number(bar.value)||0);refreshPreview();});
+    const cap=host.querySelector("#hg-cap");if(cap)cap.addEventListener("input",()=>{st.capDisp=Math.max(0,Number(cap.value)||0);refreshPreview();});
+    const unit=host.querySelector("#hg-unit");if(unit)unit.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{const nu=b.getAttribute("data-u");if(nu===st.unit)return;syncInputs();st.unit=nu;st.capDisp=0;render();}));
+    host.querySelectorAll(".hg-stepper").forEach(row=>{const size=Number(row.getAttribute("data-size"));row.querySelectorAll("button").forEach(btn=>btn.addEventListener("click",()=>{const u=st.unit;const d=Number(btn.getAttribute("data-d"));st.pairs[u][size]=Math.max(0,Math.min(6,(st.pairs[u][size]||0)+d));const v=row.querySelector("[data-v]");if(v)v.textContent=String(st.pairs[u][size]);refreshPreview();}));});
+    host.querySelectorAll('input[data-need]').forEach(c=>c.addEventListener("change",()=>{st.avail[c.getAttribute("data-need")]=c.checked;}));
+    const start=host.querySelector('[data-act="start"]');if(start)start.addEventListener("click",()=>{syncInputs();commit();});
+  };
+  const commit=()=>{
+    const cfg=workingCfg();
+    if(!S.profile.prefs)S.profile.prefs={};
+    S.profile.prefs.homeGym=cfg;
+    if(!S.homeSessionByDate)S.homeSessionByDate={};
+    S.homeSessionByDate[dayIso]=true;
+    // equipment availability → reuse the flexible-schedule per-day equip override
+    const anyUnavail=needs.some(n=>st.avail[n]===false);
+    if(anyUnavail){
+      const avail=["barbell"].concat(needs.filter(n=>st.avail[n]!==false));
+      const cur=(S.scheduleOverrides||{})[dayIso]||{};
+      let slot=("slot" in cur)?cur.slot:null;
+      if(slot===null||slot===undefined){try{slot=rollingPlanForDate(dayIso).slot;}catch(e){slot=null;}}
+      if(slot!==null&&slot!==undefined){if(!S.scheduleOverrides)S.scheduleOverrides={};S.scheduleOverrides[dayIso]={...cur,slot,equip:avail};}
+    }else{hgClearEquipOverride(dayIso);}
+    persist();
+    toast(needs.some(n=>st.avail[n]===false)?"Set — swapped what you don't have and dialed in your bar.":"Home gym set — loads matched to your bar & plates.");
+    done();
+  };
+  render();
+}
+function openSessionPlayer(skipGate){
   const plan=todayPlanFiltered();
   if(!plan.exs.length){toast("Nothing scheduled today — recovery counts.");return}
+  const dayIso=activeTrainIso();
+  const decided=Object.prototype.hasOwnProperty.call(S.homeSessionByDate||{},dayIso);
+  if(!skipGate&&!decided){openHomeGymGate(()=>openSessionPlayer(true));return}
   ensureWorkoutWakeLock();
   stopRestTimer();
   if(!sessionPlayerHost){sessionPlayerHost=document.createElement("div");sessionPlayerHost.id="session-player-host";document.body.appendChild(sessionPlayerHost)}
@@ -5840,6 +6059,7 @@ function bindToday(){
   {const gg=document.getElementById("greet-settings");if(gg)gg.onclick=()=>{tab=TAB_YOU;youSub="settings";if(location.hash!=="#"+TAB_YOU)location.hash=TAB_YOU;else render();};}
   bindDateStrip();
   {const pm=document.getElementById("today-preview-map");if(pm)pm.onclick=()=>{const f=document.getElementById("today-impact-fold");if(f){f.open=true;f.scrollIntoView({behavior:"smooth",block:"start"})}};}
+  {const hg=document.getElementById("today-home-gym");if(hg)hg.onclick=()=>openHomeGymGate(()=>render());}
   hydrateAnatomyTargets(document.getElementById("p-today")||document);
   const teg=document.getElementById("train-ease-go");
   if(teg)teg.onclick=async()=>{
